@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="yes">Sim</string>
+    <string name="stopService">Parar serviço</string>
+    <string name="no">Não</string>
+    <string name="rpcPort">Porta RPC</string>
+    <string name="rpcToken">Token RPC</string>
+    <string name="outputPath">Caminho de saída</string>
+    <string name="general">Geral</string>
+    <string name="clearLogs">Limpar registros</string>
+    <string name="saveSession">Salvar sessão</string>
+    <string name="saveSession_summary">Salve os downloads periodicamente para que você não os perca quando o serviço é interrompido.</string>
+    <string name="startServiceAtBoot">Iniciar serviço quando o sistema é inicializado</string>
+    <string name="startServiceAtBoot_summary">O serviço será iniciado quando o dispositivo ativar.</string>
+    <string name="customOptions">Opções personalizadas</string>
+    <string name="accessControlAllowOriginAll">Controle de Acesso permite a origem de todos</string>
+    <string name="accessControlAllowOriginAll_summary">Defina <b>cabeçalho</b> Acess-Control-Allow-Origin para <b>*</b>. Você deve ativar isto somente se estiver tentando se conectar a partir de um dispositivo externo.</string>
+    <string name="notification">Notificações</string>
+    <string name="showPerformance">Mostrar estatísticas de desempenho</string>
+    <string name="showPerformance_summary">Mostrar uma notificação persistente quando o serviço estiver em execução.</string>
+    <string name="updateInterval">Intervalo de atualização (seg)</string>
+    <string name="noOpenTree">Nenhum aplicativo encontrado para lidar com esta operação. Por favor, digite o caminho manualmente.</string>
+    <string name="invalidPort">A porta é inválida!</string>
+    <string name="invalidToken">O token é inválido!</string>
+    <string name="invalidOutputPath">O caminho de saída está ausente ou não pode ser escrito!</string>
+    <string name="logTerminated">Terminado com o código de saída %d.</string>
+    <string name="logStarted">Começa em %s</string>
+    <string name="newValue">Novo valor</string>
+    <string name="apply">Aplicar</string>
+    <string name="key">Chave</string>
+    <string name="value">Valor</string>
+    <string name="newOption">Nova opção</string>
+    <string name="unsavedChanges">Existem alterações não salvas</string>
+    <string name="fileNotFound">O arquivo selecionado não pôde ser encontrado!</string>
+    <string name="cannotImport">Não é possível importar o arquivo selecionado!</string>
+    <string name="noCustomOptions">Você não tem opções personalizadas.</string>
+    <string name="done">Feito</string>
+    <string name="failedSavingCustomOptions">Falha ao salvar opções personalizadas!</string>
+    <string name="failedLoadingOptions">Falha ao carregar opções personalizadas!</string>
+    <string name="delete">Excluir</string>
+    <string name="edit">Editar</string>
+    <string name="startServiceWithApp">Iniciar o serviço quando o aplicativo for aberto</string>
+    <string name="startServiceWithApp_summary">O serviço será iniciado quando o aplicativo for aberto.</string>
+    <string name="networkInterfaces">Interfaces de rede</string>
+    <plurals name="customOptions_summary">
+        <item quantity="one">Você tem %d opções personalizadas.</item>
+        <item quantity="other">Você tem %d opções personalizadas.</item>
+    </plurals>
+</resources>

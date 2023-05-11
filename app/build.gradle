@@ -1,0 +1,160 @@
+plugins {
+    id 'com.android.application'
+    id 'org.jetbrains.kotlin.android'
+    id 'kotlin-android'
+    id 'kotlin-kapt'
+    id 'com.google.devtools.ksp'
+    id 'com.google.dagger.hilt.android'
+}
+
+android {
+    namespace 'com.station.stationdownloader'
+    compileSdk 33
+
+    defaultConfig {
+        applicationId "com.station.stationdownloader"
+        minSdk 29
+        targetSdk 33
+        versionCode 1
+        versionName "1.0"
+        javaCompileOptions {
+            annotationProcessorOptions {
+                arguments = ["room.schemaLocation":
+                                     "$projectDir/schemas".toString()]
+            }
+
+        }
+        testInstrumentationRunner "com.station.stationdownloader.CustomTestRunner"
+        ndk {
+            abiFilters "armeabi-v7a"
+        }
+    }
+    signingConfigs {
+        signconfig {
+            keyAlias 'lxp_project'
+            keyPassword '123456'
+            storeFile file('../key/lxpkey.jks')
+            storePassword '123456'
+        }
+    }
+    buildTypes {
+        release {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            signingConfig signingConfigs.signconfig
+        }
+        debug {
+            minifyEnabled false
+            signingConfig signingConfigs.signconfig
+        }
+    }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+    kotlinOptions {
+        jvmTarget = '1.8'
+    }
+
+    buildFeatures {
+        dataBinding true
+    }
+
+
+    applicationVariants.all {
+        variant ->
+            variant.outputs.all {
+                //在这里修改apk文件名，引号内的字符串都可以随便定义
+                outputFileName = "StationDownloader-${variant.name}-v${variant.versionName}-${getTime()}.apk"
+            }
+    }
+
+    sourceSets{
+        main{
+            jniLibs.srcDir(['libs'])
+        }
+    }
+}
+
+def getTime() {
+    return new Date().format("yyyyMMdd-HHmm", TimeZone.getDefault());
+}
+
+
+dependencies {
+    implementation project(':aria2lib')
+    implementation project(':StationTheme')
+    implementation project(':StationKitKt')
+    implementation project(':thunder')
+    implementation 'androidx.core:core-ktx:1.10.1'
+    implementation 'androidx.appcompat:appcompat:1.6.1'
+    implementation 'com.google.android.material:material:1.9.0'
+    testImplementation 'junit:junit:4.13.2'
+    androidTestImplementation 'androidx.test.ext:junit:1.1.5'
+    androidTestImplementation 'androidx.test.espresso:espresso-core:3.5.1'
+
+    /*
+     Fragment KTX 模块提供了一系列扩展程序以简化 Fragment API。
+     还可以使用 viewModels 和 activityViewModels 属性委托在一行中绑定到 ViewModel
+     // Get a reference to the ViewModel scoped to this Fragment
+     val viewModel by viewModels<MyViewModel>()
+     // Get a reference to the ViewModel scoped to its Activity
+     val viewModel by activityViewModels<MyViewModel>()
+     */
+    implementation 'androidx.activity:activity-ktx:1.7.1'
+    implementation 'androidx.fragment:fragment-ktx:1.5.7'
+
+    //Room配置
+    def room_version = "2.5.1"
+    implementation "androidx.room:room-runtime:$room_version"
+    annotationProcessor "androidx.room:room-compiler:$room_version"
+    // To use Kotlin annotation processing tool (kapt)
+    ksp "androidx.room:room-compiler:$room_version"
+    implementation "androidx.room:room-ktx:$room_version"
+    // optional - Test helpers
+    testImplementation "androidx.room:room-testing:$room_version"
+
+
+    def hilt_version = "2.46.1"
+    /*
+    hilt
+    https://developer.android.com/training/dependency-injection/hilt-android?hl=zh-cn
+     */
+    implementation "com.google.dagger:hilt-android:$hilt_version"
+    kapt "com.google.dagger:hilt-android-compiler:$hilt_version"
+    // For Robolectric tests.
+    testImplementation "com.google.dagger:hilt-android-testing:$hilt_version"
+    // ...with Kotlin.
+    kaptTest "com.google.dagger:hilt-android-compiler:$hilt_version"
+    // ...with Java.
+    // For instrumented tests.
+    androidTestImplementation "com.google.dagger:hilt-android-testing:$hilt_version"
+    // ...with Kotlin.
+    kaptAndroidTest "com.google.dagger:hilt-android-compiler:$hilt_version"
+
+    //stetho的核心库
+    implementation 'com.facebook.stetho:stetho:1.6.0'
+
+    //网络
+    implementation 'com.squareup.retrofit2:retrofit:2.9.0'
+    implementation 'com.squareup.retrofit2:converter-moshi:2.9.0'
+    implementation 'com.squareup.okhttp3:okhttp:4.10.0'
+    implementation 'com.squareup.okhttp3:logging-interceptor:4.10.0'
+
+    //MMKV
+    //https://github.com/Tencent/MMKV/blob/master/README_CN.md
+    implementation 'com.tencent:mmkv:1.2.14'
+
+    //logger
+    implementation 'com.orhanobut:logger:2.2.0'
+
+}
+
+hilt {
+    enableTransformForLocalTests = true
+}
+//hilt
+// Allow references to generated code
+kapt {
+    correctErrorTypes = true
+}

@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="yes">Yes</string>
+    <string name="stopService">Stop service</string>
+    <string name="no">No</string>
+    <string name="rpcPort">RPC port</string>
+    <string name="rpcToken">RPC token</string>
+    <string name="outputPath">Output path</string>
+    <string name="general">General</string>
+    <string name="clearLogs">Clear logs</string>
+    <string name="saveSession">Save session</string>
+    <string name="saveSession_summary">Save the downloads periodically so that you don\'t lose them when the service is stopped.</string>
+    <string name="startServiceAtBoot">Start service when the system boots</string>
+    <string name="startServiceAtBoot_summary">The service will start when the device turns on.</string>
+    <string name="customOptions">Custom options</string>
+    <string name="accessControlAllowOriginAll">Access Control Allow Origin all</string>
+    <string name="accessControlAllowOriginAll_summary">Set <b>Access-Control-Allow-Origin</b> header to <b>*</b>. You should enable this only if you\'re trying to connect from an external device.</string>
+    <string name="notification">Notification</string>
+    <string name="showPerformance">Show performance</string>
+    <string name="showPerformance_summary">Show a persistent notification when the service is running.</string>
+    <string name="updateInterval">Update interval (sec)</string>
+    <string name="rpc" translatable="false">RPC</string>
+    <string name="noOpenTree">No application found to handle this operation. Please enter the path manually.</string>
+    <string name="invalidPort">The port is invalid!</string>
+    <string name="invalidToken">The token is invalid!</string>
+    <string name="invalidOutputPath">The output path is either missing or not writable!</string>
+    <string name="logTerminated">Terminated with exit code %d.</string>
+    <string name="logStarted">Started: %s</string>
+    <string name="newValue">New value</string>
+    <string name="apply">Apply</string>
+    <string name="key">Key</string>
+    <string name="value">Value</string>
+    <string name="newOption">New option</string>
+    <string name="unsavedChanges">There are unsaved changes</string>
+    <string name="unsavedChanges_message">Some changes you made to the configuration file may have not been saved. Do you want to save them before exiting?</string>
+    <string name="importConfig">Import configuration</string>
+    <string name="fileNotFound">The selected file couldn\'t be found!</string>
+    <string name="cannotImport">Cannot import the selected file!</string>
+    <string name="noCustomOptions">You have no custom options.</string>
+    <string name="done">Done</string>
+    <string name="failedSavingCustomOptions">Failed saving custom options!</string>
+    <string name="failedLoadingOptions">Failed loading custom options!</string>
+    <string name="delete">Delete</string>
+    <string name="edit">Edit</string>
+    <string name="startServiceWithApp">Start service when the app opens</string>
+    <string name="startServiceWithApp_summary">The service will start when the app is opened.</string>
+    <string name="importExport">Import/export</string>
+    <string name="exportConfig">Export configuration</string>
+    <string name="exportSessionFile">Export session</string>
+    <string name="missingFileExplorer">You don\'t have any file browser!</string>
+    <string name="failedExportingConf">Failed exporting configuration!</string>
+    <string name="exportedConfig">Configuration exported successfully in %s!</string>
+    <string name="failedExportingSession">Failed exporting session!</string>
+    <string name="noSession">There is no session file.</string>
+    <string name="exportedSession">Session exported successfully in %s!</string>
+    <string name="importedConfig">Configuration imported successfully!</string>
+    <string name="networkInterfaces">Network interfaces</string>
+    <string name="checkCertificate">Check certificate</string>
+    <string name="checkCertificate_summary">Whether to use the certificate authorities to verify the peers.</string>
+    <string name="listenAllInterfaces">Listen on all interfaces</string>
+    <string name="listenAllInterfaces_summary">Listening on all interfaces will exposes aria2 to the external network you are connected to.</string>
+    <plurals name="customOptions_summary">
+        <item quantity="zero">You have no custom options.</item>
+        <item quantity="one">You have one custom option.</item>
+        <item quantity="other">You have %d custom options.</item>
+    </plurals>
+</resources>

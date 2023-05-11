@@ -1,0 +1,3 @@
+[submodule "StationTheme"]
+	path = StationTheme
+	url = ssh://git@git.t-firefly.com:8022/stationosapp/stationostheme.git
