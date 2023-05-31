@@ -1,5 +1,6 @@
 package com.station.stationdownloader.data.datasource.engine
 
+import com.station.stationdownloader.data.IResult
 import com.station.stationdownloader.data.datasource.model.StationDownloadTask
 
 /**
@@ -9,9 +10,9 @@ import com.station.stationdownloader.data.datasource.model.StationDownloadTask
 interface IEngine {
         fun init()
         fun unInit()
-        fun initTask(url:String): ExecuteResult<StationDownloadTask>
+        fun initTask(url:String): IResult<StationDownloadTask>
         fun startTask(task: StationDownloadTask)
         fun stopTask(task: StationDownloadTask)
-        fun configure(key:String,values:Array<String>):ExecuteResult<Nothing>
+        fun configure(key:String,values:Array<String>):IResult<Unit>
 }
 

@@ -5,7 +5,7 @@ import com.station.stationdownloader.contants.ConfigureError
 import com.station.stationdownloader.contants.DOWNLOAD_SPEED_LIMIT
 import com.station.stationdownloader.contants.SPEED_LIMIT
 import com.station.stationdownloader.contants.UPLOAD_SPEED_LIMIT
-import com.station.stationdownloader.data.datasource.engine.ExecuteResult
+import com.station.stationdownloader.data.IResult
 import com.station.stationdownloader.data.datasource.engine.IEngine
 import com.station.stationdownloader.data.datasource.model.StationDownloadTask
 import com.xunlei.downloadlib.XLDownloadManager
@@ -38,7 +38,7 @@ class XLEngine(
         }
     }
 
-    override fun initTask(url: String): ExecuteResult<StationDownloadTask> {
+    override fun initTask(url: String): IResult<StationDownloadTask> {
         TODO()
     }
 
@@ -50,7 +50,7 @@ class XLEngine(
         TODO("Not yet implemented")
     }
 
-    override fun configure(key: String, values: Array<String>): ExecuteResult<Nothing> {
+    override fun configure(key: String, values: Array<String>): IResult<Unit> {
         try {
             when (key) {
                 UPLOAD_SPEED_LIMIT, DOWNLOAD_SPEED_LIMIT, SPEED_LIMIT -> {
@@ -59,25 +59,25 @@ class XLEngine(
                         val downloadSpeedLimit: Long = values[1] as Long
                         XLDownloadManager.getInstance()
                             .setSpeedLimit(upSpeedLimit, downloadSpeedLimit)
-                        return ExecuteResult.Success
+                        return IResult.Success(Unit)
                     }
                 }
 
                 else -> {
-                    return ExecuteResult.Failed(
-                        ConfigureError.NOT_SUPPORT_CONFIGURATION.ordinal,
-                        Exception(ConfigureError.NOT_SUPPORT_CONFIGURATION.name)
+                    return IResult.Error(
+                        Exception(ConfigureError.NOT_SUPPORT_CONFIGURATION.name),
+                        ConfigureError.NOT_SUPPORT_CONFIGURATION.ordinal
                     )
                 }
             }
-            return ExecuteResult.Failed(
-                ConfigureError.INSUFFICIENT_NUMBER_OF_PARAMETERS.ordinal,
-                Exception(ConfigureError.INSUFFICIENT_NUMBER_OF_PARAMETERS.name)
+            return IResult.Error(
+                Exception(ConfigureError.INSUFFICIENT_NUMBER_OF_PARAMETERS.name),
+                ConfigureError.INSUFFICIENT_NUMBER_OF_PARAMETERS.ordinal
             )
         } catch (e: Exception) {
-            return ExecuteResult.Failed(
-                ConfigureError.CONFIGURE_ERROR.ordinal,
-                Exception(e)
+            return IResult.Error(
+                Exception(e),
+                ConfigureError.CONFIGURE_ERROR.ordinal
             )
         }
     }

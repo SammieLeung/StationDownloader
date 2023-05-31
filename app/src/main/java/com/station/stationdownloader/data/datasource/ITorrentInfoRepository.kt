@@ -1,9 +1,7 @@
 package com.station.stationdownloader.data.datasource
 
-import com.station.stationdownloader.data.datasource.local.room.entities.TorrentFileInfoEntity
-import com.station.stationdownloader.data.datasource.local.room.entities.TorrentInfoEntity
+import com.xunlei.downloadlib.parameter.TorrentInfo
 
 interface ITorrentInfoRepository {
-    suspend fun saveTorrentInfo(torrentInfo: TorrentInfoEntity)
-    suspend fun saveTorrentFileInfo(torrentFileInfo: TorrentFileInfoEntity)
+    suspend fun saveTorrentInfo(torrentInfo: TorrentInfo):Long
 }

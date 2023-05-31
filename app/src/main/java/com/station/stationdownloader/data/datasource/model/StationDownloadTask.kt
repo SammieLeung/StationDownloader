@@ -17,6 +17,7 @@ data class StationDownloadTask(
     val selectIndexes: List<Int> = emptyList(),
     val fileList: List<String> = emptyList(),
     val fileCount: Int = 0,
+    val torrentInfo: StationTorrentInfo? = null,
     val createTime: Long = System.currentTimeMillis()
 )
 

@@ -1,22 +1,16 @@
 package com.station.stationdownloader
 
 import android.app.Application
-import android.content.Intent
-import android.os.SystemClock
-import android.util.Log
 import com.facebook.stetho.Stetho
 import com.orhanobut.logger.AndroidLogAdapter
 import com.orhanobut.logger.Logger
-import com.station.stationdownloader.domain.LoggerUseCase
-import com.tencent.mmkv.MMKV
-import com.xunlei.downloadlib.XLTaskHelper
 import dagger.hilt.android.HiltAndroidApp
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import javax.inject.Inject
 
 /**
  * author: Sam Leung
@@ -25,7 +19,7 @@ import javax.inject.Inject
 
 @HiltAndroidApp
 class StationDownloaderApp : Application() {
-
+    val applicationScope = CoroutineScope(SupervisorJob())
     override fun onCreate() {
         super.onCreate()
         Logger.addLogAdapter(AndroidLogAdapter())

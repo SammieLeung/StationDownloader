@@ -1,12 +1,14 @@
 package com.station.stationdownloader.data
 
+import com.station.stationdownloader.contants.UNKNOWN_ERROR
+
 /**
  * author: Sam Leung
  * date:  2023/2/1
  */
-sealed class IResult<out R>{
-    data class Success<out T>(val data:T):IResult<T>()
-    data class Error(val exception: Exception):IResult<Nothing>()
+sealed class IResult<out R> {
+    data class Success<out T>(val data: T) : IResult<T>()
+    data class Error( val exception: Exception,val code: Int = UNKNOWN_ERROR) : IResult<Nothing>()
 
     override fun toString(): String {
         return when (this) {
@@ -15,8 +17,6 @@ sealed class IResult<out R>{
         }
     }
 }
-
-
 
 
 val IResult<*>.succeeded

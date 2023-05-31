@@ -4,11 +4,13 @@ import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.Index
 import androidx.room.PrimaryKey
+import com.station.stationdownloader.data.datasource.model.StationTorrentFileInfo
+import com.xunlei.downloadlib.parameter.TorrentFileInfo
 import javax.inject.Inject
 
 @Entity(
     tableName = "torrent_file_info",
-    indices = [Index(value = ["torrent_id"], unique = true)]
+    indices = [Index(value = ["torrent_id", "real_index"], unique = true)]
 )
 data class TorrentFileInfoEntity @JvmOverloads constructor(
     @PrimaryKey(autoGenerate = true)
@@ -26,3 +28,26 @@ data class TorrentFileInfoEntity @JvmOverloads constructor(
     @ColumnInfo(defaultValue = "", name = "sub_path")
     var subPath: String = "",
 )
+
+fun TorrentFileInfo.asTorrentFileInfoEntity(torrentId: Long): TorrentFileInfoEntity {
+    return TorrentFileInfoEntity(
+        id = 0,
+        torrentId = torrentId,
+        fileIndex = this.mFileIndex,
+        fileName = this.mFileName,
+        fileSize = this.mFileSize,
+        realIndex = this.mRealIndex,
+        subPath = this.mSubPath
+    )
+}
+
+fun TorrentFileInfo.asStationTorrentFileInfo(): StationTorrentFileInfo {
+    return StationTorrentFileInfo(
+        fileIndex = this.mFileIndex,
+        fileName = this.mFileName,
+        fileSize = this.mFileSize,
+        realIndex = this.mRealIndex,
+        subPath = this.mSubPath
+    )
+}
+

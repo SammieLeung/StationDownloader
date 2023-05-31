@@ -14,6 +14,11 @@ import com.gianlu.aria2lib.internal.Aria2Service
 import com.orhanobut.logger.Logger
 import com.station.stationdownloader.data.datasource.IEngineRepository
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 
@@ -29,8 +34,10 @@ class DownloaderService : Service() {
 
     private var isXLEngineRunning = false
     private var isAira2EngineRunning = false
+
     @Inject
     lateinit var mEngineRepo: IEngineRepository
+    private var mInitJob: Job? = null
     private val serviceThread = HandlerThread("aria2-service")
     private val mMessenger: Messenger by lazy {
         Messenger(LocalHandler(this))
@@ -71,12 +78,22 @@ class DownloaderService : Service() {
     }
 
     fun start() {
-        mEngineRepo.init()
-        Logger.i("engineRepo init")
+        if (mInitJob != null) {
+            mInitJob?.cancel()
+        }
+        mInitJob = Job()
+        val scope = mInitJob?.let { CoroutineScope(it) }
+        scope?.launch {
+            mEngineRepo.init()
+            Logger.i("engineRepo init")
+        }
     }
 
     fun stop() {
-        mEngineRepo.unInit()
+        val scope = CoroutineScope(Job())
+        scope.launch {
+            mEngineRepo.unInit()
+        }
     }
 
 

@@ -1,15 +1,15 @@
 package com.station.stationdownloader.data.datasource
 
-import com.station.stationdownloader.data.datasource.engine.ExecuteResult
+import com.station.stationdownloader.data.IResult
 import com.station.stationdownloader.data.datasource.model.StationDownloadTask
 
 interface IEngineRepository {
-    fun init():ExecuteResult<Nothing>
+    suspend fun init(): IResult<Unit>
 
-    fun unInit():ExecuteResult<Nothing>
-    fun initTask(url:String): ExecuteResult<StationDownloadTask>
+    suspend fun unInit(): IResult<Unit>
+    suspend fun initTask(url: String): IResult<StationDownloadTask>
 
-    fun configure(key:String,values:Array<String>):ExecuteResult<Nothing>
+    fun configure(key: String, values: Array<String>): IResult<Unit>
 
 }
 

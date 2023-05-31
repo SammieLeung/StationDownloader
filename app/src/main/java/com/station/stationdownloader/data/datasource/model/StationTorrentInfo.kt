@@ -1,5 +1,8 @@
 package com.station.stationdownloader.data.datasource.model
 
+import com.station.stationdownloader.data.datasource.local.room.entities.TorrentInfoEntity
+import com.xunlei.downloadlib.parameter.TorrentInfo
+
 data class StationTorrentInfo(
     var fileCount: Int = 0,
     var hash: String,
@@ -7,4 +10,14 @@ data class StationTorrentInfo(
     var multiFileBaseFolder: String = "",
     var subFileInfo: List<StationTorrentFileInfo> = emptyList()
 )
+
+fun StationTorrentInfo.asTorrentInfoEntity(): TorrentInfoEntity {
+    return TorrentInfoEntity(
+        id = 0,
+        fileCount = this.fileCount,
+        hash = this.hash,
+        isMultiFiles = this.isMultiFiles,
+        multiFileBaseFolder = this.multiFileBaseFolder
+    )
+}
 

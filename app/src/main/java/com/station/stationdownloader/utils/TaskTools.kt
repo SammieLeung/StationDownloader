@@ -43,7 +43,6 @@ object TaskTools {
         if (url.isEmpty())
             return false
         val torrentFile = File(url)
-        //TODO 需要测试是否是种子
         return torrentFile.exists() && torrentFile.extension == "torrent"
     }
 

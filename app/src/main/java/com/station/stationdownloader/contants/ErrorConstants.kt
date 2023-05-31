@@ -1,5 +1,6 @@
 package com.station.stationdownloader.contants
 
+const val UNKNOWN_ERROR = -1
 
 enum class ConfigureError {
     INSUFFICIENT_NUMBER_OF_PARAMETERS,
@@ -9,7 +10,7 @@ enum class ConfigureError {
 
 enum class TaskExecuteError {
     NOT_SUPPORT_URL,
-    IS_NOT_TORRENT
+    ERROR_TORRENT_TASK
 }
 
 enum class EngineError {

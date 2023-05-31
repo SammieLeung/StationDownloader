@@ -28,6 +28,7 @@ import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import javax.inject.Qualifier
 import javax.inject.Singleton
@@ -99,14 +100,16 @@ object EngineModule {
         @Aria2EngineAnnotation aria2Engine: IEngine,
         @ConfigurationRepo configurationRepo: IConfigurationRepository,
         downloadTaskRepo: IDownloadTaskRepository,
-        torrentInfoRepo: ITorrentInfoRepository
+        torrentInfoRepo: ITorrentInfoRepository,
+        @IoDispatcher ioDispatcher: CoroutineDispatcher
     ): IEngineRepository {
         return DefaultEngineRepository(
             xlEngine = xlEngine,
             aria2Engine = aria2Engine,
             configurationRepo = configurationRepo,
             downloadTaskRepo = downloadTaskRepo,
-            torrentInfoRepo = torrentInfoRepo
+            torrentInfoRepo = torrentInfoRepo,
+            ioDispatcher = ioDispatcher
         )
     }
 
@@ -138,8 +141,9 @@ object TorrentInfoModule {
     @Provides
     fun provideTorrentInfoRepo(
         localDataSource: ITorrentInfoDataSource,
-    ):ITorrentInfoRepository{
-        return DefaultTorrentInfoRepository(localDataSource)
+        @AppCoroutineScope externalScope: CoroutineScope
+    ): ITorrentInfoRepository {
+        return DefaultTorrentInfoRepository(localDataSource, externalScope)
     }
 
     @Provides

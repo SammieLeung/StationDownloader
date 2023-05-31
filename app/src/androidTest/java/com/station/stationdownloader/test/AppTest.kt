@@ -1,32 +1,17 @@
 package com.station.stationdownloader.test
 
-import android.util.Log
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.orhanobut.logger.AndroidLogAdapter
 import com.orhanobut.logger.Logger
-import com.station.stationdownloader.data.datasource.engine.aria2.WebSocketClient
-import com.station.stationdownloader.data.datasource.IDownloadTaskRepository
-import com.station.stationdownloader.data.datasource.IEngineRepository
-import com.station.stationdownloader.di.MMKVModule
-import com.station.stationdownloader.domain.Byte
-import com.station.stationdownloader.domain.GB
-import com.station.stationdownloader.domain.KB
-import com.station.stationdownloader.domain.LoggerUseCase
-import com.station.stationdownloader.domain.MB
-import com.tencent.mmkv.MMKV
-import com.xunlei.downloadlib.XLDownloadManager
 import com.xunlei.downloadlib.XLTaskHelper
 import dagger.hilt.android.testing.HiltAndroidRule
 import dagger.hilt.android.testing.HiltAndroidTest
-import dagger.hilt.android.testing.UninstallModules
-import kotlinx.coroutines.runBlocking
 import org.junit.Assert.*
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
-import javax.inject.Inject
 
 /**
  * Instrumented test, which will execute on an Android device.

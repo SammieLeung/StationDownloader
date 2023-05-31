@@ -22,7 +22,7 @@ class DownloadTaskLocalDataSource(
         return@withContext try {
             IResult.Success(downloadTaskDao.getTasks())
         } catch (e: Exception) {
-            IResult.Error(e)
+            IResult.Error(exception =  e)
         }
     }
 

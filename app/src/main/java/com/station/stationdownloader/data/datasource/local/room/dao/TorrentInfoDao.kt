@@ -12,13 +12,17 @@ import com.xunlei.downloadlib.parameter.TorrentInfo
 @Dao
 interface TorrentInfoDao {
     @Insert(onConflict = OnConflictStrategy.IGNORE)
-    suspend fun insertTorrentInfo(torrentInfo: TorrentInfoEntity)
+    suspend fun insertTorrentInfo(torrentInfo: TorrentInfoEntity):Long
 
     @Update
-    suspend fun updateTorrentInfo(torrentInfo: TorrentInfoEntity)
+    suspend fun updateTorrentInfo(torrentInfo: TorrentInfoEntity):Int
 
     @Query("SELECT * FROM torrent_info AS TI " +
             "JOIN torrent_file_info AS TFI ON TFI.torrent_id = TI.id ")
     suspend fun getTorrentInfo():Map<TorrentInfoEntity,List<TorrentFileInfoEntity>>
+
+    @Query("SELECT id FROM torrent_info " +
+            "WHERE hash=:hash ")
+    suspend fun getTorrentId(hash:String):Long
 
 }

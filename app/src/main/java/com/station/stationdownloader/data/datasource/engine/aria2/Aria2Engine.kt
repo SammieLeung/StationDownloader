@@ -1,6 +1,6 @@
 package com.station.stationdownloader.data.datasource.engine.aria2
 
-import com.station.stationdownloader.data.datasource.engine.ExecuteResult
+import com.station.stationdownloader.data.IResult
 import com.station.stationdownloader.data.datasource.engine.IEngine
 import com.station.stationdownloader.data.datasource.model.StationDownloadTask
 
@@ -17,7 +17,7 @@ class Aria2Engine(): IEngine {
         TODO("Not yet implemented")
     }
 
-    override fun initTask(url: String): ExecuteResult<StationDownloadTask> {
+    override fun initTask(url: String): IResult<StationDownloadTask> {
         TODO("Not yet implemented")
     }
 
@@ -29,7 +29,7 @@ class Aria2Engine(): IEngine {
         TODO("Not yet implemented")
     }
 
-    override fun configure(key: String, values: Array<String>): ExecuteResult<Nothing> {
+    override fun configure(key: String, values: Array<String>): IResult<Unit> {
         TODO("Not yet implemented")
     }
 }
