@@ -10,9 +10,16 @@ enum class ConfigureError {
 
 enum class TaskExecuteError {
     NOT_SUPPORT_URL,
-    ERROR_TORRENT_TASK
+    DOWNLOAD_TORRENT_TIME_OUT,
+    ADD_MAGNET_TASK_ERROR,
+    TORRENT_INFO_IS_NULL,
+    SUB_TORRENT_INFO_IS_NULL,
+    START_TASK_URL_TYPE_ERROR,
+    START_TASK_FAILED,
+    GET_FILE_SIZE_TIMEOUT,
 }
 
 enum class EngineError {
     ENGINE_INIT_FAILED
 }
+

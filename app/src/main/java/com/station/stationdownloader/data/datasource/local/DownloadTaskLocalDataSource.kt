@@ -14,7 +14,7 @@ import kotlinx.coroutines.withContext
  * author: Sam Leung
  * date:  2023/5/15
  */
-class DownloadTaskLocalDataSource(
+class DownloadTaskLocalDataSource internal constructor(
     private val downloadTaskDao: DownloadTaskDao,
     private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO
 ) : IDownloadTaskDataSource {

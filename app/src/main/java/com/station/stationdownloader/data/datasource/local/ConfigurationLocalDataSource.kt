@@ -2,6 +2,7 @@ package com.station.stationdownloader.data.datasource.local
 
 import android.os.Environment
 import com.station.stationdownloader.DownloadEngine
+import com.station.stationdownloader.contants.DEFAULT_DOWNLOAD_PATH
 import com.station.stationdownloader.contants.DOWNLOAD_ENGINE
 import com.station.stationdownloader.contants.DOWNLOAD_PATH
 import com.station.stationdownloader.contants.DOWNLOAD_SPEED_LIMIT
@@ -12,9 +13,10 @@ import com.station.stationdownloader.contants.UPLOAD_SPEED_LIMIT
 import com.station.stationdownloader.data.datasource.IConfigurationDataSource
 import com.tencent.mmkv.MMKV
 import com.xunlei.downloadlib.XLDownloadManager
+import java.io.File
 
 
-class ConfigurationLocalDataSource(
+class ConfigurationLocalDataSource internal constructor(
     private val defaultMMKV: MMKV,
 ) : IConfigurationDataSource {
 
@@ -44,7 +46,7 @@ class ConfigurationLocalDataSource(
 
     override fun getDownloadPath(): String {
         return defaultMMKV.decodeString(DOWNLOAD_PATH)
-            ?: Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS).path
+            ?: File(Environment.getExternalStorageDirectory(), DEFAULT_DOWNLOAD_PATH).path
     }
 
     override fun setDownloadPath(path: String) {

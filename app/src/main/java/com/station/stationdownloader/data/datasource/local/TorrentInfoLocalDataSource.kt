@@ -11,7 +11,7 @@ import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
-class TorrentInfoLocalDataSource(
+class TorrentInfoLocalDataSource internal constructor(
     private val torrentInfoDao: TorrentInfoDao,
     private val torrentFileInfoDao: TorrentFileInfoDao,
     private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO

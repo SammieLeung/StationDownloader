@@ -15,11 +15,11 @@ class DefaultConfigurationRepository(
     private val aria2Engine: IEngine,
     private val localDataSource: IConfigurationDataSource
 ) : IConfigurationRepository {
-    override fun getDownloadSpeedLimit(): Long {
+    override suspend fun getDownloadSpeedLimit(): Long {
         return localDataSource.getDownloadSpeedLimit()
     }
 
-    override fun setDownloadSpeedLimit(downloadSpeedLimit: Long) {
+    override suspend fun setDownloadSpeedLimit(downloadSpeedLimit: Long) {
         localDataSource.setDownloadSpeedLimit(downloadSpeedLimit)
         xlEngine.configure(
             DOWNLOAD_SPEED_LIMIT,
@@ -31,11 +31,11 @@ class DefaultConfigurationRepository(
         )
     }
 
-    override fun getUploadSpeedLimit(): Long {
+    override suspend fun getUploadSpeedLimit(): Long {
         return localDataSource.getUploadSpeedLimit()
     }
 
-    override fun setUploadSpeedLimit(uploadSpeedLimit: Long) {
+    override suspend fun setUploadSpeedLimit(uploadSpeedLimit: Long) {
         localDataSource.setUploadSpeedLimit(uploadSpeedLimit)
         xlEngine.configure(
             UPLOAD_SPEED_LIMIT,
@@ -47,11 +47,11 @@ class DefaultConfigurationRepository(
         )
     }
 
-    override fun getSpeedLimit(): Long {
+    override suspend fun getSpeedLimit(): Long {
         return localDataSource.getSpeedLimit()
     }
 
-    override fun setSpeedLimit(speedLimit: Long) {
+    override suspend fun setSpeedLimit(speedLimit: Long) {
         localDataSource.setSpeedLimit(speedLimit)
         xlEngine.configure(
             SPEED_LIMIT,
@@ -63,27 +63,27 @@ class DefaultConfigurationRepository(
         )
     }
 
-    override fun getDownloadPath(): String {
+    override suspend fun getDownloadPath(): String {
         return localDataSource.getDownloadPath()
     }
 
-    override fun setDownloadPath(path: String) {
+    override suspend fun setDownloadPath(path: String) {
         localDataSource.setDownloadPath(path)
     }
 
-    override fun getMaxThread(): Int {
+    override suspend fun getMaxThread(): Int {
         return localDataSource.getMaxThread()
     }
 
-    override fun setMaxThread(count: Int) {
+    override suspend fun setMaxThread(count: Int) {
         localDataSource.setMaxThread(count)
     }
 
-    override fun setDefaultEngine(engine: DownloadEngine) {
+    override suspend fun setDefaultEngine(engine: DownloadEngine) {
         localDataSource.setDefaultEngine(engine)
     }
 
-    override fun getDefaultEngine(): DownloadEngine {
+    override suspend fun getDefaultEngine(): DownloadEngine {
         return localDataSource.getDefaultEngine()
     }
 }

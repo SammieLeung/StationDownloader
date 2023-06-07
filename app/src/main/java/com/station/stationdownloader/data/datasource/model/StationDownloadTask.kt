@@ -3,6 +3,7 @@ package com.station.stationdownloader.data.datasource.model
 import com.station.stationdownloader.DownloadEngine
 import com.station.stationdownloader.DownloadTaskStatus
 import com.station.stationdownloader.DownloadUrlType
+import java.io.Serializable
 
 data class StationDownloadTask(
     val taskId: Long = 0L,
@@ -19,5 +20,5 @@ data class StationDownloadTask(
     val fileCount: Int = 0,
     val torrentInfo: StationTorrentInfo? = null,
     val createTime: Long = System.currentTimeMillis()
-)
+) :Serializable
 

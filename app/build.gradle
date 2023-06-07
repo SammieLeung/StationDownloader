@@ -69,8 +69,8 @@ android {
             }
     }
 
-    sourceSets{
-        main{
+    sourceSets {
+        main {
             jniLibs.srcDir(['libs'])
         }
     }
@@ -147,6 +147,17 @@ dependencies {
 
     //logger
     implementation 'com.orhanobut:logger:2.2.0'
+
+    //mqtt client
+    implementation 'org.eclipse.paho:org.eclipse.paho.client.mqttv3:1.2.5'
+
+    def work_version = "2.8.0"
+    //WorkerManager
+    implementation "androidx.work:work-runtime-ktx:$work_version"
+
+    def work_test_version = "2.5.0"
+    //Test Helper
+    androidTestImplementation "androidx.work:work-testing:$work_version"
 
 }
 

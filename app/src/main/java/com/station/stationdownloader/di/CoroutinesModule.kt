@@ -1,6 +1,5 @@
 package com.station.stationdownloader.di
 
-import android.app.Application
 import com.station.stationdownloader.StationDownloaderApp
 import dagger.Module
 import dagger.Provides
@@ -40,7 +39,7 @@ object CoroutinesModule {
     fun provideApplicationScope(
         application: StationDownloaderApp
     ): CoroutineScope {
-        return application.applicationScope
+        return application.mApplicationScope
     }
 }
 

@@ -29,7 +29,6 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
 import javax.inject.Qualifier
 import javax.inject.Singleton
 
@@ -98,17 +97,11 @@ object EngineModule {
     fun provideEngineRepo(
         @XLEngineAnnotation xlEngine: IEngine,
         @Aria2EngineAnnotation aria2Engine: IEngine,
-        @ConfigurationRepo configurationRepo: IConfigurationRepository,
-        downloadTaskRepo: IDownloadTaskRepository,
-        torrentInfoRepo: ITorrentInfoRepository,
         @IoDispatcher ioDispatcher: CoroutineDispatcher
     ): IEngineRepository {
         return DefaultEngineRepository(
             xlEngine = xlEngine,
             aria2Engine = aria2Engine,
-            configurationRepo = configurationRepo,
-            downloadTaskRepo = downloadTaskRepo,
-            torrentInfoRepo = torrentInfoRepo,
             ioDispatcher = ioDispatcher
         )
     }
@@ -118,9 +111,17 @@ object EngineModule {
     @XLEngineAnnotation
     fun provideXLEngine(
         @ApplicationContext context: Context,
+        @AppCoroutineScope externalScope: CoroutineScope,
+        @LocalConfigurationDataSource configurationDataSource: IConfigurationDataSource,
+        torrentInfoRepo: ITorrentInfoRepository,
+        @DefaultDispatcher defaultDispatcher: CoroutineDispatcher
     ): IEngine {
         return XLEngine(
-            context = context
+            context = context,
+            externalScope = externalScope,
+            configurationDataSource = configurationDataSource,
+            torrentInfoRepo = torrentInfoRepo,
+            defaultDispatcher = defaultDispatcher
         )
     }
 
