@@ -10,7 +10,6 @@ import com.station.stationdownloader.contants.GET_MAGNET_TASK_INFO_DELAY
 import com.station.stationdownloader.contants.MAGNET_TASK_TIMEOUT
 import com.station.stationdownloader.contants.SPEED_LIMIT
 import com.station.stationdownloader.contants.TaskExecuteError
-import com.station.stationdownloader.contants.UNKNOWN_ERROR
 import com.station.stationdownloader.contants.UPLOAD_SPEED_LIMIT
 import com.station.stationdownloader.data.IResult
 import com.station.stationdownloader.data.datasource.IConfigurationDataSource
@@ -31,11 +30,8 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
 import java.io.File
-import kotlin.coroutines.resume
-import kotlin.coroutines.suspendCoroutine
 
 class XLEngine internal constructor(
     private val context: Context,
@@ -368,10 +364,5 @@ class XLEngine internal constructor(
         return totalSize
     }
 
-    sealed class MagnetTaskResult<out R> {
-        data class InProgress<out T>(val data: T) : MagnetTaskResult<T>()
-        data class Success<out T>(val data: T) : MagnetTaskResult<T>()
-        data class Error(val exception: Exception, val code: Int = UNKNOWN_ERROR) :
-            MagnetTaskResult<Nothing>()
-    }
+
 }

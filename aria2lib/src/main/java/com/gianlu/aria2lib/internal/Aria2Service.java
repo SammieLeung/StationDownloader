@@ -6,7 +6,6 @@ import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.app.Service;
-import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
@@ -20,7 +19,6 @@ import android.os.Messenger;
 import android.os.RemoteException;
 import android.preference.PreferenceManager;
 import android.util.Log;
-import android.widget.RemoteViews;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -32,7 +30,6 @@ import com.gianlu.aria2lib.Aria2PK;
 import com.gianlu.aria2lib.BadEnvironmentException;
 import com.gianlu.aria2lib.BareConfigProvider;
 import com.gianlu.aria2lib.R;
-import com.gianlu.aria2lib.commonutils.CommonUtils;
 import com.gianlu.aria2lib.commonutils.Prefs;
 
 import java.io.IOException;
@@ -210,30 +207,30 @@ public final class Aria2Service extends Service implements Aria2.MessageListener
     public void onMessage(@NonNull com.gianlu.aria2lib.internal.Message msg) {
         dispatch(msg);
 
-        if (msg.type() == com.gianlu.aria2lib.internal.Message.Type.MONITOR_UPDATE)
-            updateMonitor((MonitorUpdate) msg.object());
+//        if (msg.type() == com.gianlu.aria2lib.internal.Message.Type.MONITOR_UPDATE)
+//            updateMonitor((MonitorUpdate) msg.object());
     }
 
-    private void updateMonitor(@Nullable MonitorUpdate update) {
-        if (update == null || notificationManager == null || !aria2.isRunning()) {
-            if (update != null) update.recycle();
-            return;
-        }
-
-        RemoteViews layout = new RemoteViews(getPackageName(), R.layout.aria2lib_custom_notification);
-        layout.setTextViewText(R.id.customNotification_runningTime, "Running time: " + CommonUtils.timeFormatter((System.currentTimeMillis() - startTime) / 1000));
-        layout.setTextViewText(R.id.customNotification_pid, "PID: " + update.pid());
-        layout.setTextViewText(R.id.customNotification_cpu, "CPU: " + update.cpu() + "%");
-        layout.setTextViewText(R.id.customNotification_memory, "Memory: " + CommonUtils.dimensionFormatter(update.rss(), false));
-        layout.setImageViewResource(R.id.customNotification_icon, provider.launcherIcon());
-        layout.setImageViewResource(R.id.customNotification_stop, R.drawable.baseline_clear_24);
-        layout.setOnClickPendingIntent(R.id.customNotification_stop, getStopServiceIntent());
-        defaultNotification.setCustomContentView(layout);
-
-        notificationManager.notify(NOTIFICATION_ID, defaultNotification.build());
-
-        update.recycle();
-    }
+//    private void updateMonitor(@Nullable MonitorUpdate update) {
+//        if (update == null || notificationManager == null || !aria2.isRunning()) {
+//            if (update != null) update.recycle();
+//            return;
+//        }
+//
+//        RemoteViews layout = new RemoteViews(getPackageName(), R.layout.aria2lib_custom_notification);
+//        layout.setTextViewText(R.id.customNotification_runningTime, "Running time: " + CommonUtils.timeFormatter((System.currentTimeMillis() - startTime) / 1000));
+//        layout.setTextViewText(R.id.customNotification_pid, "PID: " + update.pid());
+//        layout.setTextViewText(R.id.customNotification_cpu, "CPU: " + update.cpu() + "%");
+//        layout.setTextViewText(R.id.customNotification_memory, "Memory: " + CommonUtils.dimensionFormatter(update.rss(), false));
+//        layout.setImageViewResource(R.id.customNotification_icon, provider.launcherIcon());
+//        layout.setImageViewResource(R.id.customNotification_stop, R.drawable.baseline_clear_24);
+//        layout.setOnClickPendingIntent(R.id.customNotification_stop, getStopServiceIntent());
+//        defaultNotification.setCustomContentView(layout);
+//
+//        notificationManager.notify(NOTIFICATION_ID, defaultNotification.build());
+//
+//        update.recycle();
+//    }
 
     private void dispatch(@NonNull com.gianlu.aria2lib.internal.Message msg) {
         Intent intent = new Intent(BROADCAST_MESSAGE);

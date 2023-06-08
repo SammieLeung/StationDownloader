@@ -3,7 +3,7 @@ package com.station.stationdownloader.data.repository
 import com.station.stationdownloader.data.IResult
 import com.station.stationdownloader.data.datasource.IDownloadTaskDataSource
 import com.station.stationdownloader.data.datasource.IDownloadTaskRepository
-import com.station.stationdownloader.data.datasource.local.room.entities.DownloadTaskEntity
+import com.station.stationdownloader.data.datasource.local.room.entities.XLDownloadTaskEntity
 import kotlinx.coroutines.flow.Flow
 
 /**
@@ -13,7 +13,7 @@ import kotlinx.coroutines.flow.Flow
 class DefaultDownloadTaskRepository(
     private val localDataSource: IDownloadTaskDataSource,
 ) : IDownloadTaskRepository {
-    override suspend fun getTasks(): List<DownloadTaskEntity> {
+    override suspend fun getTasks(): List<XLDownloadTaskEntity> {
         return when (val result = localDataSource.getTasks()) {
             is IResult.Success -> {
                 result.data
@@ -27,11 +27,11 @@ class DefaultDownloadTaskRepository(
 
     }
 
-    override fun getTasksStream(): Flow<IResult<List<DownloadTaskEntity>>> {
+    override fun getTasksStream(): Flow<IResult<List<XLDownloadTaskEntity>>> {
         return localDataSource.getTasksStream()
     }
 
-    override suspend fun insertTask(task: DownloadTaskEntity): Long {
+    override suspend fun insertTask(task: XLDownloadTaskEntity): Long {
         return localDataSource.insertTask(task)
     }
 }

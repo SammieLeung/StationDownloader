@@ -1,7 +1,6 @@
 package com.station.stationdownloader.data.datasource.model
 
-import com.station.stationdownloader.data.datasource.local.room.entities.TorrentInfoEntity
-import com.xunlei.downloadlib.parameter.TorrentInfo
+import com.station.stationdownloader.data.datasource.local.room.entities.XLTorrentInfoEntity
 import java.io.Serializable
 
 data class StationTorrentInfo(
@@ -12,8 +11,8 @@ data class StationTorrentInfo(
     var subFileInfo: List<StationTorrentFileInfo> = emptyList()
 ): Serializable
 
-fun StationTorrentInfo.asTorrentInfoEntity(): TorrentInfoEntity {
-    return TorrentInfoEntity(
+fun StationTorrentInfo.asTorrentInfoEntity(): XLTorrentInfoEntity {
+    return XLTorrentInfoEntity(
         id = 0,
         fileCount = this.fileCount,
         hash = this.hash,

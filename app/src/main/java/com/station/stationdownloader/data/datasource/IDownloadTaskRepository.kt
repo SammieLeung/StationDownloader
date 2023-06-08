@@ -1,7 +1,7 @@
 package com.station.stationdownloader.data.datasource
 
 import com.station.stationdownloader.data.IResult
-import com.station.stationdownloader.data.datasource.local.room.entities.DownloadTaskEntity
+import com.station.stationdownloader.data.datasource.local.room.entities.XLDownloadTaskEntity
 import kotlinx.coroutines.flow.Flow
 
 /**
@@ -9,7 +9,7 @@ import kotlinx.coroutines.flow.Flow
  * date:  2023/5/15
  */
 interface IDownloadTaskRepository {
-    suspend fun getTasks():List<DownloadTaskEntity>
-    fun getTasksStream(): Flow<IResult<List<DownloadTaskEntity>>>
-    suspend fun insertTask(task: DownloadTaskEntity):Long
+    suspend fun getTasks():List<XLDownloadTaskEntity>
+    fun getTasksStream(): Flow<IResult<List<XLDownloadTaskEntity>>>
+    suspend fun insertTask(task: XLDownloadTaskEntity):Long
 }

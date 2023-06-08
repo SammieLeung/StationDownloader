@@ -83,7 +83,7 @@ public final class Message {
 
     public void log(@NonNull String tag) {
         int p = type.getPriority();
-        if (p != -1) Log.println(p, tag, toString());
+//        if (p != -1) Log.println(p, tag, toString());
     }
 
     public enum Type {

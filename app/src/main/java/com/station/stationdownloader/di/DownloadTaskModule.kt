@@ -15,9 +15,9 @@ import com.station.stationdownloader.data.datasource.engine.xl.XLEngine
 import com.station.stationdownloader.data.datasource.local.ConfigurationLocalDataSource
 import com.station.stationdownloader.data.datasource.local.DownloadTaskLocalDataSource
 import com.station.stationdownloader.data.datasource.local.TorrentInfoLocalDataSource
-import com.station.stationdownloader.data.datasource.local.room.dao.DownloadTaskDao
-import com.station.stationdownloader.data.datasource.local.room.dao.TorrentFileInfoDao
-import com.station.stationdownloader.data.datasource.local.room.dao.TorrentInfoDao
+import com.station.stationdownloader.data.datasource.local.room.dao.XLDownloadTaskDao
+import com.station.stationdownloader.data.datasource.local.room.dao.XLTorrentFileInfoDao
+import com.station.stationdownloader.data.datasource.local.room.dao.XLTorrentInfoDao
 import com.station.stationdownloader.data.repository.DefaultConfigurationRepository
 import com.station.stationdownloader.data.repository.DefaultEngineRepository
 import com.station.stationdownloader.data.repository.DefaultTorrentInfoRepository
@@ -82,7 +82,7 @@ object DownloadTaskModule {
 
     @Provides
     fun provideDownloadTaskLocalDataSource(
-        dao: DownloadTaskDao,
+        dao: XLDownloadTaskDao,
         @IoDispatcher ioDispatcher: CoroutineDispatcher
     ): IDownloadTaskDataSource {
         return DownloadTaskLocalDataSource(dao, ioDispatcher)
@@ -129,8 +129,10 @@ object EngineModule {
     @Singleton
     @Aria2EngineAnnotation
     fun provideAria2Engine(
+        @ApplicationContext context: Context,
+        @DefaultDispatcher defaultDispatcher: CoroutineDispatcher
     ): IEngine {
-        return Aria2Engine()
+        return Aria2Engine(context,defaultDispatcher)
     }
 
 }
@@ -149,8 +151,8 @@ object TorrentInfoModule {
 
     @Provides
     fun provideTorrentInfoLocalDataSource(
-        torrentInfoDao: TorrentInfoDao,
-        torrentFileInfoDao: TorrentFileInfoDao,
+        torrentInfoDao: XLTorrentInfoDao,
+        torrentFileInfoDao: XLTorrentFileInfoDao,
         @IoDispatcher
         ioDispatcher: CoroutineDispatcher
     ): ITorrentInfoDataSource {

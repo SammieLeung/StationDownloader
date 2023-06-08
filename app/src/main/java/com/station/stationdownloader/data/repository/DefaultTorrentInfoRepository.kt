@@ -3,14 +3,13 @@ package com.station.stationdownloader.data.repository
 import com.station.stationdownloader.data.IResult
 import com.station.stationdownloader.data.datasource.ITorrentInfoDataSource
 import com.station.stationdownloader.data.datasource.ITorrentInfoRepository
-import com.station.stationdownloader.data.datasource.local.room.entities.asTorrentFileInfoEntity
-import com.station.stationdownloader.data.datasource.local.room.entities.asTorrentInfoEntity
+import com.station.stationdownloader.data.datasource.local.room.entities.asXLTorrentFileInfoEntity
+import com.station.stationdownloader.data.datasource.local.room.entities.asXLTorrentInfoEntity
 import com.xunlei.downloadlib.parameter.TorrentInfo
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
-import kotlinx.coroutines.launch
 
 class DefaultTorrentInfoRepository(
     private val localDataSource: ITorrentInfoDataSource,
@@ -29,7 +28,7 @@ class DefaultTorrentInfoRepository(
             is IResult.Error -> {
                 val result = externalScope.async {
                     val torrentId =
-                        localDataSource.saveTorrentInfo(torrentInfo.asTorrentInfoEntity())
+                        localDataSource.saveTorrentInfo(torrentInfo.asXLTorrentInfoEntity())
                     if (torrentId > 0) {
                         saveTorrentFileInfos(torrentInfo, torrentId)
                     }
@@ -47,7 +46,7 @@ class DefaultTorrentInfoRepository(
     private suspend fun saveTorrentFileInfos(torrentInfo: TorrentInfo, torrentId: Long) {
         if (torrentInfo.mSubFileInfo != null) {
             for (torrentFileInfo in torrentInfo.mSubFileInfo) {
-                val entity = torrentFileInfo.asTorrentFileInfoEntity(torrentId)
+                val entity = torrentFileInfo.asXLTorrentFileInfoEntity(torrentId)
                 (localDataSource.getTorrentFileInfo(
                     entity.torrentId,
                     entity.realIndex

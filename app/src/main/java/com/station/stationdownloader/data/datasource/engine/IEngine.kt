@@ -2,11 +2,8 @@ package com.station.stationdownloader.data.datasource.engine
 
 import com.station.stationdownloader.DownloadUrlType
 import com.station.stationdownloader.data.IResult
-import com.station.stationdownloader.data.datasource.engine.xl.XLEngine
-import com.station.stationdownloader.data.datasource.engine.xl.XLEngine.MagnetTaskResult
 import com.station.stationdownloader.data.datasource.model.StationDownloadTask
 import com.station.stationdownloader.data.datasource.model.StationTaskInfo
-import kotlinx.coroutines.flow.Flow
 
 /**
  * author: Sam Leung

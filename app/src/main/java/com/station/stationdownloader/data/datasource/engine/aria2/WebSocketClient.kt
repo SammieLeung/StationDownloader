@@ -1,7 +1,10 @@
 package com.station.stationdownloader.data.datasource.engine.aria2
 
-import android.util.Log
+import com.orhanobut.logger.Logger
 import okhttp3.*
+import org.json.JSONArray
+import org.json.JSONException
+import org.json.JSONObject
 import java.lang.ref.WeakReference
 import java.net.URI
 import java.util.concurrent.TimeUnit
@@ -32,11 +35,14 @@ class WebSocketClient() {
                 object : WebSocketListener() {
                     override fun onMessage(webSocket: WebSocket, text: String) {
                         super.onMessage(webSocket, text)
-                        Log.v("test",text)
+                        Logger.d("onMessage $text")
+
                     }
 
                     override fun onOpen(webSocket: WebSocket, response: Response) {
                         super.onOpen(webSocket, response)
+                        Logger.d("onOpen")
+
                     }
 
                     override fun onFailure(
@@ -45,13 +51,15 @@ class WebSocketClient() {
                         response: Response?
                     ) {
                         super.onFailure(webSocket, t, response)
+                        t.printStackTrace()
                     }
                 }
             )
         )
+
     }
 
-    fun send(msg:String){
+    fun send(msg: String) {
         webSocket?.get()?.send(msg)
     }
 
@@ -69,7 +77,7 @@ class WebSocketClient() {
                 "ws",
                 null,
                 "localhost",
-                6800,
+                6801,
                 "/jsonrpc",
                 null,
                 null

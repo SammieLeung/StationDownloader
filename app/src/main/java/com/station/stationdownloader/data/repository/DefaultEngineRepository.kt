@@ -1,26 +1,14 @@
 package com.station.stationdownloader.data.repository
 
-import com.orhanobut.logger.Logger
 import com.station.stationdownloader.DownloadEngine
 import com.station.stationdownloader.DownloadUrlType
-import com.station.stationdownloader.contants.TaskExecuteError
 import com.station.stationdownloader.data.IResult
-import com.station.stationdownloader.data.datasource.IConfigurationRepository
-import com.station.stationdownloader.data.datasource.IDownloadTaskRepository
 import com.station.stationdownloader.data.datasource.IEngineRepository
-import com.station.stationdownloader.data.datasource.ITorrentInfoRepository
 import com.station.stationdownloader.data.datasource.engine.IEngine
-import com.station.stationdownloader.data.datasource.engine.xl.XLEngine
-import com.station.stationdownloader.data.datasource.local.room.entities.asStationTorrentInfo
 import com.station.stationdownloader.data.datasource.model.StationDownloadTask
 import com.station.stationdownloader.data.datasource.model.StationTaskInfo
-import com.station.stationdownloader.utils.MAGNET_PROTOCOL
-import com.station.stationdownloader.utils.TaskTools
-import com.xunlei.downloadlib.XLTaskHelper
 import kotlinx.coroutines.CoroutineDispatcher
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.async
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File

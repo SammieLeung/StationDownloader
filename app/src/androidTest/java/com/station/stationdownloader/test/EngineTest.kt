@@ -6,18 +6,11 @@ import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import androidx.work.Configuration
-import androidx.work.Constraints
 import androidx.work.CoroutineWorker
-import androidx.work.NetworkType
 import androidx.work.OneTimeWorkRequestBuilder
-import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
-import androidx.work.Worker
 import androidx.work.WorkerParameters
-import androidx.work.await
 import androidx.work.testing.SynchronousExecutor
-import androidx.work.testing.TestListenableWorkerBuilder
-import androidx.work.testing.TestWorkerBuilder
 import androidx.work.testing.WorkManagerTestInitHelper
 import androidx.work.workDataOf
 import com.orhanobut.logger.AndroidLogAdapter
@@ -30,7 +23,6 @@ import dagger.hilt.android.testing.HiltAndroidTest
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.catch
-import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
@@ -40,10 +32,6 @@ import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
-import java.util.concurrent.Executor
-import java.util.concurrent.Executors
-import java.util.concurrent.TimeUnit
-import java.util.concurrent.atomic.AtomicBoolean
 import javax.inject.Inject
 
 @RunWith(AndroidJUnit4::class)
@@ -117,7 +105,15 @@ class EngineTest {
                     }.catch {
                         Logger.d(it)
                     }.map {
-                        val result = mEngineRepo.startTask(it.url,it.engine,it.downloadPath,it.name,it.urlType,it.fileCount,it.selectIndexes.toIntArray())
+                        val result = mEngineRepo.startTask(
+                            it.url,
+                            it.engine,
+                            it.downloadPath,
+                            it.name,
+                            it.urlType,
+                            it.fileCount,
+                            it.selectIndexes.toIntArray()
+                        )
                         when (result) {
                             is IResult.Error -> {
                                 throw result.exception
@@ -161,12 +157,15 @@ class EngineTest {
         }
         Logger.i("runBlocking")
     }
+
+    @Test
+    fun testJob() {
+
+
+    }
+
 }
 
-@Test
-fun testJob() {
-
-}
 
 class StatusWorker(context: Context, parameters: WorkerParameters) :
     CoroutineWorker(context, parameters) {
@@ -176,7 +175,7 @@ class StatusWorker(context: Context, parameters: WorkerParameters) :
         while (true) {
             val info = XLTaskHelper.instance().getTaskInfo(taskId)
             Logger.d("doWork  ${info.mDownloadSpeed} ${info.mDownloadSize} ${info.mFileSize}")
-            if(info.mFileSize>0) {
+            if (info.mFileSize > 0) {
                 setProgress(workDataOf("progress" to (info.mDownloadSize * 1.0 / info.mFileSize)))
             }
             delay(1000)

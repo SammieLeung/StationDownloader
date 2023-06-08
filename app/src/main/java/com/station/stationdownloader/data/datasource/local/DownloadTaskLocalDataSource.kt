@@ -1,8 +1,8 @@
 package com.station.stationdownloader.data.datasource.local
 
 import com.station.stationdownloader.data.datasource.IDownloadTaskDataSource
-import com.station.stationdownloader.data.datasource.local.room.dao.DownloadTaskDao
-import com.station.stationdownloader.data.datasource.local.room.entities.DownloadTaskEntity
+import com.station.stationdownloader.data.datasource.local.room.dao.XLDownloadTaskDao
+import com.station.stationdownloader.data.datasource.local.room.entities.XLDownloadTaskEntity
 import kotlinx.coroutines.CoroutineDispatcher
 import com.station.stationdownloader.data.IResult
 import kotlinx.coroutines.Dispatchers
@@ -15,10 +15,10 @@ import kotlinx.coroutines.withContext
  * date:  2023/5/15
  */
 class DownloadTaskLocalDataSource internal constructor(
-    private val downloadTaskDao: DownloadTaskDao,
+    private val downloadTaskDao: XLDownloadTaskDao,
     private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO
 ) : IDownloadTaskDataSource {
-    override suspend fun getTasks(): IResult<List<DownloadTaskEntity>> = withContext(ioDispatcher) {
+    override suspend fun getTasks(): IResult<List<XLDownloadTaskEntity>> = withContext(ioDispatcher) {
         return@withContext try {
             IResult.Success(downloadTaskDao.getTasks())
         } catch (e: Exception) {
@@ -26,13 +26,13 @@ class DownloadTaskLocalDataSource internal constructor(
         }
     }
 
-    override  fun getTasksStream(): Flow<IResult<List<DownloadTaskEntity>>> {
+    override  fun getTasksStream(): Flow<IResult<List<XLDownloadTaskEntity>>> {
             return downloadTaskDao.observeTasksStream().map {
                 IResult.Success(it)
             }
     }
 
-    override suspend fun insertTask(task: DownloadTaskEntity): Long {
+    override suspend fun insertTask(task: XLDownloadTaskEntity): Long {
         return downloadTaskDao.insertTask(task)
     }
 }

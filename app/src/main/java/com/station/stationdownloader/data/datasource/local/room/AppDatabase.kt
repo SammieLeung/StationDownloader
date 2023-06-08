@@ -4,26 +4,26 @@ import androidx.room.Database
 import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
 import com.station.stationdownloader.data.datasource.local.room.converter.StringListConverter
-import com.station.stationdownloader.data.datasource.local.room.dao.DownloadTaskDao
-import com.station.stationdownloader.data.datasource.local.room.dao.TorrentFileInfoDao
-import com.station.stationdownloader.data.datasource.local.room.dao.TorrentInfoDao
-import com.station.stationdownloader.data.datasource.local.room.entities.DownloadTaskEntity
-import com.station.stationdownloader.data.datasource.local.room.entities.TorrentFileInfoEntity
-import com.station.stationdownloader.data.datasource.local.room.entities.TorrentInfoEntity
+import com.station.stationdownloader.data.datasource.local.room.dao.XLDownloadTaskDao
+import com.station.stationdownloader.data.datasource.local.room.dao.XLTorrentFileInfoDao
+import com.station.stationdownloader.data.datasource.local.room.dao.XLTorrentInfoDao
+import com.station.stationdownloader.data.datasource.local.room.entities.XLDownloadTaskEntity
+import com.station.stationdownloader.data.datasource.local.room.entities.XLTorrentFileInfoEntity
+import com.station.stationdownloader.data.datasource.local.room.entities.XLTorrentInfoEntity
 
 /**
  * author: Sam Leung
  * date:  2023/5/15
  */
 @Database(
-    entities = [DownloadTaskEntity::class, TorrentInfoEntity::class, TorrentFileInfoEntity::class],
+    entities = [XLDownloadTaskEntity::class, XLTorrentInfoEntity::class, XLTorrentFileInfoEntity::class],
     version = 1
 )
 @TypeConverters(
     StringListConverter::class
 )
 abstract class AppDatabase : RoomDatabase() {
-    abstract fun downloadTaskDao(): DownloadTaskDao
-    abstract fun torrentInfoDao():TorrentInfoDao
-    abstract fun torrentFileInfoDao():TorrentFileInfoDao
+    abstract fun downloadTaskDao(): XLDownloadTaskDao
+    abstract fun torrentInfoDao():XLTorrentInfoDao
+    abstract fun torrentFileInfoDao():XLTorrentFileInfoDao
 }

@@ -2,27 +2,21 @@ package com.station.stationdownloader.ui
 
 import android.content.Context
 import android.os.Bundle
-import android.util.Log
 import android.widget.Toast
 import androidx.activity.viewModels
 import androidx.work.CoroutineWorker
-import androidx.work.OneTimeWorkRequestBuilder
-import androidx.work.WorkManager
 import androidx.work.WorkerParameters
+import com.gianlu.aria2lib.Aria2Ui
+import com.gianlu.aria2lib.commonutils.Prefs
+import com.gianlu.aria2lib.internal.Aria2
 import com.orhanobut.logger.Logger
 import com.station.pluginscenter.base.BaseActivity
-import com.station.stationdownloader.DownloaderService
-import com.station.stationdownloader.data.datasource.IEngineRepository
-import com.station.stationdownloader.data.datasource.engine.IEngine
-import com.station.stationdownloader.data.datasource.engine.xl.XLEngine
+import com.station.stationdownloader.data.datasource.engine.aria2.WebSocketClient
 import com.station.stationdownloader.databinding.ActivityMainBinding
-import com.station.stationdownloader.di.XLEngineAnnotation
 import com.station.stationdownloader.vm.MainViewModel
-import com.xunlei.downloadlib.XLDownloadManager
-import com.xunlei.downloadlib.XLTaskHelper
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.delay
-import javax.inject.Inject
+import java.io.File
 
 @AndroidEntryPoint
 class MainActivity : BaseActivity<ActivityMainBinding>() {
@@ -33,9 +27,10 @@ class MainActivity : BaseActivity<ActivityMainBinding>() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         mBinding.btnStart.setOnClickListener {
-            val request= OneTimeWorkRequestBuilder<TestRebootWorker>()
-                .build()
-            WorkManager.getInstance(baseContext).enqueue(request)
+//            val request= OneTimeWorkRequestBuilder<TestRebootWorker>()
+//                .build()
+//            WorkManager.getInstance(baseContext).enqueue(request)
+            testAria2UI()
             showToast(baseContext, "服务已开启")
         }
     }
@@ -45,6 +40,41 @@ class MainActivity : BaseActivity<ActivityMainBinding>() {
         toast = Toast.makeText(context, message, Toast.LENGTH_SHORT)
         toast?.show()
     }
+
+    fun testAria2UI(){
+        val ui= Aria2Ui(applicationContext,object : Aria2Ui.Listener{
+            override fun onUpdateLogs(msg: MutableList<Aria2Ui.LogMessage>) {
+                for(m in msg){
+                    Logger.d("onUpdateLogs:${m.type.name}")
+                }
+            }
+
+            override fun onMessage(msg: Aria2Ui.LogMessage) {
+                Logger.d("onMessage=$msg")
+            }
+
+            override fun updateUi(on: Boolean) {
+                Logger.d("updateUi=$on")
+
+            }
+        })
+        Thread{
+            Prefs.init(baseContext)
+            val aria2=Aria2.get()
+            val parent: File = baseContext.getFilesDir()
+            aria2.loadEnv(
+                parent,
+                File(baseContext.getApplicationInfo().nativeLibraryDir, "libaria2c.so"),
+                File(parent, "session")
+            )
+
+            aria2.start()
+            ui.askForStatus()
+            WebSocketClient()
+        }.start()
+
+    }
+
 
     class TestRebootWorker(context: Context,workerParameters: WorkerParameters): CoroutineWorker(context,workerParameters){
         override suspend fun doWork(): Result {
