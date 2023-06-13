@@ -1,3 +1,5 @@
 <resources>
   <string name="app_name">StationDownloader</string>
+  <string name="menu_title"></string>
+
 </resources>

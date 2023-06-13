@@ -8,8 +8,8 @@ import com.gianlu.aria2lib.commonutils.Prefs;
 public abstract class Aria2PK extends CommonPK {
     public static final Prefs.KeyWithDefault<Integer> NOTIFICATION_UPDATE_DELAY = new Prefs.KeyWithDefault<>("updateDelay", 1);
     public static final Prefs.KeyWithDefault<Boolean> SHOW_PERFORMANCE = new Prefs.KeyWithDefault<>("showPerformance", true);
-    public static final Prefs.KeyWithDefault<Integer> RPC_PORT = new Prefs.KeyWithDefault<>("rpcPort", 6800);
-    public static final Prefs.KeyWithDefault<String> RPC_TOKEN = new Prefs.KeyWithDefault<>("rpcToken", "aria2");
+    public static final Prefs.KeyWithDefault<Integer> RPC_PORT = new Prefs.KeyWithDefault<>("rpcPort", 6801);
+    public static final Prefs.KeyWithDefault<String> RPC_TOKEN = new Prefs.KeyWithDefault<>("rpcToken", "station");
     public static final Prefs.KeyWithDefault<Boolean> RPC_ALLOW_ORIGIN_ALL = new Prefs.KeyWithDefault<>("allowOriginAll", false);
     public static final Prefs.KeyWithDefault<Boolean> RPC_LISTEN_ALL = new Prefs.KeyWithDefault<>("listenAll", false);
     public static final Prefs.KeyWithDefault<Boolean> CHECK_CERTIFICATE = new Prefs.KeyWithDefault<>("checkCertificate", false);

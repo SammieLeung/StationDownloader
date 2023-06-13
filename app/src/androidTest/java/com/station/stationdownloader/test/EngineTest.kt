@@ -15,6 +15,8 @@ import androidx.work.testing.WorkManagerTestInitHelper
 import androidx.work.workDataOf
 import com.orhanobut.logger.AndroidLogAdapter
 import com.orhanobut.logger.Logger
+import com.station.stationdownloader.DownloadEngine
+import com.station.stationdownloader.DownloadUrlType
 import com.station.stationdownloader.data.IResult
 import com.station.stationdownloader.data.datasource.IEngineRepository
 import com.xunlei.downloadlib.XLTaskHelper
@@ -47,7 +49,6 @@ class EngineTest {
     fun init() {
         hiltRule.inject()
         val appContext = InstrumentationRegistry.getInstrumentation().targetContext
-        XLTaskHelper.init(appContext)
         Logger.addLogAdapter(AndroidLogAdapter())
         context = ApplicationProvider.getApplicationContext()
 
@@ -58,6 +59,7 @@ class EngineTest {
 
         // Initialize WorkManager for instrumentation tests.
         WorkManagerTestInitHelper.initializeTestWorkManager(context, config)
+        runBlocking { mEngineRepo.init() }
     }
 
     @After
@@ -159,11 +161,14 @@ class EngineTest {
     }
 
     @Test
-    fun testJob() {
-
-
+    fun testAdd() {
+        var a: Double = 0.0
+        val c = 1.2
+        for (i in 1..29) {
+            a = a * 1.03 + c
+        }
+        println("data $a")
     }
-
 }
 
 

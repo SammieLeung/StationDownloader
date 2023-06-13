@@ -1,21 +1,30 @@
 <?xml version="1.0" encoding="utf-8"?>
 <layout xmlns:android="http://schemas.android.com/apk/res/android">
 
-  <data>
-  </data>
+    <data></data>
 
-  <FrameLayout
-    android:background="@color/main_background_color"
-    android:layout_width="match_parent"
-    android:layout_height="match_parent">
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
 
-    <Button
-        android:id="@+id/btn_start"
-        android:layout_gravity="center"
-        android:text="开启WorkManager"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content">
+        <RelativeLayout
+            android:id="@+id/menu_layout"
+            android:layout_width="302dp"
+            android:layout_height="match_parent">
 
-    </Button>
-  </FrameLayout>
+            <TextView
+                android:text=""
+                android:id="@+id/title_view"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content">
+
+            </TextView>
+        </RelativeLayout>
+
+        <LinearLayout
+            android:id="@+id/fragment_layout"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:orientation="horizontal" />
+    </FrameLayout>
 </layout>

@@ -7,6 +7,8 @@ import android.content.Intent
 import com.facebook.stetho.Stetho
 import com.orhanobut.logger.AndroidLogAdapter
 import com.orhanobut.logger.Logger
+import com.squareup.moshi.Moshi
+import com.station.stationkitkt.MoshiHelper
 import dagger.hilt.android.HiltAndroidApp
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -29,6 +31,7 @@ class StationDownloaderApp : Application() {
         mApplicationScope.launch {
             withContext(Dispatchers.Default) {
                 Stetho.initializeWithDefaults(applicationContext)
+                MoshiHelper.init()
             }
         }
     }

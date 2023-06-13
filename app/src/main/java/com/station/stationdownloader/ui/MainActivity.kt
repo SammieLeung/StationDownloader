@@ -4,6 +4,7 @@ import android.content.Context
 import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.viewModels
+import androidx.lifecycle.lifecycleScope
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
 import com.gianlu.aria2lib.Aria2Ui
@@ -11,18 +12,26 @@ import com.gianlu.aria2lib.commonutils.Prefs
 import com.gianlu.aria2lib.internal.Aria2
 import com.orhanobut.logger.Logger
 import com.station.pluginscenter.base.BaseActivity
+import com.station.stationdownloader.DownloadEngine
+import com.station.stationdownloader.DownloadUrlType
+import com.station.stationdownloader.data.datasource.IEngineRepository
 import com.station.stationdownloader.data.datasource.engine.aria2.WebSocketClient
 import com.station.stationdownloader.databinding.ActivityMainBinding
 import com.station.stationdownloader.vm.MainViewModel
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import java.io.File
+import javax.inject.Inject
 
 @AndroidEntryPoint
 class MainActivity : BaseActivity<ActivityMainBinding>() {
 
     val vm: MainViewModel by viewModels<MainViewModel>()
     var toast: Toast? = null
+    @Inject
+    lateinit var mEngineRepo:IEngineRepository
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -31,7 +40,7 @@ class MainActivity : BaseActivity<ActivityMainBinding>() {
 //                .build()
 //            WorkManager.getInstance(baseContext).enqueue(request)
             testAria2UI()
-            showToast(baseContext, "服务已开启")
+           Logger.d("服务已开启")
         }
     }
 
@@ -58,20 +67,20 @@ class MainActivity : BaseActivity<ActivityMainBinding>() {
 
             }
         })
-        Thread{
-            Prefs.init(baseContext)
-            val aria2=Aria2.get()
-            val parent: File = baseContext.getFilesDir()
-            aria2.loadEnv(
-                parent,
-                File(baseContext.getApplicationInfo().nativeLibraryDir, "libaria2c.so"),
-                File(parent, "session")
-            )
 
-            aria2.start()
-            ui.askForStatus()
-            WebSocketClient()
-        }.start()
+        lifecycleScope.launch(Dispatchers.Default) {
+
+            mEngineRepo.init()
+            mEngineRepo.startTask(
+                url = "/sdcard/Station/test.torrent",
+                engine = DownloadEngine.ARIA2,
+                downloadPath = "/sdcard/Download",
+                name = "test",
+                urlType = DownloadUrlType.DIRECT,
+                fileCount = 1,
+                selectIndexes = IntArray(0)
+            )
+        }
 
     }
 

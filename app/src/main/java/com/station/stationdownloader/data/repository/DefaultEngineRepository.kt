@@ -25,6 +25,7 @@ class DefaultEngineRepository(
     override suspend fun init(): IResult<Unit> {
         return try {
             xlEngine.init()
+            aria2Engine.init()
             IResult.Success(Unit)
         } catch (e: Exception) {
             IResult.Error(exception = e)
@@ -51,26 +52,28 @@ class DefaultEngineRepository(
         downloadPath: String,
         name: String,
         urlType: DownloadUrlType,
-        fileCount:Int,
-        selectIndexes:IntArray
-    ): IResult<Long> =
-        withContext(Dispatchers.IO) {
-            when (engine) {
-                DownloadEngine.XL -> {
-                    val startTaskResult =
-                        xlEngine.startTask(url, downloadPath, name, urlType,fileCount, selectIndexes)
-                    startTaskResult
-                }
+        fileCount: Int,
+        selectIndexes: IntArray
+    ): IResult<Long> = withContext(Dispatchers.IO) {
+        when (engine) {
+            DownloadEngine.XL -> {
+                val startTaskResult = xlEngine.startTask(
+                    url, downloadPath, name, urlType, fileCount, selectIndexes
+                )
+                startTaskResult
+            }
 
-                DownloadEngine.ARIA2 -> {
-                    IResult.Error(Exception("ARIA2 Not supported yet"))
-                }
+            DownloadEngine.ARIA2 -> {
+                val startTaskResult = aria2Engine.startTask(
+                    url, downloadPath, name, urlType, fileCount, selectIndexes
+                )
+                startTaskResult
             }
         }
+    }
 
     override suspend fun getTaskSize(
-        startDownloadTask: StationDownloadTask,
-        timeOut: Long
+        startDownloadTask: StationDownloadTask, timeOut: Long
     ): IResult<StationDownloadTask> {
         return xlEngine.getTaskSize(startDownloadTask, timeOut)
     }
@@ -83,11 +86,13 @@ class DefaultEngineRepository(
         val xlConfigResult = xlEngine.configure(key, values)
         val aria2ConfigResult = aria2Engine.configure(key, values)
 
-        if (xlConfigResult is IResult.Error)
-            return xlConfigResult.copy(exception = Exception("[xl] ${xlConfigResult.exception.message}"))
+        if (xlConfigResult is IResult.Error) return xlConfigResult.copy(exception = Exception("[xl] ${xlConfigResult.exception.message}"))
 
-        if (aria2ConfigResult is IResult.Error)
-            return aria2ConfigResult.copy(exception = Exception("[aria2] ${aria2ConfigResult.exception.message}"))
+        if (aria2ConfigResult is IResult.Error) return aria2ConfigResult.copy(
+            exception = Exception(
+                "[aria2] ${aria2ConfigResult.exception.message}"
+            )
+        )
 
         return IResult.Success(Unit)
     }
