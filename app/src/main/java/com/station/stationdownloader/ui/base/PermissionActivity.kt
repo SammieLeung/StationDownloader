@@ -7,7 +7,6 @@ import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.app.ActivityCompat
 import androidx.databinding.ViewDataBinding
-import com.station.pluginscenter.base.BaseActivity
 
 /**
  * author: Sam Leung

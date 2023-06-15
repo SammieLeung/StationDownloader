@@ -1,11 +1,9 @@
-package com.station.pluginscenter.base
+package com.station.stationdownloader.ui.base
 
 import android.os.Bundle
 import androidx.databinding.ViewDataBinding
 import androidx.fragment.app.FragmentActivity
-import androidx.lifecycle.AndroidViewModel
-import com.station.pluginscenter.util.tool.ViewDataBindingHelper
-import com.station.stationkitkt.ViewModelHelper
+import com.station.stationkitkt.ViewDataBindingHelper
 
 /**
  * author: Sam Leung

@@ -1,5 +1,11 @@
 <resources>
   <string name="app_name">StationDownloader</string>
-  <string name="menu_title"></string>
+  <string name="menu_title">资源下载器</string>
+  <string name="add_uri">添加</string>
+
+  <string name="menu_downloading">下载中</string>
+  <string name="menu_downloaded">下载完成</string>
+  <string name="menu_setting">设置</string>
+
 
 </resources>
