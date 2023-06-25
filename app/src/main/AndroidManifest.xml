@@ -38,7 +38,8 @@
         <activity
             android:name=".ui.MainActivity"
             android:exported="true" />
-
+        <activity android:name="com.station.stationtheme.test.SampleActivity"
+            android:exported="true"/>
         <service
             android:name=".DownloaderService"
             android:exported="true" />

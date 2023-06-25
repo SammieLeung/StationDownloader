@@ -3,7 +3,7 @@ package com.station.stationdownloader.navgator
 enum class Destination {
     DOWNLOADING,
     DOWNLOADED,
-    SETTINGS
+    SETTINGS,
 }
 
 interface AppNavigator {

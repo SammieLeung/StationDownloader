@@ -1,0 +1,119 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layout xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <data>
+
+        <variable
+            name="taskName"
+            type="String" />
+
+        <variable
+            name="downloadPath"
+            type="String" />
+
+        <variable
+            name="downloadSpace"
+            type="String" />
+    </data>
+
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
+
+        <RelativeLayout
+            android:layout_width="750dp"
+            android:layout_height="wrap_content">
+
+            <TextView
+                android:id="@+id/titleView"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@{taskName}" />
+
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/taskFileList"
+                android:layout_width="match_parent"
+                android:layout_height="263dp"
+                android:layout_below="@id/titleView" />
+
+            <LinearLayout
+                android:id="@+id/filterGroup"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_below="@id/taskFileList">
+
+                <CheckBox
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/filter_video" />
+
+                <CheckBox
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/filter_audio" />
+
+                <CheckBox
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/filter_image" />
+
+                <CheckBox
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/filter_other" />
+            </LinearLayout>
+
+            <Spinner
+                android:id="@+id/engineSpinner"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_below="@id/filterGroup"
+                android:layout_marginBottom="10dp" />
+
+            <LinearLayout
+                android:id="@+id/downloadPathGroup"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_alignParentStart="true"
+                android:layout_toStartOf="@id/filePickerBtn"
+                android:layout_below="@id/engineSpinner">
+
+                <TextView
+                    android:id="@+id/downloadPathView"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@{downloadPath}" />
+
+                <TextView
+                    android:id="@+id/downloadSpaceView"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@{downloadSpace}" />
+            </LinearLayout>
+            <Button
+                android:id="@+id/filePickerBtn"
+                android:layout_below="@id/engineSpinner"
+                android:layout_alignParentEnd="true"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"/>
+
+            <LinearLayout
+                android:layout_centerHorizontal="true"
+                android:layout_below="@id/filePickerBtn"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content">
+                <Button
+                    android:text="@string/download_btn"
+                    android:id="@+id/downloadBtn"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"/>
+                <Button
+                    android:text="@string/cancel_btn"
+                    android:id="@+id/cancelBtn"
+                    android:layout_marginLeft="50dp"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"/>
+            </LinearLayout>
+        </RelativeLayout>
+    </RelativeLayout>
+</layout>

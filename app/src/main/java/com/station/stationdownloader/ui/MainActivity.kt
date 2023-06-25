@@ -3,14 +3,14 @@ package com.station.stationdownloader.ui
 import android.content.Context
 import android.os.Bundle
 import android.view.View
-import android.view.View.OnClickListener
 import android.view.View.OnFocusChangeListener
 import android.widget.Toast
 import androidx.activity.viewModels
+import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
-import com.gianlu.aria2lib.Aria2Ui
 import com.orhanobut.logger.Logger
 import com.station.stationdownloader.DownloadEngine
 import com.station.stationdownloader.DownloadUrlType
@@ -19,13 +19,12 @@ import com.station.stationdownloader.databinding.ActivityMainBinding
 import com.station.stationdownloader.navgator.AppNavigator
 import com.station.stationdownloader.navgator.Destination
 import com.station.stationdownloader.ui.base.BaseActivity
-import com.station.stationdownloader.ui.fragment.DownloadedTaskFragment
-import com.station.stationdownloader.ui.fragment.DownloadingTaskFragment
-import com.station.stationdownloader.ui.fragment.SettingsFragment
-import com.station.stationdownloader.vm.MainViewModel
+import com.station.stationdownloader.ui.fragment.AddUriDialogFragment
+import com.station.stationdownloader.ui.viewmodel.MainViewModel
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -35,25 +34,38 @@ class MainActivity : BaseActivity<ActivityMainBinding>() {
     val vm: MainViewModel by viewModels<MainViewModel>()
     var toast: Toast? = null
 
-    val fragment1: DownloadingTaskFragment by lazy {
-        DownloadingTaskFragment()
-    }
-    val fragment2: DownloadedTaskFragment by lazy {
-        DownloadedTaskFragment()
-    }
-    val fragment3: SettingsFragment by lazy {
-        SettingsFragment()
-    }
-
 
     @Inject
     lateinit var mEngineRepo: IEngineRepository
 
     @Inject
     lateinit var navigator: AppNavigator
+
+    init {
+        lifecycleScope.launch {
+            repeatOnLifecycle(Lifecycle.State.RESUMED) {
+                vm.mainUiState.collectLatest {
+                    mBinding.isLoading = it.isLoading
+                }
+            }
+        }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         initTabLayout()
+        mBinding.bindState()
+    }
+
+    private fun ActivityMainBinding.bindState() {
+        addUriBtn.setOnClickListener {
+            AddUriDialogFragment().show(supportFragmentManager, "")
+        }
+
+        lifecycleScope.launch {
+
+        }
+
     }
 
     private fun initTabLayout() {

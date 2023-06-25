@@ -1,6 +1,7 @@
 package com.station.stationdownloader.data.datasource.engine.xl
 
 import android.content.Context
+import android.util.Log
 import com.orhanobut.logger.Logger
 import com.station.stationdownloader.DownloadUrlType
 import com.station.stationdownloader.ITaskState
@@ -30,6 +31,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
 import java.io.File
 
@@ -64,33 +66,35 @@ class XLEngine internal constructor(
         }
     }
 
-    override suspend fun initTask(url: String): IResult<StationDownloadTask> {
-        var decodeUrl = TaskTools.getUrlDecodeUrl(url)
+    override suspend fun initTask(url: String): IResult<StationDownloadTask> =
+        withContext(defaultDispatcher) {
+            Logger.d("initTask")
+            var decodeUrl = TaskTools.getUrlDecodeUrl(url)
 
-        val isMagnetHash = TaskTools.isMagnetHash(decodeUrl)
-        if (isMagnetHash) decodeUrl = MAGNET_PROTOCOL + decodeUrl
+            val isMagnetHash = TaskTools.isMagnetHash(decodeUrl)
+            if (isMagnetHash) decodeUrl = MAGNET_PROTOCOL + decodeUrl
 
-        val isSupportNetWork = TaskTools.isSupportNetworkUrl(decodeUrl)
-        if (isSupportNetWork) {
-            return initNormalTask(decodeUrl)
+            val isSupportNetWork = TaskTools.isSupportNetworkUrl(decodeUrl)
+            if (isSupportNetWork) {
+                return@withContext initNormalTask(decodeUrl)
+            }
+
+            val isTorrent = TaskTools.isTorrentFile(decodeUrl) && XLTaskHelper.instance()
+                .getTorrentInfo(decodeUrl).mInfoHash != null
+            return@withContext if (!isTorrent) {
+                IResult.Error(
+                    Exception("${TaskExecuteError.NOT_SUPPORT_URL.name}:[Error Url]->$decodeUrl"),
+                    TaskExecuteError.NOT_SUPPORT_URL.ordinal
+                )
+            } else {
+                initTorrentTask(decodeUrl)
+            }
         }
-
-        val isTorrent = TaskTools.isTorrentFile(decodeUrl) && XLTaskHelper.instance()
-            .getTorrentInfo(decodeUrl).mInfoHash != null
-        return if (!isTorrent) {
-            IResult.Error(
-                Exception("${TaskExecuteError.NOT_SUPPORT_URL.name}:[Error Url]->$decodeUrl"),
-                TaskExecuteError.NOT_SUPPORT_URL.ordinal
-            )
-        } else {
-            initTorrentTask(decodeUrl)
-        }
-    }
 
 
     override suspend fun getTaskSize(
         stationDownloadTask: StationDownloadTask, timeOut: Long
-    ): IResult<StationDownloadTask> {
+    ): IResult<StationDownloadTask> = withContext(defaultDispatcher) {
         val url = stationDownloadTask.url
         val downloadPath = stationDownloadTask.downloadPath
         val name = stationDownloadTask.name
@@ -107,11 +111,11 @@ class XLEngine internal constructor(
         )
 
         if (tmpResult is IResult.Error) {
-            return tmpResult
+            return@withContext tmpResult
         }
 
         val taskId = (tmpResult as IResult.Success).data
-        return try {
+        return@withContext try {
             if (urlType == DownloadUrlType.TORRENT) {
                 withTimeout(timeOut) {
                     val totalSize = calculateTorrentTaskSize(taskId, selectIndexes)
@@ -141,17 +145,17 @@ class XLEngine internal constructor(
         urlType: DownloadUrlType,
         fileCount: Int,
         selectIndexes: IntArray
-    ): IResult<Long> {
+    ): IResult<Long> = withContext(defaultDispatcher) {
         when (urlType) {
             DownloadUrlType.THUNDER, DownloadUrlType.HTTP, DownloadUrlType.ED2k, DownloadUrlType.DIRECT -> {
                 val taskId = XLTaskHelper.instance().addThunderTask(url, downloadPath, name)
                 if (taskId == 0L) {
-                    return IResult.Error(
+                    return@withContext IResult.Error(
                         Exception("${TaskExecuteError.START_TASK_FAILED.name}:Error Url is [${url}]"),
                         TaskExecuteError.START_TASK_FAILED.ordinal
                     )
                 }
-                return IResult.Success(taskId)
+                return@withContext IResult.Success(taskId)
             }
 
             DownloadUrlType.TORRENT -> {
@@ -162,16 +166,16 @@ class XLEngine internal constructor(
                         TaskTools.deSelectedIndexes(fileCount, selectIndexes)
                     )
                 if (taskId == 0L) {
-                    return IResult.Error(
+                    return@withContext IResult.Error(
                         Exception("${TaskExecuteError.START_TASK_FAILED.name}:Error Url is [${url}]"),
                         TaskExecuteError.START_TASK_FAILED.ordinal
                     )
                 }
-                return IResult.Success(taskId)
+                return@withContext IResult.Success(taskId)
             }
 
             DownloadUrlType.UNKNOWN, DownloadUrlType.MAGNET -> {
-                return IResult.Error(
+                return@withContext IResult.Error(
                     exception = Exception("${TaskExecuteError.START_TASK_URL_TYPE_ERROR.name}:[${urlType.name}]"),
                     code = TaskExecuteError.START_TASK_URL_TYPE_ERROR.ordinal
                 )
@@ -232,7 +236,7 @@ class XLEngine internal constructor(
                         .getTaskInfo(taskId).mTaskStatus != ITaskState.UNKNOWN.code
                 ) {
                     val taskInfo = XLTaskHelper.instance().getTaskInfo(taskId)
-                    Logger.d("taskInfo.mFileSize=${taskInfo.mFileSize}")
+                    Log.d(XLEngine::class.java.name, "taskInfo.mFileSize=${taskInfo.mFileSize}")
 
                     //3.1获取filesize
                     if (taskInfo.mFileSize == 0L) {

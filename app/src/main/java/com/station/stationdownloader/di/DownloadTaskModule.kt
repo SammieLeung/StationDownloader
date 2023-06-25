@@ -35,8 +35,6 @@ import javax.inject.Singleton
 @Qualifier
 annotation class LocalConfigurationDataSource
 
-@Qualifier
-annotation class ConfigurationRepo
 
 @Qualifier
 annotation class XLEngineAnnotation
@@ -50,7 +48,6 @@ annotation class Aria2EngineAnnotation
 object ConfigurationModule {
     @Provides
     @Singleton
-    @ConfigurationRepo
     fun provideConfigurationRepo(
         @XLEngineAnnotation xlEngine: IEngine,
         @Aria2EngineAnnotation aria2Engine: IEngine,

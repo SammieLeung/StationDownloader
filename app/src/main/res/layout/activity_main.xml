@@ -3,7 +3,12 @@
     xmlns:app="http://schemas.android.com/apk/res-auto">
 
 
-    <data></data>
+    <data>
+        <import type="android.view.View"/>
+        <variable
+            name="isLoading"
+            type="boolean" />
+    </data>
 
     <RelativeLayout
         android:layout_width="match_parent"
@@ -48,11 +53,22 @@
                 android:text="@string/menu_setting" />
         </LinearLayout>
 
-        <FrameLayout
-            android:id="@+id/fragmentLayout"
+        <RelativeLayout
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:layout_toEndOf="@id/menuLayout" />
+            android:layout_toEndOf="@id/menuLayout">
+
+            <FrameLayout
+                android:id="@+id/fragmentLayout"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent" />
+
+            <ProgressBar
+                android:layout_width="100dp"
+                android:layout_height="100dp"
+                android:layout_centerInParent="true"
+                android:visibility="@{isLoading?View.VISIBLE:View.GONE}" />
+        </RelativeLayout>
 
 
     </RelativeLayout>
