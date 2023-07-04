@@ -1,3 +1,8 @@
 [submodule "StationTheme"]
 	path = StationTheme
 	url = ssh://git@git.t-firefly.com:8022/stationosapp/stationostheme.git
+	branch = master
+[submodule "github"]
+	url = git@github.com:SammieLeung/StationTheme.git
+	branch = dev
+	path = StationTheme
