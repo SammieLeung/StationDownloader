@@ -49,9 +49,15 @@ class MainViewModel @Inject constructor(
     val configState: StateFlow<TaskConfigState> = _configState.asStateFlow()
 
     val accept: (UiAction) -> Unit
+    val dialogAccept: (DialogAction) -> Unit
 
 
     init {
+        accept = initAcceptAction()
+        dialogAccept = initAddUriDialogAcceptAction()
+    }
+
+    private fun initAcceptAction(): (UiAction) -> Unit {
         val actionStateFlow: MutableSharedFlow<UiAction> = MutableSharedFlow()
         val initTask = actionStateFlow.filterIsInstance<UiAction.InitTask>()
 
@@ -77,12 +83,30 @@ class MainViewModel @Inject constructor(
 
 
 
-        accept = { action ->
+        return { action ->
             viewModelScope.launch {
                 actionStateFlow.emit(action)
             }
         }
+    }
 
+    private fun initAddUriDialogAcceptAction(): (DialogAction) -> Unit {
+        val actionStateFlow: MutableSharedFlow<DialogAction> = MutableSharedFlow()
+        val resetAddUriState = actionStateFlow.filterIsInstance<DialogAction.ResetAddUriDialog>()
+
+        viewModelScope.launch {
+            resetAddUriState.collect {
+                _addUriState.value = AddUriUiState.INIT
+            }
+        }
+
+
+
+        return { dialogAction ->
+            viewModelScope.launch {
+                actionStateFlow.emit(dialogAction)
+            }
+        }
     }
 
     private fun updateAddUriState(result: IResult<StationDownloadTask>) {
@@ -115,13 +139,22 @@ class MainViewModel @Inject constructor(
             it.copy(isShowTorrentFilesInfo = true)
         }
         _configState.update {
-            TaskConfigState(name = data.name, fileList = fileStateList, engine = DownloadEngine.XL, downloadPath = data.downloadPath)
+            TaskConfigState(
+                name = data.name,
+                fileList = fileStateList,
+                engine = DownloadEngine.XL,
+                downloadPath = data.downloadPath
+            )
         }
     }
 }
 
 sealed class UiAction {
     data class InitTask(val url: String) : UiAction()
+}
+
+sealed class DialogAction {
+    object ResetAddUriDialog : DialogAction()
 }
 
 data class MainUiState(

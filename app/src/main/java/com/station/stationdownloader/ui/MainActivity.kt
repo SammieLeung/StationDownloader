@@ -1,10 +1,13 @@
 package com.station.stationdownloader.ui
 
+import android.app.Activity
 import android.content.Context
+import android.content.Intent
 import android.os.Bundle
 import android.view.View
 import android.view.View.OnFocusChangeListener
 import android.widget.Toast
+import androidx.activity.result.contract.ActivityResultContract
 import androidx.activity.viewModels
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
@@ -14,17 +17,26 @@ import androidx.work.WorkerParameters
 import com.orhanobut.logger.Logger
 import com.station.stationdownloader.DownloadEngine
 import com.station.stationdownloader.DownloadUrlType
+import com.station.stationdownloader.R
+import com.station.stationdownloader.contants.EXTRA_CONFIRM_DIALOG
+import com.station.stationdownloader.contants.EXTRA_SELECT_TYPE
+import com.station.stationdownloader.contants.EXTRA_SUPPORT_NET
+import com.station.stationdownloader.contants.EXTRA_TITLE
+import com.station.stationdownloader.contants.SelectType
 import com.station.stationdownloader.data.datasource.IEngineRepository
 import com.station.stationdownloader.databinding.ActivityMainBinding
 import com.station.stationdownloader.navgator.AppNavigator
 import com.station.stationdownloader.navgator.Destination
 import com.station.stationdownloader.ui.base.BaseActivity
+import com.station.stationdownloader.ui.fragment.AddTaskDialogFragment
 import com.station.stationdownloader.ui.fragment.AddUriDialogFragment
 import com.station.stationdownloader.ui.viewmodel.MainViewModel
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -33,6 +45,13 @@ class MainActivity : BaseActivity<ActivityMainBinding>() {
 
     val vm: MainViewModel by viewModels<MainViewModel>()
     var toast: Toast? = null
+    private val mFilePickerActivityResultContract = SelectFileActivityResultContract()
+    private val mFilePickerActivityLauncher =
+        registerForActivityResult(mFilePickerActivityResultContract) {
+            if (it == Activity.RESULT_OK) {
+
+            }
+        }
 
 
     @Inject
@@ -44,9 +63,23 @@ class MainActivity : BaseActivity<ActivityMainBinding>() {
     init {
         lifecycleScope.launch {
             repeatOnLifecycle(Lifecycle.State.RESUMED) {
-                vm.mainUiState.collectLatest {
-                    mBinding.isLoading = it.isLoading
+                launch {
+                    vm.mainUiState.map { it.isLoading }.distinctUntilChanged().collectLatest {
+                        Logger.d("check loading $it")
+                        mBinding.isLoading = it
+                    }
                 }
+                launch {
+                    vm.mainUiState.map { it.isShowTorrentFilesInfo }.distinctUntilChanged()
+                        .collectLatest {
+                            Logger.d("check isShowTorrentFilesInfo $it")
+                            if (it) {
+                                AddTaskDialogFragment().show(supportFragmentManager, "")
+                            }
+                        }
+
+                }
+
             }
         }
     }
@@ -120,5 +153,27 @@ class MainActivity : BaseActivity<ActivityMainBinding>() {
             }
             return Result.success()
         }
+    }
+
+    inner class SelectFileActivityResultContract : ActivityResultContract<Unit?, Int>() {
+        override fun createIntent(context: Context, input: Unit?): Intent {
+            val intent = Intent(ACTION_FILE_PICKER)
+            intent.putExtra(EXTRA_SELECT_TYPE, SelectType.SELECT_TYPE_DEVICE.type)
+            intent.putExtra(EXTRA_SUPPORT_NET, false)
+            intent.putExtra(
+                EXTRA_TITLE,
+                resources.getString(R.string.title_select_device)
+            )
+            intent.putExtra(EXTRA_CONFIRM_DIALOG, false)
+            return intent
+        }
+
+        override fun parseResult(resultCode: Int, intent: Intent?): Int {
+            return resultCode
+        }
+    }
+
+    companion object {
+        const val ACTION_FILE_PICKER = "com.firefly.FILE_PICKER"
     }
 }

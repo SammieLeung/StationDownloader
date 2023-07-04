@@ -236,7 +236,6 @@ class XLEngine internal constructor(
                         .getTaskInfo(taskId).mTaskStatus != ITaskState.UNKNOWN.code
                 ) {
                     val taskInfo = XLTaskHelper.instance().getTaskInfo(taskId)
-                    Log.d(XLEngine::class.java.name, "taskInfo.mFileSize=${taskInfo.mFileSize}")
 
                     //3.1获取filesize
                     if (taskInfo.mFileSize == 0L) {
