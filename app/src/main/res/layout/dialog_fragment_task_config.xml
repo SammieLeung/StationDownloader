@@ -43,21 +43,25 @@
                 android:layout_below="@id/taskFileList">
 
                 <CheckBox
+                    android:id="@+id/videoCBox"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="@string/filter_video" />
 
                 <CheckBox
+                    android:id="@+id/audioCBox"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="@string/filter_audio" />
 
                 <CheckBox
+                    android:id="@+id/pictureCBox"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="@string/filter_image" />
 
                 <CheckBox
+                    android:id="@+id/otherCBox"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="@string/filter_other" />

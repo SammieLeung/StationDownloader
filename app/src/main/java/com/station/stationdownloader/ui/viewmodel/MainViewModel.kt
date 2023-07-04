@@ -45,8 +45,8 @@ class MainViewModel @Inject constructor(
     private val _mainUiState = MutableStateFlow(MainUiState(false))
     val mainUiState: StateFlow<MainUiState> = _mainUiState.asStateFlow()
 
-    private val _configState = MutableStateFlow(TaskConfigState())
-    val configState: StateFlow<TaskConfigState> = _configState.asStateFlow()
+    private val _taskSettingState = MutableStateFlow<TaskSettingState>(TaskSettingState.INIT)
+    val taskSettingState: StateFlow<TaskSettingState> = _taskSettingState.asStateFlow()
 
     val accept: (UiAction) -> Unit
     val dialogAccept: (DialogAction) -> Unit
@@ -92,11 +92,20 @@ class MainViewModel @Inject constructor(
 
     private fun initAddUriDialogAcceptAction(): (DialogAction) -> Unit {
         val actionStateFlow: MutableSharedFlow<DialogAction> = MutableSharedFlow()
-        val resetAddUriState = actionStateFlow.filterIsInstance<DialogAction.ResetAddUriDialog>()
+        val resetAddUriState =
+            actionStateFlow.filterIsInstance<DialogAction.ResetAddUriDialogState>()
+        val resetTaskSettingState =
+            actionStateFlow.filterIsInstance<DialogAction.ResetTaskSettingDialogState>()
 
         viewModelScope.launch {
             resetAddUriState.collect {
                 _addUriState.value = AddUriUiState.INIT
+            }
+        }
+
+        viewModelScope.launch {
+            resetTaskSettingState.collect {
+                _taskSettingState.value = TaskSettingState.INIT
             }
         }
 
@@ -138,14 +147,21 @@ class MainViewModel @Inject constructor(
         _mainUiState.update {
             it.copy(isShowTorrentFilesInfo = true)
         }
-        _configState.update {
-            TaskConfigState(
+        _taskSettingState.update {
+            TaskSettingState.PreparingData(
                 name = data.name,
                 fileList = fileStateList,
                 engine = DownloadEngine.XL,
                 downloadPath = data.downloadPath
             )
         }
+    }
+
+    companion object {
+        const val VIDEO_FILE = 1
+        const val AUDIO_FILE = 2
+        const val PICTURE_FILE = 3
+        const val OTHER_FILE = 4
     }
 }
 
@@ -154,7 +170,12 @@ sealed class UiAction {
 }
 
 sealed class DialogAction {
-    object ResetAddUriDialog : DialogAction()
+    object ResetAddUriDialogState : DialogAction()
+    object ResetTaskSettingDialogState : DialogAction()
+
+    data class CheckAll(val fileType: Int) : DialogAction()
+    data class UnCheckAll(val fileType: Int) : DialogAction()
+
 }
 
 data class MainUiState(
@@ -162,16 +183,21 @@ data class MainUiState(
     val isShowTorrentFilesInfo: Boolean = false
 )
 
-data class TaskConfigState(
-    val name: String = "",
-    val fileList: List<FileState> = emptyList(),
-    val engine: DownloadEngine = DownloadEngine.XL,
-    val downloadPath: String = "",
-    val selectVideo: Boolean = true,
-    val selectAudio: Boolean = false,
-    val selectImage: Boolean = false,
-    val selectOther: Boolean = false,
-)
+sealed class TaskSettingState {
+    object INIT : TaskSettingState()
+    data class PreparingData(
+        val name: String = "",
+        val fileList: List<FileState> = emptyList(),
+        val engine: DownloadEngine = DownloadEngine.XL,
+        val downloadPath: String = "",
+        val selectVideo: Boolean = true,
+        val selectAudio: Boolean = false,
+        val selectImage: Boolean = false,
+        val selectOther: Boolean = false,
+    ) : TaskSettingState()
+
+    object LOADING : AddUriUiState<Nothing>()
+}
 
 data class FileState(
     val fileName: String,

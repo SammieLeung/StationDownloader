@@ -65,14 +65,12 @@ class MainActivity : BaseActivity<ActivityMainBinding>() {
             repeatOnLifecycle(Lifecycle.State.RESUMED) {
                 launch {
                     vm.mainUiState.map { it.isLoading }.distinctUntilChanged().collectLatest {
-                        Logger.d("check loading $it")
                         mBinding.isLoading = it
                     }
                 }
                 launch {
                     vm.mainUiState.map { it.isShowTorrentFilesInfo }.distinctUntilChanged()
                         .collectLatest {
-                            Logger.d("check isShowTorrentFilesInfo $it")
                             if (it) {
                                 AddTaskDialogFragment().show(supportFragmentManager, "")
                             }

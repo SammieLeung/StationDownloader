@@ -62,7 +62,7 @@ class AddUriDialogFragment : BaseDialogFragment<DialogFragmentAddUriBinding>() {
 
     override fun onDismiss(dialog: DialogInterface) {
         super.onDismiss(dialog)
-        vm.dialogAccept(DialogAction.ResetAddUriDialog)
+        vm.dialogAccept(DialogAction.ResetAddUriDialogState)
     }
 
     private fun done(accept: (UiAction) -> Unit) {
