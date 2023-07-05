@@ -2,14 +2,17 @@ package com.station.stationdownloader.ui.fragment
 
 import android.content.DialogInterface
 import android.os.Bundle
+import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.CheckBox
-import androidx.databinding.ViewDataBinding
 import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.lifecycleScope
+import androidx.paging.PagingDataAdapter
+import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.RecyclerView
 import com.station.stationdownloader.databinding.DialogFragmentTaskConfigBinding
+import com.station.stationdownloader.databinding.FileItemBinding
 import com.station.stationdownloader.ui.base.BaseDialogFragment
 import com.station.stationdownloader.ui.viewmodel.DialogAction
 import com.station.stationdownloader.ui.viewmodel.FileState
@@ -49,7 +52,7 @@ class AddTaskDialogFragment : BaseDialogFragment<DialogFragmentTaskConfigBinding
         lifecycleScope.launch {
             configState.collect {
                 if (it is TaskSettingState.PreparingData) {
-                    val adapter=FileStateAdapter()
+                    val adapter = FileStateAdapter()
                 }
             }
         }
@@ -77,21 +80,49 @@ class AddTaskDialogFragment : BaseDialogFragment<DialogFragmentTaskConfigBinding
 }
 
 
-class FileStateAdapter : RecyclerView.Adapter<FileStateAdapter.ViewHolder>() {
+class FileStateAdapter :
+    PagingDataAdapter<FileState, FileStateAdapter.FileViewHolder>(FILE_STATE_COMPARATOR) {
 
-    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
-        TODO("Not yet implemented")
+    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): FileViewHolder {
+        return FileViewHolder.create(parent, viewType)
     }
 
-    override fun getItemCount(): Int {
-        TODO("Not yet implemented")
+
+    override fun onBindViewHolder(holder: FileViewHolder, position: Int) {
+        val fileStateItem = getItem(position)
+        if (fileStateItem != null) {
+            holder.bind(fileStateItem)
+        }
     }
 
-    override fun onBindViewHolder(holder: ViewHolder, position: Int) {
-        TODO("Not yet implemented")
+    companion object {
+        private val FILE_STATE_COMPARATOR = object : DiffUtil.ItemCallback<FileState>() {
+            override fun areItemsTheSame(oldItem: FileState, newItem: FileState): Boolean =
+                oldItem.fileIndex == newItem.fileIndex
+
+            override fun areContentsTheSame(oldItem: FileState, newItem: FileState): Boolean =
+                oldItem == newItem
+        }
     }
 
-    inner class ViewHolder(binding: ViewDataBinding) : RecyclerView.ViewHolder(binding.root) {
 
+    class FileViewHolder(val binding: FileItemBinding) : RecyclerView.ViewHolder(binding.root) {
+        fun bind(fileStateItem: FileState) {
+            binding.fileName.setText(fileStateItem.fileName)
+            binding.checkbox.isChecked = fileStateItem.isChecked
+        }
+
+
+        companion object {
+            fun create(parent: ViewGroup, viewType: Int): FileViewHolder {
+                val binding = FileItemBinding.inflate(
+                    LayoutInflater.from(parent.context),
+                    parent,
+                    false
+                )
+                return FileViewHolder(binding)
+            }
+        }
     }
+
 }
