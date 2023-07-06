@@ -4,6 +4,7 @@ import com.station.stationdownloader.DownloadUrlType
 import java.io.File
 import java.io.UnsupportedEncodingException
 import java.net.URLDecoder
+import java.util.Base64
 
 const val MAGNET_PROTOCOL = "magnet:?xt=urn:btih:"
 const val HTTP_PROTOCOL = "http://"
@@ -13,6 +14,18 @@ const val FTP_PROTOCOL = "ftp://"
 const val ED2K_PROTOCOL = "ed2k://"
 
 object TaskTools {
+
+    /**
+     * 解码迅雷链接为普通连接
+     */
+    fun thunderLinkDecode(thunder: String): String {
+        if (!thunder.startsWith(THUNDER_PROTOCOL))
+            return thunder
+        val base64 = thunder.split(THUNDER_PROTOCOL)[1]
+        val link = String(Base64.getDecoder().decode(base64))
+        return link.substring(2, link.length - 2)
+    }
+
     /**
      * URL解码
      */
@@ -123,7 +136,7 @@ object TaskTools {
     fun deSelectedIndexes(fileCount: Int, selectIndexes: IntArray): IntArray {
         val deSelectedIndexes = mutableListOf<Int>()
         for (i in 0 until fileCount) {
-            if (selectIndexes.isEmpty()||selectIndexes.contains(i).not()) {
+            if (selectIndexes.isEmpty() || selectIndexes.contains(i).not()) {
                 deSelectedIndexes.add(i)
             }
         }
@@ -134,6 +147,26 @@ object TaskTools {
 fun String.isMedia(): Boolean {
     return TaskTools.isMediaFile(this)
 }
+
+fun String.ext(): String {
+    return this.substringAfterLast('.', "")
+}
+
+fun Long.toHumanReading(): String {
+    if (this >= 1.TB)
+        return "${String.format("%.2f", this.asTB)}TB"
+    if (this >= 1.GB)
+        return "${String.format("%.2f", this.asGB)}GB"
+    if (this >= 1.MB)
+        return "${String.format("%.2f", this.asMB)}MB"
+
+    if (this >= 1.KB)
+        return "${String.format("%.2f", this.asKB)}KB"
+    return "${String.format("%.2f", this.asByte)}B"
+}
+
+fun Int.toHumanReading(): String = this.toLong().toHumanReading()
+
 
 val Long.Byte: Double
     get() {
@@ -146,7 +179,7 @@ val Int.Byte: Double
 
 val Long.KB: Double
     get() {
-        return this.Byte / 1024
+        return (this * 1024).Byte
     }
 val Int.KB: Double
     get() {
@@ -155,7 +188,7 @@ val Int.KB: Double
 
 val Long.MB: Double
     get() {
-        return this.KB / 1024
+        return (this * 1024).KB
     }
 val Int.MB: Double
     get() {
@@ -164,7 +197,7 @@ val Int.MB: Double
 
 val Long.GB: Double
     get() {
-        return this.MB / 1024
+        return (this * 1024).MB
     }
 val Int.GB: Double
     get() {
@@ -173,9 +206,52 @@ val Int.GB: Double
 
 val Long.TB: Double
     get() {
-        return this.GB / 1024
+        return (this * 1024).GB
     }
 val Int.TB: Double
     get() {
         return this.toLong().TB
+    }
+
+val Long.asByte: Double
+    get() {
+        return this.toDouble()
+    }
+val Int.asByte: Double
+    get() {
+        return this.toLong().asByte
+    }
+
+val Long.asKB: Double
+    get() {
+        return this.asByte / 1024
+    }
+val Int.asKB: Double
+    get() {
+        return this.toLong().asKB
+    }
+val Long.asMB: Double
+    get() {
+        return this.asKB / 1024
+    }
+val Int.asMB: Double
+    get() {
+        return this.toLong().asMB
+    }
+val Long.asGB: Double
+    get() {
+        return this.asMB / 1024
+    }
+val Int.asGB: Double
+    get() {
+        return this.toLong().asGB
+    }
+
+val Long.asTB: Double
+    get() {
+        return this.asGB / 1024
+    }
+val Int.asTB: Double
+    get() {
+        return this.toLong().asTB
     }
