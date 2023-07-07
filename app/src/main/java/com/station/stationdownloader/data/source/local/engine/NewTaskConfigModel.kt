@@ -1,6 +1,7 @@
 package com.station.stationdownloader.data.source.local.engine
 
-import com.xunlei.downloadlib.parameter.TorrentInfo
+import com.station.stationdownloader.DownloadEngine
+import com.station.stationdownloader.ui.viewmodel.FileTreeModel
 
 sealed class NewTaskConfigModel {
     data class FileTaskConfig(
@@ -10,15 +11,19 @@ sealed class NewTaskConfigModel {
         val url:String,
         val taskName: String,
         val downloadPath: String,
+        val engine:DownloadEngine=DownloadEngine.XL,
         val fileType: String,
         val fileSize: Long,
         val fileExt: String
     ) : NewTaskConfigModel()
 
     data class TorrentTaskConfig(
+        val filePath:String,
         val taskName: String,
         val downloadPath: String,
-        val torrentInfo:TorrentInfo
+        val fileCount:Int,
+        val engine:DownloadEngine=DownloadEngine.XL,
+        val fileStateList:List<FileTreeModel>
     ) : NewTaskConfigModel()
 
 }

@@ -5,6 +5,7 @@ import com.station.stationdownloader.DownloadUrlType
 import com.station.stationdownloader.data.IResult
 import com.station.stationdownloader.data.source.IEngineRepository
 import com.station.stationdownloader.data.source.local.engine.IEngine
+import com.station.stationdownloader.data.source.local.engine.NewTaskConfigModel
 import com.station.stationdownloader.data.source.local.model.StationDownloadTask
 import com.station.stationdownloader.data.source.local.model.StationTaskInfo
 import kotlinx.coroutines.CoroutineDispatcher
@@ -37,7 +38,7 @@ class DefaultEngineRepository(
         }
     }
 
-    override suspend fun initTask(url: String): IResult<StationDownloadTask> {
+    override suspend fun initTask(url: String): IResult<NewTaskConfigModel> {
         return xlEngine.initUrl(url)
     }
 

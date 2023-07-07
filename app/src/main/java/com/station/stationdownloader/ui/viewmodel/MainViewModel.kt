@@ -137,10 +137,10 @@ class MainViewModel @Inject constructor(
     }
 
     private fun showTorrentFilesInfo(data: StationDownloadTask) {
-        var fileStateList: List<FileStateModel> = emptyList()
+        var fileStateList: List<FileTreeModel> = emptyList()
         if (data.fileList.isNotEmpty()) {
             fileStateList = data.fileList.mapIndexed { index, fileName ->
-                FileStateModel.File(
+                FileTreeModel.File(
                     index,
                     fileName,
                     fileName.ext(),
@@ -162,6 +162,7 @@ class MainViewModel @Inject constructor(
             )
         }
     }
+
 
     companion object {
         const val VIDEO_FILE = 1
@@ -195,7 +196,7 @@ sealed class TaskSettingState {
     object INIT : TaskSettingState()
     data class PreparingData(
         val name: String = "",
-        val fileList: List<FileStateModel> = emptyList(),
+        val fileList: List<FileTreeModel> = emptyList(),
         val engine: DownloadEngine = DownloadEngine.XL,
         val downloadPath: String = "",
         val selectVideo: Boolean = true,
@@ -207,25 +208,32 @@ sealed class TaskSettingState {
     object LOADING : AddUriUiState<Nothing>()
 }
 
-sealed class FileStateModel {
+sealed class FileTreeModel {
     data class File(
         val fileIndex: Int,
         val fileName: String,
         val fileExt: String,
         val fileSize: Long,
         val isChecked: Boolean = false,
-        val folder: String = ""
-    ) : FileStateModel()
+        val parent:Directory?=null,
+        val deep: Int
+    ) : FileTreeModel(
+    )
 
     data class Directory(
         val folderName: String,
         val checkState: FolderCheckState,
         val totalSize: Long,
-    ) : FileStateModel() {
+        val children:List<FileTreeModel>,
+        val parent: Directory?=null,
+        val deep:Int
+    ) : FileTreeModel() {
         enum class FolderCheckState {
             ALL, PART, NONE
         }
     }
+
+
 
 
 }

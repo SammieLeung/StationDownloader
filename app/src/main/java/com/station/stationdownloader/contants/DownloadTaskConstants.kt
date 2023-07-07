@@ -1,5 +1,6 @@
 package com.station.stationdownloader
 
+import com.xunlei.downloadlib.XLTaskHelper
 import java.io.Serializable
 
 /**

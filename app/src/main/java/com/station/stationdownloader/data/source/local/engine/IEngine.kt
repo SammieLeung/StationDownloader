@@ -13,7 +13,7 @@ import com.station.stationdownloader.utils.TaskTools
 interface IEngine {
     suspend fun init()
     suspend fun unInit()
-    suspend fun initUrl(url: String): IResult<StationDownloadTask>
+    suspend fun initUrl(url: String): IResult<NewTaskConfigModel>
 
     /**
      * 获取下载任务的大小
@@ -30,9 +30,7 @@ interface IEngine {
     suspend fun stopTask(task: StationDownloadTask)
     suspend fun getTaskInfo(taskId: Long): StationTaskInfo
     suspend fun configure(key: String, values: Array<String>): IResult<Unit>
-    fun String.isMedia():Boolean{
-        return TaskTools.isMediaFile(this)
-    }
+
 
 }
 
