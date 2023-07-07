@@ -1,26 +1,27 @@
 package com.station.stationdownloader.di
 
 import android.content.Context
-import com.station.stationdownloader.data.datasource.IConfigurationDataSource
-import com.station.stationdownloader.data.datasource.IConfigurationRepository
-import com.station.stationdownloader.data.datasource.IDownloadTaskRepository
-import com.station.stationdownloader.data.repository.DefaultDownloadTaskRepository
-import com.station.stationdownloader.data.datasource.IDownloadTaskDataSource
-import com.station.stationdownloader.data.datasource.IEngineRepository
-import com.station.stationdownloader.data.datasource.ITorrentInfoDataSource
-import com.station.stationdownloader.data.datasource.ITorrentInfoRepository
-import com.station.stationdownloader.data.datasource.engine.IEngine
-import com.station.stationdownloader.data.datasource.engine.aria2.Aria2Engine
-import com.station.stationdownloader.data.datasource.engine.xl.XLEngine
-import com.station.stationdownloader.data.datasource.local.ConfigurationLocalDataSource
-import com.station.stationdownloader.data.datasource.local.DownloadTaskLocalDataSource
-import com.station.stationdownloader.data.datasource.local.TorrentInfoLocalDataSource
-import com.station.stationdownloader.data.datasource.local.room.dao.XLDownloadTaskDao
-import com.station.stationdownloader.data.datasource.local.room.dao.XLTorrentFileInfoDao
-import com.station.stationdownloader.data.datasource.local.room.dao.XLTorrentInfoDao
-import com.station.stationdownloader.data.repository.DefaultConfigurationRepository
-import com.station.stationdownloader.data.repository.DefaultEngineRepository
-import com.station.stationdownloader.data.repository.DefaultTorrentInfoRepository
+import com.station.stationdownloader.data.source.IConfigurationDataSource
+import com.station.stationdownloader.data.source.IConfigurationRepository
+import com.station.stationdownloader.data.source.IDownloadTaskRepository
+import com.station.stationdownloader.data.source.repository.DefaultDownloadTaskRepository
+import com.station.stationdownloader.data.source.IDownloadTaskDataSource
+import com.station.stationdownloader.data.source.IEngineRepository
+import com.station.stationdownloader.data.source.ITorrentInfoDataSource
+import com.station.stationdownloader.data.source.ITorrentInfoRepository
+import com.station.stationdownloader.data.source.local.engine.IEngine
+import com.station.stationdownloader.data.source.local.engine.aria2.Aria2Engine
+import com.station.stationdownloader.data.source.local.engine.xl.XLEngine
+import com.station.stationdownloader.data.source.local.ConfigurationLocalDataSource
+import com.station.stationdownloader.data.source.local.DownloadTaskLocalDataSource
+import com.station.stationdownloader.data.source.local.TorrentInfoLocalDataSource
+import com.station.stationdownloader.data.source.local.room.dao.XLDownloadTaskDao
+import com.station.stationdownloader.data.source.local.room.dao.XLTorrentFileInfoDao
+import com.station.stationdownloader.data.source.local.room.dao.XLTorrentInfoDao
+import com.station.stationdownloader.data.source.remote.FileSizeApiService
+import com.station.stationdownloader.data.source.repository.DefaultConfigurationRepository
+import com.station.stationdownloader.data.source.repository.DefaultEngineRepository
+import com.station.stationdownloader.data.source.repository.DefaultTorrentInfoRepository
 import com.tencent.mmkv.MMKV
 import dagger.Module
 import dagger.Provides
@@ -108,16 +109,20 @@ object EngineModule {
     @XLEngineAnnotation
     fun provideXLEngine(
         @ApplicationContext context: Context,
-        @AppCoroutineScope externalScope: CoroutineScope,
         @LocalConfigurationDataSource configurationDataSource: IConfigurationDataSource,
         torrentInfoRepo: ITorrentInfoRepository,
+        fileSizeApiService: FileSizeApiService,
+        @AppCoroutineScope externalScope: CoroutineScope,
+        @IoDispatcher ioDispatcher: CoroutineDispatcher,
         @DefaultDispatcher defaultDispatcher: CoroutineDispatcher
     ): IEngine {
         return XLEngine(
             context = context,
-            externalScope = externalScope,
             configurationDataSource = configurationDataSource,
             torrentInfoRepo = torrentInfoRepo,
+            fileSizeApiService=fileSizeApiService,
+            externalScope = externalScope,
+            ioDispatcher = ioDispatcher,
             defaultDispatcher = defaultDispatcher
         )
     }

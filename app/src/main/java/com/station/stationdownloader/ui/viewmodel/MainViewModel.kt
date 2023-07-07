@@ -8,10 +8,11 @@ import com.orhanobut.logger.Logger
 import com.station.stationdownloader.DownloadEngine
 import com.station.stationdownloader.DownloadUrlType
 import com.station.stationdownloader.data.IResult
-import com.station.stationdownloader.data.datasource.IConfigurationRepository
-import com.station.stationdownloader.data.datasource.IEngineRepository
-import com.station.stationdownloader.data.datasource.ITorrentInfoRepository
-import com.station.stationdownloader.data.datasource.model.StationDownloadTask
+import com.station.stationdownloader.data.source.IConfigurationRepository
+import com.station.stationdownloader.data.source.IEngineRepository
+import com.station.stationdownloader.data.source.ITorrentInfoRepository
+import com.station.stationdownloader.data.source.local.model.StationDownloadTask
+import com.station.stationdownloader.utils.TaskTools
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -109,8 +110,6 @@ class MainViewModel @Inject constructor(
             }
         }
 
-
-
         return { dialogAction ->
             viewModelScope.launch {
                 actionStateFlow.emit(dialogAction)
@@ -138,10 +137,17 @@ class MainViewModel @Inject constructor(
     }
 
     private fun showTorrentFilesInfo(data: StationDownloadTask) {
-        var fileStateList: List<FileState> = emptyList()
+        var fileStateList: List<FileStateModel> = emptyList()
         if (data.fileList.isNotEmpty()) {
             fileStateList = data.fileList.mapIndexed { index, fileName ->
-                FileState(fileName, index, index in data.selectIndexes)
+                FileStateModel.File(
+                    index,
+                    fileName,
+                    fileName.ext(),
+                    0L,
+                    index in data.selectIndexes
+                )
+
             }
         }
         _mainUiState.update {
@@ -163,6 +169,8 @@ class MainViewModel @Inject constructor(
         const val PICTURE_FILE = 3
         const val OTHER_FILE = 4
     }
+
+    fun String.ext(): String = TaskTools.getExt(this)
 }
 
 sealed class UiAction {
@@ -187,7 +195,7 @@ sealed class TaskSettingState {
     object INIT : TaskSettingState()
     data class PreparingData(
         val name: String = "",
-        val fileList: List<FileState> = emptyList(),
+        val fileList: List<FileStateModel> = emptyList(),
         val engine: DownloadEngine = DownloadEngine.XL,
         val downloadPath: String = "",
         val selectVideo: Boolean = true,
@@ -199,11 +207,28 @@ sealed class TaskSettingState {
     object LOADING : AddUriUiState<Nothing>()
 }
 
-data class FileState(
-    val fileName: String,
-    val fileIndex: Int,
-    val isChecked: Boolean = false
-)
+sealed class FileStateModel {
+    data class File(
+        val fileIndex: Int,
+        val fileName: String,
+        val fileExt: String,
+        val fileSize: Long,
+        val isChecked: Boolean = false,
+        val folder: String = ""
+    ) : FileStateModel()
+
+    data class Directory(
+        val folderName: String,
+        val checkState: FolderCheckState,
+        val totalSize: Long,
+    ) : FileStateModel() {
+        enum class FolderCheckState {
+            ALL, PART, NONE
+        }
+    }
+
+
+}
 
 
 sealed class AddUriUiState<out T> {

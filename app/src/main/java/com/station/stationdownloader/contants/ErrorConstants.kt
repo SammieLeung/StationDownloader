@@ -17,6 +17,7 @@ enum class TaskExecuteError {
     START_TASK_URL_TYPE_ERROR,
     START_TASK_FAILED,
     GET_FILE_SIZE_TIMEOUT,
+    GET_HTTP_FILE_HEADER_ERROR
 }
 
 enum class EngineError {

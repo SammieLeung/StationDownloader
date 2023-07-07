@@ -1,46 +1,24 @@
 package com.station.stationdownloader.test
 
+import android.util.Log
 import androidx.annotation.WorkerThread
-import androidx.core.util.asConsumer
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.orhanobut.logger.AndroidLogAdapter
 import com.orhanobut.logger.Logger
+import com.station.stationdownloader.utils.TaskTools
+import com.station.stationdownloader.utils.TaskTools.toHumanReading
+import com.station.stationdownloader.utils.asMB
 import com.xunlei.downloadlib.XLTaskHelper
 import dagger.hilt.android.testing.HiltAndroidRule
 import dagger.hilt.android.testing.HiltAndroidTest
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Deferred
-import kotlinx.coroutines.GlobalScope
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.async
-import kotlinx.coroutines.coroutineScope
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharingStarted
-import kotlinx.coroutines.flow.collect
-import kotlinx.coroutines.flow.flow
-import kotlinx.coroutines.flow.flowOf
-import kotlinx.coroutines.flow.launchIn
-import kotlinx.coroutines.flow.stateIn
-import kotlinx.coroutines.flow.update
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
-import kotlinx.coroutines.withContext
 import okhttp3.internal.notifyAll
-import okhttp3.internal.wait
 import org.json.JSONObject
 import org.junit.Assert.*
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
-import java.util.concurrent.ConcurrentHashMap
-import java.util.concurrent.ConcurrentMap
-import java.util.concurrent.locks.ReentrantLock
-import kotlin.coroutines.resume
-import kotlin.coroutines.suspendCoroutine
 
 /**
  * Instrumented test, which will execute on an Android device.
@@ -68,24 +46,28 @@ class AppTest {
     }
 
     @Test
+    fun testToHumanReading(){
+        Logger.addLogAdapter(AndroidLogAdapter())
+        Logger.d(String.format("%.2f",1024*1024.asMB))
+
+    }
+
+    @Test
     fun testTorrent() {
         Logger.addLogAdapter(AndroidLogAdapter())
         val appContext = InstrumentationRegistry.getInstrumentation().targetContext
         XLTaskHelper.init(appContext)
         val torrentInfo =
-            XLTaskHelper.instance().getTorrentInfo("sdcard/Station/torrent/test.torrent")
+            XLTaskHelper.instance().getTorrentInfo("sdcard/Station/tvset.torrent")
         Logger.d(torrentInfo.mMultiFileBaseFolder)
         Logger.d(torrentInfo.mInfoHash)
         Logger.d(torrentInfo.mIsMultiFiles)
         Logger.d(torrentInfo.mFileCount)
+        val TAG="testTorrent"
+        for(subfileInfo in torrentInfo.mSubFileInfo){
+            Log.d(TAG,"${subfileInfo.mFileIndex} ${subfileInfo.mFileName} ${subfileInfo.mSubPath} ${subfileInfo.mFileSize.toHumanReading()}")
+        }
 
-        val subFileInfo = torrentInfo.mSubFileInfo[47]
-        Logger.d(subFileInfo.mFileIndex)
-        Logger.d(subFileInfo.mFileName)
-        Logger.d(subFileInfo.mFileSize)
-        Logger.d(subFileInfo.mRealIndex)
-        Logger.d("subPath=${subFileInfo.mSubPath}")
-        Logger.d("hash=${subFileInfo.hash}")
     }
 
     var re: InternalResponse? = null
@@ -125,6 +107,7 @@ class AppTest {
     }
 
 
+
     interface FakeMessageCallback {
         suspend fun send(code: Int)
     }
@@ -159,6 +142,19 @@ class AppTest {
         }
 
     }
+
+    @Test
+    fun testDecodeThunderLink(){
+        println( TaskTools.thunderLinkDecode("thunder://QUFodHRwczovL3JlZGlyZWN0b3IuZ3Z0MS5jb20vZWRnZWRsL2FuZHJvaWQvc3R1ZGlvL2lkZS16aXBzLzIwMjIuMi4xLjIwL2FuZHJvaWQtc3R1ZGlvLTIwMjIuMi4xLjIwLWxpbnV4LnRhci5nelpa"))
+
+    }
+
+    fun Long.toHumanReading(){
+        TaskTools.toHumanReading(this)
+    }
+
 }
+
+
 
 fun Any.wait(timeout: Long) = (this as Object).wait(timeout)

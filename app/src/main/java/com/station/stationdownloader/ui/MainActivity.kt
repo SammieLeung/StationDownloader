@@ -23,12 +23,12 @@ import com.station.stationdownloader.contants.EXTRA_SELECT_TYPE
 import com.station.stationdownloader.contants.EXTRA_SUPPORT_NET
 import com.station.stationdownloader.contants.EXTRA_TITLE
 import com.station.stationdownloader.contants.SelectType
-import com.station.stationdownloader.data.datasource.IEngineRepository
+import com.station.stationdownloader.data.source.IEngineRepository
 import com.station.stationdownloader.databinding.ActivityMainBinding
 import com.station.stationdownloader.navgator.AppNavigator
 import com.station.stationdownloader.navgator.Destination
 import com.station.stationdownloader.ui.base.BaseActivity
-import com.station.stationdownloader.ui.fragment.AddTaskDialogFragment
+import com.station.stationdownloader.ui.fragment.newtask.AddNewTaskDialogFragment
 import com.station.stationdownloader.ui.fragment.AddUriDialogFragment
 import com.station.stationdownloader.ui.viewmodel.MainViewModel
 import dagger.hilt.android.AndroidEntryPoint
@@ -72,7 +72,7 @@ class MainActivity : BaseActivity<ActivityMainBinding>() {
                     vm.mainUiState.map { it.isShowTorrentFilesInfo }.distinctUntilChanged()
                         .collectLatest {
                             if (it) {
-                                AddTaskDialogFragment().show(supportFragmentManager, "")
+                                AddNewTaskDialogFragment().show(supportFragmentManager, "")
                             }
                         }
 

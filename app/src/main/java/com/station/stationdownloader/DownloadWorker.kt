@@ -3,9 +3,7 @@ package com.station.stationdownloader
 import android.content.Context
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
-import androidx.work.workDataOf
-import com.station.stationdownloader.data.IResult
-import com.station.stationdownloader.data.datasource.IEngineRepository
+import com.station.stationdownloader.data.source.IEngineRepository
 import dagger.hilt.EntryPoint
 import dagger.hilt.InstallIn
 import dagger.hilt.android.EntryPointAccessors

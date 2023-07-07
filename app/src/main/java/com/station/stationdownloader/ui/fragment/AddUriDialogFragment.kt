@@ -7,7 +7,7 @@ import android.widget.Toast
 import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.lifecycleScope
 import com.orhanobut.logger.Logger
-import com.station.stationdownloader.data.datasource.model.StationDownloadTask
+import com.station.stationdownloader.data.source.local.model.StationDownloadTask
 import com.station.stationdownloader.databinding.DialogFragmentAddUriBinding
 import com.station.stationdownloader.ui.base.BaseDialogFragment
 import com.station.stationdownloader.ui.viewmodel.AddUriUiState

@@ -32,6 +32,13 @@ enum class DownloadEngine:Serializable  {
     ARIA2
 }
 
+enum class FileType:Serializable{
+    VIDEO,
+    AUDIO,
+    IMG,
+    OTHER
+}
+
 enum class ITaskState(val code: Int) {
     STOP(0),//停止状态
     RUNNING(1),//下载状态

@@ -7,18 +7,15 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import androidx.work.Configuration
 import androidx.work.CoroutineWorker
-import androidx.work.OneTimeWorkRequestBuilder
-import androidx.work.WorkManager
 import androidx.work.WorkerParameters
 import androidx.work.testing.SynchronousExecutor
 import androidx.work.testing.WorkManagerTestInitHelper
 import androidx.work.workDataOf
 import com.orhanobut.logger.AndroidLogAdapter
 import com.orhanobut.logger.Logger
-import com.station.stationdownloader.DownloadEngine
-import com.station.stationdownloader.DownloadUrlType
 import com.station.stationdownloader.data.IResult
-import com.station.stationdownloader.data.datasource.IEngineRepository
+import com.station.stationdownloader.data.source.IEngineRepository
+import com.station.stationdownloader.utils.TaskTools
 import com.xunlei.downloadlib.XLTaskHelper
 import dagger.hilt.android.testing.HiltAndroidRule
 import dagger.hilt.android.testing.HiltAndroidTest
@@ -76,37 +73,48 @@ class EngineTest {
             coroutineScope {
                 Logger.i("coroutineScope")
                 launch {
-                    flow {
-                        val result = mEngineRepo
-                            .initTask("magnet:?xt=urn:btih:c9997e77250a42e2ca912d1842e1727a34fbc295&dn=%5Bmp4kan%5Dd%E8%88%8Cl%E5%B8%88.2023.HD1080p.%E7%B2%A4%E8%AF%AD%E4%B8%AD%E5%AD%97.v2.mp4")
-                        when (result) {
-                            is IResult.Error -> {
-                                throw result.exception
-                            }
+                   val magnetTask="magnet:?xt=urn:btih:c9997e77250a42e2ca912d1842e1727a34fbc295&dn=%5Bmp4kan%5Dd%E8%88%8Cl%E5%B8%88.2023.HD1080p.%E7%B2%A4%E8%AF%AD%E4%B8%AD%E5%AD%97.v2.mp4"
+                   val thunderTask="thunder://QUFodHRwczovL3JlZGlyZWN0b3IuZ3Z0MS5jb20vZWRnZWRsL2FuZHJvaWQvc3R1ZGlvL2lkZS16aXBzLzIwMjIuMi4xLjIwL2FuZHJvaWQtc3R1ZGlvLTIwMjIuMi4xLjIwLWxpbnV4LnRhci5nelpa"
+                    val httpTask="https://vt1.doubanio.com/202307071536/b60b7e471c15b36d2fa3db6104bbeb3a/view/movie/M/403060358.mp4"
+                    val taskflow =
+                        flow {
+                            val result = mEngineRepo
+                                .initTask(httpTask)
+                            when (result) {
+                                is IResult.Error -> {
+                                    throw result.exception
+                                }
 
-                            is IResult.Success -> {
-                                emit(result.data)
+                                is IResult.Success -> {
+                                    emit(result.data)
+                                }
                             }
-                        }
-                    }.catch {
-                        Logger.d(it)
-                    }.map {
-                        val result = mEngineRepo.getTaskSize(
-                            startDownloadTask = it,
-                            timeOut = 30000
-                        )
-                        when (result) {
-                            is IResult.Error -> {
-                                throw result.exception
-                            }
+                        }.catch {
+                            Logger.d(it)
+                        }.map {
+                            val result = mEngineRepo.getTaskSize(
+                                startDownloadTask = it,
+                                timeOut = 30000
+                            )
+                            when (result) {
+                                is IResult.Error -> {
+                                    throw result.exception
+                                }
 
-                            is IResult.Success -> {
-                                result.data
+                                is IResult.Success -> {
+                                    result.data
+                                }
                             }
+                        }.catch {
+                            Logger.d(it)
                         }
-                    }.catch {
+
+                    taskflow.collect{
+                        Logger.d(TaskTools.toHumanReading(it.totalSize))
                         Logger.d(it)
-                    }.map {
+                    }
+
+                    val startTask = taskflow.map {
                         val result = mEngineRepo.startTask(
                             it.url,
                             it.engine,
@@ -127,37 +135,40 @@ class EngineTest {
                         }
                     }.catch {
                         Logger.d(it)
-                    }.collect {
-                        Logger.d("start taskId $it")
-
-                        val request = OneTimeWorkRequestBuilder<StatusWorker>()
-                            .setInputData(workDataOf("taskId" to it))
-                            .build()
-                        val workManager = WorkManager.getInstance(context)
-
-                        workManager.enqueue(request)
-                        val workInfo = workManager.getWorkInfoById(request.id).get()
-                        delay(3000)
-                        Logger.d("workInfo ${workInfo.progress.getDouble("progress", 0.0)}")
-                        delay(3000)
-                        Logger.d("workInfo ${workInfo.progress.getDouble("progress", 0.0)}")
-                        delay(3000)
-                        Logger.d("workInfo ${workInfo.progress.getDouble("progress", 0.0)}")
-                        WorkManager.getInstance(context).cancelAllWorkByTag("runningTask")
-                        delay(3000)
-                        Logger.d("workInfo ${workInfo.state}")
-                        Logger.d("workInfo ${workInfo.progress.getDouble("progress", 0.0)}")
-                        delay(3000)
-                        Logger.d("workInfo ${workInfo.state}")
-                        delay(100000)
-
                     }
+
+
+//                    startTask.collect {
+//                        Logger.d("start taskId $it")
+//
+//                        val request = OneTimeWorkRequestBuilder<StatusWorker>()
+//                            .setInputData(workDataOf("taskId" to it))
+//                            .build()
+//                        val workManager = WorkManager.getInstance(context)
+//
+//                        workManager.enqueue(request)
+//                        val workInfo = workManager.getWorkInfoById(request.id).get()
+//                        delay(3000)
+//                        Logger.d("workInfo ${workInfo.progress.getDouble("progress", 0.0)}")
+//                        delay(3000)
+//                        Logger.d("workInfo ${workInfo.progress.getDouble("progress", 0.0)}")
+//                        delay(3000)
+//                        Logger.d("workInfo ${workInfo.progress.getDouble("progress", 0.0)}")
+//                        WorkManager.getInstance(context).cancelAllWorkByTag("runningTask")
+//                        delay(3000)
+//                        Logger.d("workInfo ${workInfo.state}")
+//                        Logger.d("workInfo ${workInfo.progress.getDouble("progress", 0.0)}")
+//                        delay(3000)
+//                        Logger.d("workInfo ${workInfo.state}")
+//                        delay(100000)
+//
+//                    }
 
                 }
             }
 
         }
-        Logger.i("runBlocking")
+            Logger.i("runBlocking")
     }
 
     @Test

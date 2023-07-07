@@ -117,8 +117,8 @@ object TaskTools {
             "mpg", "mpe", "rm",
             "rmvb", "3gp", "wmv",
             "asf", "asx", "dat",
-            "vob", "m3u8", "webm" -> true
-
+            "vob", "m3u8", "webm",
+            "flv","ts"-> true
             else -> false
         }
     }
@@ -142,30 +142,24 @@ object TaskTools {
         }
         return deSelectedIndexes.toIntArray()
     }
+
+    fun getExt(name: String): String {
+        return name.substringAfterLast('.', "")
+    }
+
+    fun toHumanReading(byte: Long): String {
+        if (byte >= 1.TB)
+            return "${String.format("%.2f", byte.asTB)}TB"
+        if (byte >= 1.GB)
+            return "${String.format("%.2f", byte.asGB)}GB"
+        if (byte >= 1.MB)
+            return "${String.format("%.2f", byte.asMB)}MB"
+        if (byte >= 1.KB)
+            return "${String.format("%.2f", byte.asKB)}KB"
+        return "${String.format("%.2f", byte.asByte)}B"
+    }
+
 }
-
-fun String.isMedia(): Boolean {
-    return TaskTools.isMediaFile(this)
-}
-
-fun String.ext(): String {
-    return this.substringAfterLast('.', "")
-}
-
-fun Long.toHumanReading(): String {
-    if (this >= 1.TB)
-        return "${String.format("%.2f", this.asTB)}TB"
-    if (this >= 1.GB)
-        return "${String.format("%.2f", this.asGB)}GB"
-    if (this >= 1.MB)
-        return "${String.format("%.2f", this.asMB)}MB"
-
-    if (this >= 1.KB)
-        return "${String.format("%.2f", this.asKB)}KB"
-    return "${String.format("%.2f", this.asByte)}B"
-}
-
-fun Int.toHumanReading(): String = this.toLong().toHumanReading()
 
 
 val Long.Byte: Double

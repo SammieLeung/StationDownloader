@@ -2,10 +2,10 @@ package com.station.stationdownloader.di
 
 import android.app.Application
 import androidx.room.Room
-import com.station.stationdownloader.data.datasource.local.room.AppDatabase
-import com.station.stationdownloader.data.datasource.local.room.dao.XLDownloadTaskDao
-import com.station.stationdownloader.data.datasource.local.room.dao.XLTorrentFileInfoDao
-import com.station.stationdownloader.data.datasource.local.room.dao.XLTorrentInfoDao
+import com.station.stationdownloader.data.source.local.room.AppDatabase
+import com.station.stationdownloader.data.source.local.room.dao.XLDownloadTaskDao
+import com.station.stationdownloader.data.source.local.room.dao.XLTorrentFileInfoDao
+import com.station.stationdownloader.data.source.local.room.dao.XLTorrentInfoDao
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -37,21 +37,21 @@ object DataBaseModule {
     fun provideDownloadTaskDao(
         database: AppDatabase
     ): XLDownloadTaskDao {
-        return database.downloadTaskDao()
+        return database.getXLDownloadTaskDao()
     }
 
     @Provides
     fun provideTorrentInfoDao(
         database: AppDatabase
     ): XLTorrentInfoDao {
-        return database.torrentInfoDao()
+        return database.getXLTorrentInfoDao()
     }
 
     @Provides
     fun provideTorrentFileInfoDao(
         database: AppDatabase
     ): XLTorrentFileInfoDao {
-        return database.torrentFileInfoDao()
+        return database.getXLTorrentFileInfoDao()
     }
 }
 
