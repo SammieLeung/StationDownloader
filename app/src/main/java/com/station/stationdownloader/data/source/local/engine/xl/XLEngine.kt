@@ -555,7 +555,7 @@ class XLEngine internal constructor(
 
     private fun TorrentInfo.getFileTree(): TreeNode {
         val root =
-            TreeNode.Directory("", TreeNode.FolderCheckState.NONE, 0, mutableListOf(), null, -1)
+            TreeNode.Directory("root", TreeNode.FolderCheckState.NONE, 0, mutableListOf(), null, -1)
 
         for (fileInfo in mSubFileInfo) {
             val filePath =
@@ -578,7 +578,7 @@ class XLEngine internal constructor(
                             comp,
                             comp.ext(),
                             fileInfo.mFileSize,
-                            isChecked = if (comp.isMedia()) true else false,
+                            isChecked = comp.isMedia(),
                             parent = currentNode,
                             deep = idx
                         )

@@ -1,7 +1,7 @@
 package com.station.stationdownloader.data.source.local.engine
 
 import com.station.stationdownloader.DownloadEngine
-import com.station.stationdownloader.ui.viewmodel.TreeNode
+import com.station.stationdownloader.data.source.local.model.TreeNode
 
 sealed class NewTaskConfigModel {
     data class FileTaskConfig(

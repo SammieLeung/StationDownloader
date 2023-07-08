@@ -12,6 +12,7 @@ import com.station.stationdownloader.data.source.IEngineRepository
 import com.station.stationdownloader.data.source.ITorrentInfoRepository
 import com.station.stationdownloader.data.source.local.engine.NewTaskConfigModel
 import com.station.stationdownloader.data.source.local.model.StationDownloadTask
+import com.station.stationdownloader.data.source.local.model.TreeNode
 import com.station.stationdownloader.utils.TaskTools
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -209,60 +210,6 @@ sealed class TaskSettingState {
 }
 
 
-sealed class TreeNode(
-    val _name:String,
-    val _parent: TreeNode?,
-    val _children: MutableList<TreeNode>?,
-    val _deep: Int
-) {
-
-    data class File(
-        val fileIndex: Int,
-        val fileName: String,
-        val fileExt: String,
-        val fileSize: Long,
-        var isChecked: Boolean = false,
-        val parent: TreeNode,
-        val deep: Int
-    ) : TreeNode(fileName,parent, null, deep)
-
-    data class Directory(
-        val folderName: String,
-        var checkState: FolderCheckState,
-        var totalSize: Long,
-        val children: MutableList<TreeNode>,
-        val parent: TreeNode?,
-        val deep: Int
-    ) : TreeNode(folderName,parent, children, deep){
-        fun updateCheckState(){
-            children
-        }
-    }
-
-    fun isFile(): Boolean {
-        return _children == null
-    }
-
-    fun isDirectory(): Boolean {
-        return _children != null
-    }
-
-    fun isFold():Boolean{
-        return isDirectory()&&!isRoot()
-    }
-
-    fun isRoot(): Boolean {
-        return _parent == null && _deep == -1
-    }
-
-    fun addChild(treeNode: TreeNode) {
-        _children?.add(treeNode)
-    }
-
-    enum class FolderCheckState {
-        ALL, PART, NONE
-    }
-}
 
 
 sealed class AddUriUiState<out T> {

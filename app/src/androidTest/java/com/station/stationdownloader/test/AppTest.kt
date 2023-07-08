@@ -6,7 +6,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.orhanobut.logger.AndroidLogAdapter
 import com.orhanobut.logger.Logger
-import com.station.stationdownloader.ui.viewmodel.TreeNode
+import com.station.stationdownloader.data.source.local.model.TreeNode
 import com.station.stationdownloader.utils.TaskTools
 import com.station.stationdownloader.utils.TaskTools.toHumanReading
 import com.station.stationdownloader.utils.asMB
@@ -62,7 +62,7 @@ class AppTest {
         val appContext = InstrumentationRegistry.getInstrumentation().targetContext
         XLTaskHelper.init(appContext)
         val torrentInfo =
-            XLTaskHelper.instance().getTorrentInfo("sdcard/Station/tvset.torrent")
+            XLTaskHelper.instance().getTorrentInfo("sdcard/Station/movie.torrent")
         Logger.d(torrentInfo.mMultiFileBaseFolder)
         Logger.d(torrentInfo.mInfoHash)
         Logger.d(torrentInfo.mIsMultiFiles)
@@ -168,9 +168,22 @@ class AppTest {
 
 }
 
-fun printFileTree(treeNode: TreeNode,indent:String="",tag:String="treeNode"){
+fun printFileTree(treeNode: TreeNode, indent:String="", tag:String="treeNode"){
 
-    val prefix =  if(treeNode.isFold()) " >" else if (treeNode.isDirectory()) " "  else " -|"
+    val prefix =  if (treeNode.isDirectory()) {
+        val dir=treeNode as TreeNode.Directory
+        when(dir.checkState){
+            TreeNode.FolderCheckState.ALL -> " [√]"
+            TreeNode.FolderCheckState.PART -> " [-]"
+            TreeNode.FolderCheckState.NONE -> " [x]"
+        }
+    }  else {
+        val file=treeNode as TreeNode.File
+        if (file.isChecked)
+            " {√}"
+        else
+            " {x}"
+    }
     Log.d(tag,"$indent$prefix${treeNode._name}")
     if(treeNode.isDirectory() && treeNode.isFold()) {
         return
