@@ -20,15 +20,15 @@ import com.station.stationdownloader.data.source.local.engine.NewTaskConfigModel
 import com.station.stationdownloader.data.source.local.model.StationDownloadTask
 import com.station.stationdownloader.data.source.local.model.StationTaskInfo
 import com.station.stationdownloader.data.source.local.model.asStationTaskInfo
-import com.station.stationdownloader.data.source.local.room.entities.asStationTorrentInfo
 import com.station.stationdownloader.data.source.remote.FileContentHeader
 import com.station.stationdownloader.data.source.remote.FileSizeApiService
-import com.station.stationdownloader.ui.viewmodel.FileTreeModel
+import com.station.stationdownloader.ui.viewmodel.TreeNode
 import com.station.stationdownloader.utils.DLogger
 import com.station.stationdownloader.utils.MAGNET_PROTOCOL
 import com.station.stationdownloader.utils.TaskTools
 import com.xunlei.downloadlib.XLDownloadManager
 import com.xunlei.downloadlib.XLTaskHelper
+import com.xunlei.downloadlib.parameter.TorrentFileInfo
 import com.xunlei.downloadlib.parameter.TorrentInfo
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
@@ -37,6 +37,7 @@ import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
+import okhttp3.internal.concurrent.Task
 import java.io.File
 
 class XLEngine internal constructor(
@@ -81,17 +82,17 @@ class XLEngine internal constructor(
             if (isMagnetHash) decodeUrl = MAGNET_PROTOCOL + decodeUrl
 
             val isSupportNetWork = TaskTools.isSupportNetworkUrl(decodeUrl)
-            if (isSupportNetWork) {
-                /*对thunder link进行解码，用于支持用thunder link包裹磁链的任务*/
+            if (isSupportNetWork) {/*对thunder link进行解码，用于支持用thunder link包裹磁链的任务*/
                 if (decodeUrl.urlType() == DownloadUrlType.THUNDER) {
                     val realUrl = TaskTools.thunderLinkDecode(decodeUrl)
-                    if (TaskTools.isSupportNetworkUrl(realUrl))
-                        return@withContext initNormalUrl(originUrl, realUrl)
-                    else
-                        return@withContext IResult.Error(
-                            Exception("${TaskExecuteError.NOT_SUPPORT_URL.name}:[originUrl]->$originUrl [RealUrl]->$realUrl"),
-                            TaskExecuteError.NOT_SUPPORT_URL.ordinal
-                        )
+                    if (TaskTools.isSupportNetworkUrl(realUrl)) return@withContext initNormalUrl(
+                        originUrl,
+                        realUrl
+                    )
+                    else return@withContext IResult.Error(
+                        Exception("${TaskExecuteError.NOT_SUPPORT_URL.name}:[originUrl]->$originUrl [RealUrl]->$realUrl"),
+                        TaskExecuteError.NOT_SUPPORT_URL.ordinal
+                    )
                 }
                 return@withContext initNormalUrl(originUrl, decodeUrl)
             }
@@ -162,9 +163,7 @@ class XLEngine internal constructor(
 //    }
 
     suspend fun tryDownloadToGetSize(
-        url: String,
-        fileName: String,
-        timeOut: Long
+        url: String, fileName: String, timeOut: Long
     ): IResult<Long> = withContext(defaultDispatcher) {
 
         val urlType = url.urlType()
@@ -178,8 +177,7 @@ class XLEngine internal constructor(
             //TODO 返回错误信息
         }
         val savePathFile = File(tryDownloadDirectoryPath, fileName)
-        if (!savePathFile.exists())
-            savePathFile.mkdirs()
+        if (!savePathFile.exists()) savePathFile.mkdirs()
 
         val taskId = XLTaskHelper.instance().addThunderTask(url, savePathFile.path, null)
         if (taskId == 0L) {
@@ -271,12 +269,9 @@ class XLEngine internal constructor(
             }
 
             DownloadUrlType.TORRENT -> {
-                val taskId =
-                    XLTaskHelper.instance().addTorrentTask(
-                        url,
-                        downloadPath,
-                        TaskTools.deSelectedIndexes(fileCount, selectIndexes)
-                    )
+                val taskId = XLTaskHelper.instance().addTorrentTask(
+                    url, downloadPath, TaskTools.deSelectedIndexes(fileCount, selectIndexes)
+                )
                 if (taskId == 0L) {
                     return@withContext IResult.Error(
                         Exception("${TaskExecuteError.START_TASK_FAILED.name}:Error Url is [${url}]"),
@@ -309,8 +304,7 @@ class XLEngine internal constructor(
                 if (values.size == 2) {
                     val upSpeedLimit: Long = values[0] as Long
                     val downloadSpeedLimit: Long = values[1] as Long
-                    XLDownloadManager.getInstance()
-                        .setSpeedLimit(upSpeedLimit, downloadSpeedLimit)
+                    XLDownloadManager.getInstance().setSpeedLimit(upSpeedLimit, downloadSpeedLimit)
                     return IResult.Success(Unit)
                 }
                 return IResult.Error(
@@ -328,9 +322,7 @@ class XLEngine internal constructor(
     }
 
     private suspend fun autoDownloadTorrent(
-        magnetUrl: String,
-        downloadPath: String,
-        torrentFileName: String
+        magnetUrl: String, downloadPath: String, torrentFileName: String
     ): IResult<NewTaskConfigModel> {
         try {
             //1.下载种子
@@ -338,11 +330,10 @@ class XLEngine internal constructor(
                 magnetUrl, downloadPath, torrentFileName
             )
 
-            if (taskId <= 0)
-                return IResult.Error(
-                    Exception(TaskExecuteError.ADD_MAGNET_TASK_ERROR.name),
-                    TaskExecuteError.ADD_MAGNET_TASK_ERROR.ordinal
-                )
+            if (taskId <= 0) return IResult.Error(
+                Exception(TaskExecuteError.ADD_MAGNET_TASK_ERROR.name),
+                TaskExecuteError.ADD_MAGNET_TASK_ERROR.ordinal
+            )
 
             return withTimeout(MAGNET_TASK_TIMEOUT) {
                 while (XLTaskHelper.instance()
@@ -358,16 +349,14 @@ class XLEngine internal constructor(
                         continue
                     }
 
-                    if (taskInfo.mFileSize == taskInfo.mDownloadSize)
-                        break
+                    if (taskInfo.mFileSize == taskInfo.mDownloadSize) break
 
                     //延时轮询
                     delay(GET_MAGNET_TASK_INFO_DELAY)
                 }
                 return@withTimeout initTorrentUrl(
                     File(
-                        downloadPath,
-                        torrentFileName
+                        downloadPath, torrentFileName
                     ).path
                 )
             }
@@ -422,8 +411,7 @@ class XLEngine internal constructor(
      *       -> 转到自动下载种子
      */
     private suspend fun initNormalUrl(
-        originUrl: String,
-        realUrl: String
+        originUrl: String, realUrl: String
     ): IResult<NewTaskConfigModel> {
         val taskName = XLTaskHelper.instance().getFileName(realUrl)
         val downloadPath =
@@ -441,8 +429,7 @@ class XLEngine internal constructor(
             }
         } else {
             val result = tryDownloadToGetSize(originUrl, taskName, 30000)
-            if (result is IResult.Success)
-                contextSize = result.data
+            if (result is IResult.Success) contextSize = result.data
         }
         return IResult.Success(
             NewTaskConfigModel.FileTaskConfig(
@@ -470,25 +457,23 @@ class XLEngine internal constructor(
      * 初始化种子任务
      */
     private suspend fun initTorrentUrl(torrentUrl: String): IResult<NewTaskConfigModel> {
-        val torrentInfo = XLTaskHelper.instance().getTorrentInfo(torrentUrl)
-            ?: return IResult.Error(
+        val torrentInfo =
+            XLTaskHelper.instance().getTorrentInfo(torrentUrl) ?: return IResult.Error(
                 Exception(TaskExecuteError.TORRENT_INFO_IS_NULL.name),
                 TaskExecuteError.TORRENT_INFO_IS_NULL.ordinal
             )
-        if (torrentInfo.mInfoHash == null)
-            return IResult.Error(
-                Exception(TaskExecuteError.TORRENT_INFO_IS_NULL.name),
-                TaskExecuteError.TORRENT_INFO_IS_NULL.ordinal
-            )
+        if (torrentInfo.mInfoHash == null) return IResult.Error(
+            Exception(TaskExecuteError.TORRENT_INFO_IS_NULL.name),
+            TaskExecuteError.TORRENT_INFO_IS_NULL.ordinal
+        )
 
         checkTorrentHash(torrentInfo.mInfoHash)
 
 
-        if (torrentInfo.mIsMultiFiles && torrentInfo.mSubFileInfo == null)
-            return IResult.Error(
-                Exception(TaskExecuteError.SUB_TORRENT_INFO_IS_NULL.name),
-                TaskExecuteError.SUB_TORRENT_INFO_IS_NULL.ordinal
-            )
+        if (torrentInfo.mIsMultiFiles && torrentInfo.mSubFileInfo == null) return IResult.Error(
+            Exception(TaskExecuteError.SUB_TORRENT_INFO_IS_NULL.name),
+            TaskExecuteError.SUB_TORRENT_INFO_IS_NULL.ordinal
+        )
 
         val taskName = torrentUrl.substringAfterLast(File.separatorChar)
         val downloadPath =
@@ -497,7 +482,7 @@ class XLEngine internal constructor(
 
         torrentInfoRepo.saveTorrentInfo(torrentInfo)
 
-        val fileStateList = torrentInfo.getFileStateList()
+        val fileStateList = torrentInfo.getFileTree()
 
         return IResult.Success(
             NewTaskConfigModel.TorrentTaskConfig(
@@ -516,8 +501,7 @@ class XLEngine internal constructor(
     }
 
     private fun filterMediaFileIndexes(torrentInfo: TorrentInfo): List<Int> {
-        if (torrentInfo.mSubFileInfo == null)
-            return emptyList()
+        if (torrentInfo.mSubFileInfo == null) return emptyList()
         var selectIndexes = mutableListOf<Int>()
         for (subInfo in torrentInfo.mSubFileInfo) {
             if (subInfo.mFileName.isMedia()) {
@@ -568,38 +552,54 @@ class XLEngine internal constructor(
         return TaskTools.isMediaFile(this)
     }
 
-    private fun TorrentInfo.getFileStateList(): List<FileTreeModel> {
-        var rootList = mutableListOf<FileTreeModel>()
-        var current=rootList
-        if (!mIsMultiFiles) {
-            current.add(
-                FileTreeModel.File(
-                    0,
-                    mSubFileInfo[0].mFileName,
-                    mSubFileInfo[0].mFileName.ext(),
-                    mSubFileInfo[0].mFileSize,
-                    true,
-                    null,
-                    0
-                )
-            )
-            return current
-        }
 
+    private fun TorrentInfo.getFileTree(): TreeNode {
+        val root =
+            TreeNode.Directory("", TreeNode.FolderCheckState.NONE, 0, mutableListOf(), null, -1)
 
-        if (mMultiFileBaseFolder?.isNotEmpty() == true) {
-            rootList.add(
-                FileTreeModel.Directory(
-                    mMultiFileBaseFolder,
-                    checkState = FileTreeModel.Directory.FolderCheckState.ALL,
-                    totalSize = 0,
-                    children = emptyList(),
-                    parent = null,
-                    0
-                )
-            )
-            //需要用递归实现。
+        for (fileInfo in mSubFileInfo) {
+            val filePath =
+                File(fileInfo.mSubPath, fileInfo.mFileName).path
+            val pathComponents = filePath.split(File.separator)
+            var currentNode: TreeNode.Directory = root
+            for (idx in pathComponents.indices) {
+                val comp = pathComponents[idx]
+                val isFile = pathComponents.lastIndex == idx
+                val existsChild: TreeNode.Directory? = currentNode.children.find {
+                    it is TreeNode.Directory && it.folderName == comp
+                } as TreeNode.Directory?
+
+                if (existsChild != null) {
+                    currentNode = existsChild
+                } else {
+                    if (isFile) {
+                        val newChild = TreeNode.File(
+                            fileInfo.mFileIndex,
+                            comp,
+                            comp.ext(),
+                            fileInfo.mFileSize,
+                            isChecked = if (comp.isMedia()) true else false,
+                            parent = currentNode,
+                            deep = idx
+                        )
+                        currentNode.addChild(newChild)
+                    } else {
+                        val newChild = TreeNode.Directory(
+                            comp,
+                            TreeNode.FolderCheckState.NONE,
+                            0,
+                            children = mutableListOf(),
+                            parent = currentNode,
+                            deep = idx
+                        )
+                        currentNode.addChild(newChild)
+                        currentNode = newChild
+                    }
+                }
+            }
         }
+        return root
     }
+
 
 }

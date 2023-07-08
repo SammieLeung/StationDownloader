@@ -15,6 +15,7 @@ import com.orhanobut.logger.AndroidLogAdapter
 import com.orhanobut.logger.Logger
 import com.station.stationdownloader.data.IResult
 import com.station.stationdownloader.data.source.IEngineRepository
+import com.station.stationdownloader.data.source.local.model.StationDownloadTask
 import com.station.stationdownloader.utils.TaskTools
 import com.xunlei.downloadlib.XLTaskHelper
 import dagger.hilt.android.testing.HiltAndroidRule
@@ -31,6 +32,7 @@ import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
+import java.lang.Exception
 import javax.inject.Inject
 
 @RunWith(AndroidJUnit4::class)
@@ -73,9 +75,12 @@ class EngineTest {
             coroutineScope {
                 Logger.i("coroutineScope")
                 launch {
-                   val magnetTask="magnet:?xt=urn:btih:c9997e77250a42e2ca912d1842e1727a34fbc295&dn=%5Bmp4kan%5Dd%E8%88%8Cl%E5%B8%88.2023.HD1080p.%E7%B2%A4%E8%AF%AD%E4%B8%AD%E5%AD%97.v2.mp4"
-                   val thunderTask="thunder://QUFodHRwczovL3JlZGlyZWN0b3IuZ3Z0MS5jb20vZWRnZWRsL2FuZHJvaWQvc3R1ZGlvL2lkZS16aXBzLzIwMjIuMi4xLjIwL2FuZHJvaWQtc3R1ZGlvLTIwMjIuMi4xLjIwLWxpbnV4LnRhci5nelpa"
-                    val httpTask="https://vt1.doubanio.com/202307071536/b60b7e471c15b36d2fa3db6104bbeb3a/view/movie/M/403060358.mp4"
+                    val magnetTask =
+                        "magnet:?xt=urn:btih:c9997e77250a42e2ca912d1842e1727a34fbc295&dn=%5Bmp4kan%5Dd%E8%88%8Cl%E5%B8%88.2023.HD1080p.%E7%B2%A4%E8%AF%AD%E4%B8%AD%E5%AD%97.v2.mp4"
+                    val thunderTask =
+                        "thunder://QUFodHRwczovL3JlZGlyZWN0b3IuZ3Z0MS5jb20vZWRnZWRsL2FuZHJvaWQvc3R1ZGlvL2lkZS16aXBzLzIwMjIuMi4xLjIwL2FuZHJvaWQtc3R1ZGlvLTIwMjIuMi4xLjIwLWxpbnV4LnRhci5nelpa"
+                    val httpTask =
+                        "https://vt1.doubanio.com/202307071536/b60b7e471c15b36d2fa3db6104bbeb3a/view/movie/M/403060358.mp4"
                     val taskflow =
                         flow {
                             val result = mEngineRepo
@@ -92,10 +97,11 @@ class EngineTest {
                         }.catch {
                             Logger.d(it)
                         }.map {
-                            val result = mEngineRepo.getTaskSize(
-                                startDownloadTask = it,
-                                timeOut = 30000
-                            )
+//                            val result = mEngineRepo.getTaskSize(
+//                                startDownloadTask = it,
+//                                timeOut = 30000
+//                            )
+                            val result: IResult<StationDownloadTask> = IResult.Error(Exception(""))
                             when (result) {
                                 is IResult.Error -> {
                                     throw result.exception
@@ -109,7 +115,7 @@ class EngineTest {
                             Logger.d(it)
                         }
 
-                    taskflow.collect{
+                    taskflow.collect {
                         Logger.d(TaskTools.toHumanReading(it.totalSize))
                         Logger.d(it)
                     }
@@ -168,7 +174,7 @@ class EngineTest {
             }
 
         }
-            Logger.i("runBlocking")
+        Logger.i("runBlocking")
     }
 
     @Test

@@ -1,79 +1,82 @@
-<mimeType extension=".art" type="image/x-jg" />
-<mimeType extension=".bm" type="image/bmp" />
-<mimeType extension=".bmp" type="image/bmp" description="Bitmap Image File" />
-<mimeType extension=".btif" type="image/prs.btif" description="BTIF" />
-<mimeType extension=".cgm" type="image/cgm" description="Computer Graphics Metafile" />
-<mimeType extension=".cmx" type="image/x-cmx" description="Corel Metafile Exchange (CMX)" />
-<mimeType extension=".cod" type="image/cis-cod" description="Blackberry COD File" />
-<mimeType extension=".dib" type="image/bmp" />
-<mimeType extension=".djv" type="image/vnd.djvu" />
-<mimeType extension=".djvu" type="image/vnd.djvu" description="DjVu" />
-<mimeType extension=".dwg" type="image/vnd.dwg" description="DWG Drawing" />
-<mimeType extension=".dxf" type="image/vnd.dxf" description="AutoCAD DXF" />
-<mimeType extension=".fbs" type="image/vnd.fastbidsheet" description="FastBid Sheet" />
-<mimeType extension=".fh" type="image/x-freehand" description="FreeHand MX" />
-<mimeType extension=".fh4" type="image/x-freehand" />
-<mimeType extension=".fh5" type="image/x-freehand" />
-<mimeType extension=".fh7" type="image/x-freehand" />
-<mimeType extension=".fhc" type="image/x-freehand" />
-<mimeType extension=".fpx" type="image/vnd.fpx" description="FlashPix" />
-<mimeType extension=".fst" type="image/vnd.fst" description="FAST Search &amp; Transfer ASA" />
-<mimeType extension=".g3" type="image/g3fax" description="G3 Fax Image" />
-<mimeType extension=".gif" type="image/gif" description="Graphics Interchange Format" />
-<mimeType extension=".ico" type="image/x-icon" description="Icon Image" />
-<mimeType extension=".ief" type="image/ief" description="Image Exchange Format" />
-<mimeType extension=".iefs" type="image/ief" />
-<mimeType extension=".jfif" type="image/pjpeg" />
-<mimeType extension=".jfif-tbnl" type="image/jpeg" />
-<mimeType extension=".jpe" type="image/jpeg" />
-<mimeType extension=".jpeg" type="image/jpeg" />
-<mimeType extension=".jpg" type="image/jpeg" />
-<mimeType extension=".jps" type="image/x-jps" />
-<mimeType extension=".jut" type="image/jutvision" />
-<mimeType extension=".ktx" type="image/ktx" description="OpenGL Textures (KTX)" />
-<mimeType extension=".mcf" type="image/vasa" />
-<mimeType extension=".mdi" type="image/vnd.ms-modi" description="Microsoft Document Imaging Format" />
-<mimeType extension=".mmr" type="image/vnd.fujixerox.edmics-mmr" description="EDMICS 2000" />
-<mimeType extension=".nap" type="image/naplps" />
-<mimeType extension=".naplps" type="image/naplps" />
-<mimeType extension=".nif" type="image/x-niff" />
-<mimeType extension=".niff" type="image/x-niff" />
-<mimeType extension=".npx" type="image/vnd.net-fpx" description="FlashPix" />
-<mimeType extension=".pbm" type="image/x-portable-bitmap" description="Portable Bitmap Format" />
-<mimeType extension=".pct" type="image/x-pict" />
-<mimeType extension=".pcx" type="image/x-pcx" description="PCX Image" />
-<mimeType extension=".pgm" type="image/x-portable-graymap" description="Portable Graymap Format" />
-<mimeType extension=".pic" type="image/x-pict" description="PICT Image" />
-<mimeType extension=".pict" type="image/pict" />
-<mimeType extension=".pm" type="image/x-xpixmap" />
-<mimeType extension=".png" type="image/png" description="Portable Network Graphics (PNG)" />
-<mimeType extension=".pnm" type="image/x-portable-anymap" description="Portable Anymap Image" />
-<mimeType extension=".ppm" type="image/x-portable-pixmap" description="Portable Pixmap Format" />
-<mimeType extension=".psd" type="image/vnd.adobe.photoshop" description="Photoshop Document" />
-<mimeType extension=".qif" type="image/x-quicktime" />
-<mimeType extension=".qti" type="image/x-quicktime" />
-<mimeType extension=".qtif" type="image/x-quicktime" />
-<mimeType extension=".ras" type="image/x-cmu-raster" description="CMU Image" />
-<mimeType extension=".rast" type="image/cmu-raster" />
-<mimeType extension=".rf" type="image/vnd.rn-realflash" />
-<mimeType extension=".rgb" type="image/x-rgb" description="Silicon Graphics RGB Bitmap" />
-<mimeType extension=".rlc" type="image/vnd.fujixerox.edmics-rlc" description="EDMICS 2000" />
-<mimeType extension=".rp" type="image/vnd.rn-realpix" />
-<mimeType extension=".sub" type="image/vnd.dvb.subtitle" description="Close Captioning - Subtitle" />
-<mimeType extension=".svf" type="image/vnd.dwg" />
-<mimeType extension=".svg" type="image/svg+xml" description="Scalable Vector Graphics (SVG)" />
-<mimeType extension=".svgz" type="image/svg+xml" />
-<mimeType extension=".tif" type="image/tiff" />
-<mimeType extension=".tiff" type="image/tiff" description="Tagged Image File Format" />
-<mimeType extension=".turbot" type="image/florian" />
-<mimeType extension=".uvg" type="image/vnd.dece.graphic" />
-<mimeType extension=".uvi" type="image/vnd.dece.graphic" description="DECE Graphic" />
-<mimeType extension=".uvvg" type="image/vnd.dece.graphic" />
-<mimeType extension=".uvvi" type="image/vnd.dece.graphic" />
-<mimeType extension=".wbmp" type="image/vnd.wap.wbmp" description="WAP Bitamp (WBMP)" />
-<mimeType extension=".webp" type="image/webp" description="WebP Image" />
-<mimeType extension=".xbm" type="image/x-xbitmap" description="X BitMap" />
-<mimeType extension=".xif" type="image/vnd.xiff" description="eXtended Image File Format (XIFF)" />
-<mimeType extension=".xpm" type="image/x-xpixmap" description="X PixMap" />
-<mimeType extension=".x-png" type="image/png" />
-<mimeType extension=".xwd" type="image/x-xwindowdump" description="X Window Dump" />
+<?xml version="1.0" encoding="utf-8"?>
+<image>
+    <mimeType extension=".art" type="image/x-jg" />
+    <mimeType extension=".bm" type="image/bmp" />
+    <mimeType extension=".bmp" type="image/bmp" description="Bitmap Image File" />
+    <mimeType extension=".btif" type="image/prs.btif" description="BTIF" />
+    <mimeType extension=".cgm" type="image/cgm" description="Computer Graphics Metafile" />
+    <mimeType extension=".cmx" type="image/x-cmx" description="Corel Metafile Exchange (CMX)" />
+    <mimeType extension=".cod" type="image/cis-cod" description="Blackberry COD File" />
+    <mimeType extension=".dib" type="image/bmp" />
+    <mimeType extension=".djv" type="image/vnd.djvu" />
+    <mimeType extension=".djvu" type="image/vnd.djvu" description="DjVu" />
+    <mimeType extension=".dwg" type="image/vnd.dwg" description="DWG Drawing" />
+    <mimeType extension=".dxf" type="image/vnd.dxf" description="AutoCAD DXF" />
+    <mimeType extension=".fbs" type="image/vnd.fastbidsheet" description="FastBid Sheet" />
+    <mimeType extension=".fh" type="image/x-freehand" description="FreeHand MX" />
+    <mimeType extension=".fh4" type="image/x-freehand" />
+    <mimeType extension=".fh5" type="image/x-freehand" />
+    <mimeType extension=".fh7" type="image/x-freehand" />
+    <mimeType extension=".fhc" type="image/x-freehand" />
+    <mimeType extension=".fpx" type="image/vnd.fpx" description="FlashPix" />
+    <mimeType extension=".fst" type="image/vnd.fst" description="FAST Search &amp; Transfer ASA" />
+    <mimeType extension=".g3" type="image/g3fax" description="G3 Fax Image" />
+    <mimeType extension=".gif" type="image/gif" description="Graphics Interchange Format" />
+    <mimeType extension=".ico" type="image/x-icon" description="Icon Image" />
+    <mimeType extension=".ief" type="image/ief" description="Image Exchange Format" />
+    <mimeType extension=".iefs" type="image/ief" />
+    <mimeType extension=".jfif" type="image/pjpeg" />
+    <mimeType extension=".jfif-tbnl" type="image/jpeg" />
+    <mimeType extension=".jpe" type="image/jpeg" />
+    <mimeType extension=".jpeg" type="image/jpeg" />
+    <mimeType extension=".jpg" type="image/jpeg" />
+    <mimeType extension=".jps" type="image/x-jps" />
+    <mimeType extension=".jut" type="image/jutvision" />
+    <mimeType extension=".ktx" type="image/ktx" description="OpenGL Textures (KTX)" />
+    <mimeType extension=".mcf" type="image/vasa" />
+    <mimeType extension=".mdi" type="image/vnd.ms-modi" description="Microsoft Document Imaging Format" />
+    <mimeType extension=".mmr" type="image/vnd.fujixerox.edmics-mmr" description="EDMICS 2000" />
+    <mimeType extension=".nap" type="image/naplps" />
+    <mimeType extension=".naplps" type="image/naplps" />
+    <mimeType extension=".nif" type="image/x-niff" />
+    <mimeType extension=".niff" type="image/x-niff" />
+    <mimeType extension=".npx" type="image/vnd.net-fpx" description="FlashPix" />
+    <mimeType extension=".pbm" type="image/x-portable-bitmap" description="Portable Bitmap Format" />
+    <mimeType extension=".pct" type="image/x-pict" />
+    <mimeType extension=".pcx" type="image/x-pcx" description="PCX Image" />
+    <mimeType extension=".pgm" type="image/x-portable-graymap" description="Portable Graymap Format" />
+    <mimeType extension=".pic" type="image/x-pict" description="PICT Image" />
+    <mimeType extension=".pict" type="image/pict" />
+    <mimeType extension=".pm" type="image/x-xpixmap" />
+    <mimeType extension=".png" type="image/png" description="Portable Network Graphics (PNG)" />
+    <mimeType extension=".pnm" type="image/x-portable-anymap" description="Portable Anymap Image" />
+    <mimeType extension=".ppm" type="image/x-portable-pixmap" description="Portable Pixmap Format" />
+    <mimeType extension=".psd" type="image/vnd.adobe.photoshop" description="Photoshop Document" />
+    <mimeType extension=".qif" type="image/x-quicktime" />
+    <mimeType extension=".qti" type="image/x-quicktime" />
+    <mimeType extension=".qtif" type="image/x-quicktime" />
+    <mimeType extension=".ras" type="image/x-cmu-raster" description="CMU Image" />
+    <mimeType extension=".rast" type="image/cmu-raster" />
+    <mimeType extension=".rf" type="image/vnd.rn-realflash" />
+    <mimeType extension=".rgb" type="image/x-rgb" description="Silicon Graphics RGB Bitmap" />
+    <mimeType extension=".rlc" type="image/vnd.fujixerox.edmics-rlc" description="EDMICS 2000" />
+    <mimeType extension=".rp" type="image/vnd.rn-realpix" />
+    <mimeType extension=".sub" type="image/vnd.dvb.subtitle" description="Close Captioning - Subtitle" />
+    <mimeType extension=".svf" type="image/vnd.dwg" />
+    <mimeType extension=".svg" type="image/svg+xml" description="Scalable Vector Graphics (SVG)" />
+    <mimeType extension=".svgz" type="image/svg+xml" />
+    <mimeType extension=".tif" type="image/tiff" />
+    <mimeType extension=".tiff" type="image/tiff" description="Tagged Image File Format" />
+    <mimeType extension=".turbot" type="image/florian" />
+    <mimeType extension=".uvg" type="image/vnd.dece.graphic" />
+    <mimeType extension=".uvi" type="image/vnd.dece.graphic" description="DECE Graphic" />
+    <mimeType extension=".uvvg" type="image/vnd.dece.graphic" />
+    <mimeType extension=".uvvi" type="image/vnd.dece.graphic" />
+    <mimeType extension=".wbmp" type="image/vnd.wap.wbmp" description="WAP Bitamp (WBMP)" />
+    <mimeType extension=".webp" type="image/webp" description="WebP Image" />
+    <mimeType extension=".xbm" type="image/x-xbitmap" description="X BitMap" />
+    <mimeType extension=".xif" type="image/vnd.xiff" description="eXtended Image File Format (XIFF)" />
+    <mimeType extension=".xpm" type="image/x-xpixmap" description="X PixMap" />
+    <mimeType extension=".x-png" type="image/png" />
+    <mimeType extension=".xwd" type="image/x-xwindowdump" description="X Window Dump" />
+</image>

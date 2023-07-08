@@ -6,11 +6,11 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.orhanobut.logger.Logger
 import com.station.stationdownloader.DownloadEngine
-import com.station.stationdownloader.DownloadUrlType
 import com.station.stationdownloader.data.IResult
 import com.station.stationdownloader.data.source.IConfigurationRepository
 import com.station.stationdownloader.data.source.IEngineRepository
 import com.station.stationdownloader.data.source.ITorrentInfoRepository
+import com.station.stationdownloader.data.source.local.engine.NewTaskConfigModel
 import com.station.stationdownloader.data.source.local.model.StationDownloadTask
 import com.station.stationdownloader.utils.TaskTools
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -117,7 +117,7 @@ class MainViewModel @Inject constructor(
         }
     }
 
-    private fun updateAddUriState(result: IResult<StationDownloadTask>) {
+    private fun updateAddUriState(result: IResult<NewTaskConfigModel>) {
         when (result) {
             is IResult.Error -> {
                 _addUriState.update {
@@ -130,37 +130,37 @@ class MainViewModel @Inject constructor(
                 _addUriState.update {
                     AddUriUiState.SUCCESS
                 }
-                if (result.data.urlType == DownloadUrlType.TORRENT)
+                if (result.data is NewTaskConfigModel.TorrentTaskConfig)
                     showTorrentFilesInfo(result.data)
             }
         }
     }
 
-    private fun showTorrentFilesInfo(data: StationDownloadTask) {
-        var fileStateList: List<FileTreeModel> = emptyList()
-        if (data.fileList.isNotEmpty()) {
-            fileStateList = data.fileList.mapIndexed { index, fileName ->
-                FileTreeModel.File(
-                    index,
-                    fileName,
-                    fileName.ext(),
-                    0L,
-                    index in data.selectIndexes
-                )
-
-            }
-        }
+    private fun showTorrentFilesInfo(data: NewTaskConfigModel.TorrentTaskConfig) {
+//        var fileStateList: List<FileTreeModel> = emptyList()
+//        if (data.fileList.isNotEmpty()) {
+//            fileStateList = data.fileList.mapIndexed { index, fileName ->
+//                FileTreeModel.File(
+//                    index,
+//                    fileName,
+//                    fileName.ext(),
+//                    0L,
+//                    index in data.selectIndexes
+//                )
+//
+//            }
+//        }
         _mainUiState.update {
             it.copy(isShowTorrentFilesInfo = true)
         }
-        _taskSettingState.update {
-            TaskSettingState.PreparingData(
-                name = data.name,
-                fileList = fileStateList,
-                engine = DownloadEngine.XL,
-                downloadPath = data.downloadPath
-            )
-        }
+//        _taskSettingState.update {
+//            TaskSettingState.PreparingData(
+//                name = data.taskName,
+//                fileList = fileStateList,
+//                engine = DownloadEngine.XL,
+//                downloadPath = data.downloadPath
+//            )
+//        }
     }
 
 
@@ -196,7 +196,7 @@ sealed class TaskSettingState {
     object INIT : TaskSettingState()
     data class PreparingData(
         val name: String = "",
-        val fileList: List<FileTreeModel> = emptyList(),
+        val fileTree: TreeNode,
         val engine: DownloadEngine = DownloadEngine.XL,
         val downloadPath: String = "",
         val selectVideo: Boolean = true,
@@ -208,34 +208,60 @@ sealed class TaskSettingState {
     object LOADING : AddUriUiState<Nothing>()
 }
 
-sealed class FileTreeModel {
+
+sealed class TreeNode(
+    val _name:String,
+    val _parent: TreeNode?,
+    val _children: MutableList<TreeNode>?,
+    val _deep: Int
+) {
+
     data class File(
         val fileIndex: Int,
         val fileName: String,
         val fileExt: String,
         val fileSize: Long,
-        val isChecked: Boolean = false,
-        val parent:Directory?=null,
+        var isChecked: Boolean = false,
+        val parent: TreeNode,
         val deep: Int
-    ) : FileTreeModel(
-    )
+    ) : TreeNode(fileName,parent, null, deep)
 
     data class Directory(
         val folderName: String,
-        val checkState: FolderCheckState,
-        val totalSize: Long,
-        val children:List<FileTreeModel>,
-        val parent: Directory?=null,
-        val deep:Int
-    ) : FileTreeModel() {
-        enum class FolderCheckState {
-            ALL, PART, NONE
+        var checkState: FolderCheckState,
+        var totalSize: Long,
+        val children: MutableList<TreeNode>,
+        val parent: TreeNode?,
+        val deep: Int
+    ) : TreeNode(folderName,parent, children, deep){
+        fun updateCheckState(){
+            children
         }
     }
 
+    fun isFile(): Boolean {
+        return _children == null
+    }
 
+    fun isDirectory(): Boolean {
+        return _children != null
+    }
 
+    fun isFold():Boolean{
+        return isDirectory()&&!isRoot()
+    }
 
+    fun isRoot(): Boolean {
+        return _parent == null && _deep == -1
+    }
+
+    fun addChild(treeNode: TreeNode) {
+        _children?.add(treeNode)
+    }
+
+    enum class FolderCheckState {
+        ALL, PART, NONE
+    }
 }
 
 

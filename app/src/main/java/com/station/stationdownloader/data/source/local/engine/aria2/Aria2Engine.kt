@@ -9,6 +9,7 @@ import com.orhanobut.logger.Logger
 import com.station.stationdownloader.DownloadUrlType
 import com.station.stationdownloader.data.IResult
 import com.station.stationdownloader.data.source.local.engine.IEngine
+import com.station.stationdownloader.data.source.local.engine.NewTaskConfigModel
 import com.station.stationdownloader.data.source.local.model.StationDownloadTask
 import com.station.stationdownloader.data.source.local.model.StationTaskInfo
 import kotlinx.coroutines.CoroutineDispatcher
@@ -47,7 +48,7 @@ class Aria2Engine internal constructor(
         client.close()
     }
 
-    override suspend fun initUrl(url: String): IResult<StationDownloadTask> {
+    override suspend fun initUrl(url: String): IResult<NewTaskConfigModel> {
         TODO("Not yet implemented")
     }
 

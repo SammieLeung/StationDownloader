@@ -1,7 +1,7 @@
 package com.station.stationdownloader.data.source.local.engine
 
 import com.station.stationdownloader.DownloadEngine
-import com.station.stationdownloader.ui.viewmodel.FileTreeModel
+import com.station.stationdownloader.ui.viewmodel.TreeNode
 
 sealed class NewTaskConfigModel {
     data class FileTaskConfig(
@@ -23,7 +23,7 @@ sealed class NewTaskConfigModel {
         val downloadPath: String,
         val fileCount:Int,
         val engine:DownloadEngine=DownloadEngine.XL,
-        val fileStateList:List<FileTreeModel>
+        val fileStateList:TreeNode
     ) : NewTaskConfigModel()
 
 }
