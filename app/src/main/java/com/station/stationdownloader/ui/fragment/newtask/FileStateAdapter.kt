@@ -3,8 +3,8 @@ package com.station.stationdownloader.ui.fragment.newtask
 import android.view.LayoutInflater
 import android.view.ViewGroup
 import androidx.recyclerview.widget.RecyclerView
+import com.station.stationdownloader.data.source.local.model.TreeNode
 import com.station.stationdownloader.databinding.FileItemBinding
-import com.station.stationdownloader.ui.viewmodel.TreeNode
 
 class FileStateAdapter(val fileStateList: List<TreeNode> = emptyList()) :
     RecyclerView.Adapter<FileStateAdapter.FileViewHolder>() {

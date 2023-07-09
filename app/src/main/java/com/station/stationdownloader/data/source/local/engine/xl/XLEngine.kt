@@ -19,10 +19,10 @@ import com.station.stationdownloader.data.source.local.engine.IEngine
 import com.station.stationdownloader.data.source.local.engine.NewTaskConfigModel
 import com.station.stationdownloader.data.source.local.model.StationDownloadTask
 import com.station.stationdownloader.data.source.local.model.StationTaskInfo
+import com.station.stationdownloader.data.source.local.model.TreeNode
 import com.station.stationdownloader.data.source.local.model.asStationTaskInfo
 import com.station.stationdownloader.data.source.remote.FileContentHeader
 import com.station.stationdownloader.data.source.remote.FileSizeApiService
-import com.station.stationdownloader.ui.viewmodel.TreeNode
 import com.station.stationdownloader.utils.DLogger
 import com.station.stationdownloader.utils.MAGNET_PROTOCOL
 import com.station.stationdownloader.utils.TaskTools
