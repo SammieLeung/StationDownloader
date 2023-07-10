@@ -28,7 +28,6 @@ import com.station.stationdownloader.utils.MAGNET_PROTOCOL
 import com.station.stationdownloader.utils.TaskTools
 import com.xunlei.downloadlib.XLDownloadManager
 import com.xunlei.downloadlib.XLTaskHelper
-import com.xunlei.downloadlib.parameter.TorrentFileInfo
 import com.xunlei.downloadlib.parameter.TorrentInfo
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
@@ -37,7 +36,6 @@ import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
-import okhttp3.internal.concurrent.Task
 import java.io.File
 
 class XLEngine internal constructor(
@@ -553,9 +551,8 @@ class XLEngine internal constructor(
     }
 
 
-    private fun TorrentInfo.getFileTree(): TreeNode {
-        val root =
-            TreeNode.Directory("root", TreeNode.FolderCheckState.NONE, 0, mutableListOf(), null, -1)
+    fun TorrentInfo.getFileTree(): TreeNode {
+        val root = TreeNode.Root
 
         for (fileInfo in mSubFileInfo) {
             val filePath =
@@ -574,11 +571,11 @@ class XLEngine internal constructor(
                 } else {
                     if (isFile) {
                         val newChild = TreeNode.File(
-                            fileInfo.mFileIndex,
+                            fileInfo.mRealIndex,
                             comp,
-                            comp.ext(),
+                            TaskTools.getExt(comp),
                             fileInfo.mFileSize,
-                            isChecked = comp.isMedia(),
+                            isChecked = if (TaskTools.isMediaFile(comp)) true else false,
                             parent = currentNode,
                             deep = idx
                         )
@@ -587,6 +584,7 @@ class XLEngine internal constructor(
                         val newChild = TreeNode.Directory(
                             comp,
                             TreeNode.FolderCheckState.NONE,
+                            0,
                             0,
                             children = mutableListOf(),
                             parent = currentNode,

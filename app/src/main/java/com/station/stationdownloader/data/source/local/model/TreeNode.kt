@@ -1,14 +1,11 @@
 package com.station.stationdownloader.data.source.local.model
 
-import okhttp3.internal.notify
-
 sealed class TreeNode(
     val _name: String,
     val _parent: TreeNode?,
     val _children: MutableList<TreeNode>?,
-    val _deep: Int
+    val _deep: Int,
 ) {
-
     data class File(
         val fileIndex: Int,
         val fileName: String,
@@ -17,130 +14,136 @@ sealed class TreeNode(
         var isChecked: Boolean = false,
         val parent: Directory,
         val deep: Int
-    ) : TreeNode(fileName, parent, null, deep) {
-        fun toggle() {
-            manualSelect(!isChecked)
-        }
-
-        override fun manualSelect(select: Boolean) {
-            autoSelect(select)
-            parent.updateAllCheckState()
+    ) : TreeNode(
+        _name = fileName,
+        _parent = parent,
+        _children = null,
+        _deep = deep
+    ) {
+        override fun toggle() {
+            autoSelect(!isChecked)
         }
 
         override fun autoSelect(select: Boolean) {
             isChecked = select
+            parent.notifyChange(this)
         }
-
-        override fun getSelectSize(): Long = if (isChecked) this.fileSize else 0L
-
-        override fun getSelectCount(): Int = if (isChecked) 1 else 0
     }
 
-    data class Directory(
+    open class Directory(
         val folderName: String,
-        var checkState: FolderCheckState,
-        var totalSize: Long,
-        val children: MutableList<TreeNode>,
+        var checkState: FolderCheckState = FolderCheckState.NONE,
+        var totalCheckedFileSize: Long = 0,
+        var checkedFileCount: Int = 0,
+        var totalFileCount: Int = 0,
+        val children: MutableList<TreeNode> = mutableListOf(),
         val parent: Directory?,
-        val deep: Int
-    ) : TreeNode(folderName, parent, children, deep) {
+        val deep: Int,
+        var isFold: Boolean = false
+    ) : TreeNode(
+        _name = folderName,
+        _parent = parent,
+        _children = children,
+        _deep = deep
+    ) {
+        /**
+         * 创建文件树时调用
+         */
         fun addChild(treeNode: TreeNode) {
             if (_children != null) {
+                if (treeNode is File) {
+                    syncAddChildState(treeNode)
+                }
                 _children.add(treeNode)
-                updateAllCheckState()
-                updateTotalSize()
             }
         }
 
-        fun updateAllCheckState() {
-            if (_children?.isNotEmpty() == true) {
-                val allSelect = _children.none {
-                    it is File && !it.isChecked || it is Directory && it.checkState != FolderCheckState.ALL
-                }
-                val allUnSelect = _children.none {
-                    it is File && it.isChecked || it is Directory && it.checkState != FolderCheckState.NONE
-                }
-
-                checkState = if (allSelect && !allUnSelect) {
-                    FolderCheckState.ALL
-                } else if (!allSelect && allUnSelect) {
-                    FolderCheckState.NONE
-                } else {
-                    FolderCheckState.PART
-                }
+        private fun syncAddChildState(treeNode: File) {
+            if (treeNode.isChecked) {
+                totalCheckedFileSize += treeNode.fileSize
+                checkedFileCount += 1
             }
-            parent?.updateAllCheckState()
-        }
-
-        fun updateTotalSize() {
-//            parent?.updateTotalSize()
-        }
-
-        fun toggle() {
-            when (checkState) {
-                FolderCheckState.ALL ->
-                    manualSelect(false)
-
-                FolderCheckState.PART ->
-                    manualSelect(true)
-
-                FolderCheckState.NONE ->
-                    manualSelect(true)
-            }
-        }
-
-        override fun manualSelect(select: Boolean) {
-            autoSelect(select)
-            parent?.updateAllCheckState()
-        }
-
-        override fun autoSelect(select: Boolean) {
-            if (select) {
+            totalFileCount += 1
+            if (checkedFileCount == 0) {
+                checkState = FolderCheckState.NONE
+            } else if (checkedFileCount == totalFileCount) {
                 checkState = FolderCheckState.ALL
             } else {
-                checkState = FolderCheckState.NONE
+                checkState = FolderCheckState.PART
             }
+            parent?.syncAddChildState(treeNode)
+        }
+
+        fun getByFileIndex(fileIndex: Int): TreeNode? {
+            return _children?.let {
+                var treeNode: TreeNode? = null
+                for (node in it) {
+                    if (node is File && node.fileIndex == fileIndex) {
+                        treeNode = node
+                        break;
+                    } else if (node is Directory) {
+                        treeNode = node.getByFileIndex(fileIndex)
+                        if (treeNode != null)
+                            break
+                    }
+                }
+                return treeNode
+            }
+
+        }
+
+        fun notifyChange(treeNode: File) {
+            if (treeNode.isChecked) {
+                totalCheckedFileSize += treeNode.fileSize
+                checkedFileCount += 1
+                if (totalFileCount == checkedFileCount)
+                    checkState = FolderCheckState.ALL
+                else
+                    checkState = FolderCheckState.PART
+            } else {
+                totalCheckedFileSize -= treeNode.fileSize
+                checkedFileCount -= 1
+                if (checkedFileCount == 0)
+                    checkState = FolderCheckState.NONE
+                else
+                    checkState = FolderCheckState.PART
+            }
+            parent?.notifyChange(treeNode)
+        }
+
+        override fun toggle() {
+            when (checkState) {
+                FolderCheckState.ALL -> autoSelect(false)
+
+                FolderCheckState.PART -> autoSelect(true)
+
+                FolderCheckState.NONE -> autoSelect(true)
+            }
+        }
+
+
+        override fun autoSelect(select: Boolean) {
             children.forEach {
                 it.autoSelect(select)
             }
         }
 
-        override fun getSelectSize(): Long {
-            var totalSize = 0L
-            _children?.forEach {
-                totalSize += it.getSelectSize()
-            }
-            return totalSize
+        fun toggleFold() {
+            isFold = !isFold
         }
 
-        override fun getSelectCount(): Int {
-            var count = 0
-            _children?.forEach {
-                count += it.getSelectCount()
-            }
-            return count
-        }
     }
 
-    protected abstract fun manualSelect(select: Boolean)
+    object Root: Directory(
+        folderName = "root",
+        parent = null,
+        deep = -1
+    )
 
     protected abstract fun autoSelect(select: Boolean)
 
-    protected abstract fun getSelectSize(): Long
+    abstract fun toggle()
 
-    protected abstract fun getSelectCount(): Int
-
-    fun isFile(): Boolean {
-        return _children == null
-    }
-
-    fun isDirectory(): Boolean {
-        return _children != null
-    }
-
-    fun isFold(): Boolean {
-        return false
-    }
 
     fun isRoot(): Boolean {
         return _parent == null && _deep == -1
