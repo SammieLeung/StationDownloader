@@ -107,145 +107,6 @@ class XLEngine internal constructor(
             }
         }
 
-    suspend fun getTaskSize(stationDownloadTask: StationDownloadTask): Long =
-        withContext(defaultDispatcher) {
-            val url = stationDownloadTask.url
-            val downloadPath = stationDownloadTask.downloadPath
-            val name = stationDownloadTask.name
-            val urlType = stationDownloadTask.urlType
-            val fileCount = stationDownloadTask.fileCount
-            val selectIndexes = stationDownloadTask.selectIndexes
-
-            when (urlType) {
-                DownloadUrlType.TORRENT -> {
-                    val size = stationDownloadTask.torrentInfo?.let {
-                        if (it.subFileInfo.isEmpty()) {
-                            return@let 0
-                        }
-                        var calculateSize = 0L
-                        for (fileInfo in it.subFileInfo) {
-                            if (fileInfo.fileIndex in selectIndexes) {
-                                calculateSize += fileInfo.fileSize
-                            }
-                        }
-                        return@let calculateSize
-                    }
-                    Logger.d("$size")
-                    return@withContext size ?: 0
-                }
-
-                DownloadUrlType.HTTP -> {
-
-                    Logger.d(url)
-                    val d = fileSizeApiService.getHttpFileHeader(url)
-                    return@withContext d.content_length
-
-                }
-
-                DownloadUrlType.DIRECT -> {
-                    return@withContext 0
-                }
-
-                else -> {
-                    return@withContext 0
-                }
-            }
-
-        }
-
-//    override suspend fun getTaskSize(
-//        task: StationDownloadTask,
-//        timeOut: Long
-//    ): IResult<StationDownloadTask> {
-//        return IResult.Success(task.copy(totalSize = getTaskSize(stationDownloadTask = task)))
-//    }
-
-    suspend fun tryDownloadToGetSize(
-        url: String, fileName: String, timeOut: Long
-    ): IResult<Long> = withContext(defaultDispatcher) {
-
-        val urlType = url.urlType()
-        if (urlType !in arrayOf(
-                DownloadUrlType.THUNDER,
-                DownloadUrlType.HTTP,
-                DownloadUrlType.ED2k,
-                DownloadUrlType.DIRECT
-            )
-        ) {
-            //TODO 返回错误信息
-        }
-        val savePathFile = File(tryDownloadDirectoryPath, fileName)
-        if (!savePathFile.exists()) savePathFile.mkdirs()
-
-        val taskId = XLTaskHelper.instance().addThunderTask(url, savePathFile.path, null)
-        if (taskId == 0L) {
-            return@withContext IResult.Error(
-                Exception("${TaskExecuteError.START_TASK_FAILED.name}:Error Url is [${url}]"),
-                TaskExecuteError.START_TASK_FAILED.ordinal
-            )
-        }
-        return@withContext try {
-            withTimeout(timeOut) {
-                val totalSize = calculateNormalTaskSize(taskId)
-                IResult.Success(totalSize)
-            }
-
-        } catch (e: TimeoutCancellationException) {
-            IResult.Error(
-                Exception(TaskExecuteError.GET_FILE_SIZE_TIMEOUT.name),
-                TaskExecuteError.GET_FILE_SIZE_TIMEOUT.ordinal
-            )
-        } finally {
-            XLTaskHelper.instance().deleteTask(taskId, savePathFile.path)
-        }
-    }
-
-    override suspend fun getTaskSize(
-        stationDownloadTask: StationDownloadTask, timeOut: Long
-    ): IResult<StationDownloadTask> = withContext(defaultDispatcher) {
-        val url = stationDownloadTask.url
-        val downloadPath = stationDownloadTask.downloadPath
-        val name = stationDownloadTask.name
-        val urlType = stationDownloadTask.urlType
-        val fileCount = stationDownloadTask.fileCount
-        val selectIndexes = stationDownloadTask.selectIndexes
-        val tmpResult = startTask(
-            url = url,
-            downloadPath = downloadPath,
-            name = name,
-            urlType = urlType,
-            fileCount = fileCount,
-            selectIndexes = selectIndexes.toIntArray()
-        )
-
-        if (tmpResult is IResult.Error) {
-            return@withContext tmpResult
-        }
-
-        val taskId = (tmpResult as IResult.Success).data
-        return@withContext try {
-            if (urlType == DownloadUrlType.TORRENT) {
-                withTimeout(timeOut) {
-                    val totalSize = calculateTorrentTaskSize(taskId, selectIndexes)
-                    IResult.Success(stationDownloadTask.copy(totalSize = totalSize))
-                }
-            } else {
-                withTimeout(timeOut) {
-                    val totalSize = calculateNormalTaskSize(taskId)
-                    IResult.Success(stationDownloadTask.copy(totalSize = totalSize))
-                }
-            }
-        } catch (e: TimeoutCancellationException) {
-            IResult.Error(
-                Exception(TaskExecuteError.GET_FILE_SIZE_TIMEOUT.name),
-                TaskExecuteError.GET_FILE_SIZE_TIMEOUT.ordinal
-            )
-        } finally {
-            XLTaskHelper.instance().deleteTask(taskId, stationDownloadTask.downloadPath)
-        }
-    }
-
-
     override suspend fun startTask(
         url: String,
         downloadPath: String,
@@ -290,10 +151,6 @@ class XLEngine internal constructor(
 
     override suspend fun stopTask(task: StationDownloadTask) {
         if (task.taskId != 0L) XLTaskHelper.instance().stopTask(task.taskId)
-    }
-
-    override suspend fun getTaskInfo(taskId: Long): StationTaskInfo {
-        return XLTaskHelper.instance().getTaskInfo(taskId).asStationTaskInfo()
     }
 
     override suspend fun configure(key: String, values: Array<String>): IResult<Unit> {
@@ -369,37 +226,6 @@ class XLEngine internal constructor(
         }
     }
 
-//    /**
-//     * 初始化普通任务
-//     */
-//    private suspend fun initNormalUrlNew(url: String): IResult<NewTaskConfigModel> {
-//        val taskName = XLTaskHelper.instance().getFileName(url)
-//        val downloadPath =
-//            File(configurationDataSource.getDownloadPath(), taskName.substringAfterLast(".")).path
-//        val stationDownloadTask = StationDownloadTask(
-//            url = url,
-//            name = taskName,
-//            urlType = TaskTools.getUrlType(url),
-//            engine = configurationDataSource.getDefaultEngine(),
-//            downloadPath = downloadPath,
-//            fileCount = 1
-//        )
-//
-//        val fileTaskConfig = NewTaskConfigModel.FileTaskConfig(
-//            taskName = taskName,
-//            downloadPath = downloadPath,
-//            url = url,
-//
-//            )
-//
-//
-//        if (stationDownloadTask.urlType == DownloadUrlType.MAGNET) {
-//            return autoDownloadTorrent(stationDownloadTask)
-//        } else {
-//            return IResult.Success(stationDownloadTask)
-//        }
-//    }
-
 
     /**
      * 初始化普通任务
@@ -414,42 +240,54 @@ class XLEngine internal constructor(
         val taskName = XLTaskHelper.instance().getFileName(realUrl)
         val downloadPath =
             File(configurationDataSource.getDownloadPath(), taskName.substringAfterLast(".")).path
-        var contextType: String = ""
-        var contextSize: Long = -1
+        val normalTask = NewTaskConfigModel.NormalTask(
+            originUrl = originUrl,
+            url = realUrl,
+            taskName = taskName,
+            downloadPath = downloadPath,
+            fileTree = TreeNode.Root
+        )
+
         if (realUrl.urlType() == DownloadUrlType.MAGNET) {
             return autoDownloadTorrent(realUrl, downloadPath, taskName)
-        } else if (realUrl.urlType() == DownloadUrlType.HTTP) {
+        }
+
+        if (realUrl.urlType() == DownloadUrlType.HTTP) {
             val result = getHttpFileHeader(realUrl)
             if (result is IResult.Success) {
                 val fileContentHeader = result.data
-                contextType = fileContentHeader.content_type
-                contextSize = fileContentHeader.content_length
+                if (fileContentHeader.content_length != -1L) {
+                    val root = TreeNode.Root
+                    val file = TreeNode.File(
+                        0,
+                        taskName,
+                        taskName.ext(),
+                        fileContentHeader.content_length,
+                        true, root, 0
+                    )
+                    root.addChild(file)
+                    return IResult.Success(normalTask.copy(fileTree = root))
+                }
             }
-        } else {
-            val result = tryDownloadToGetSize(originUrl, taskName, 30000)
-            if (result is IResult.Success) contextSize = result.data
         }
-        return IResult.Success(
-            NewTaskConfigModel.FileTaskConfig(
-                originUrl = originUrl,
-                url = realUrl,
-                taskName = taskName,
-                downloadPath = downloadPath,
-                fileType = contextType,
-                fileSize = contextSize,
-                fileExt = taskName.ext()
-            )
+
+        val result = tryDownloadToGetTreeNode(originUrl, taskName, 30000)
+        if (result is IResult.Success) {
+            return IResult.Success(normalTask.copy(fileTree = result.data))
+        }
+        val root = TreeNode.Root
+        val file = TreeNode.File(
+            0,
+            taskName,
+            taskName.ext(),
+            0,
+            true, root, 0
         )
+        root.addChild(file)
+        return IResult.Success(normalTask.copy(fileTree = root))
+
     }
 
-
-    private suspend fun getHttpFileHeader(httpUrl: String): IResult<FileContentHeader> {
-        try {
-            return IResult.Success(fileSizeApiService.getHttpFileHeader(httpUrl))
-        } catch (e: Exception) {
-            return IResult.Error(e, TaskExecuteError.GET_HTTP_FILE_HEADER_ERROR.ordinal)
-        }
-    }
 
     /**
      * 初始化种子任务
@@ -479,63 +317,85 @@ class XLEngine internal constructor(
         val fileCount = torrentInfo.mFileCount
 
         torrentInfoRepo.saveTorrentInfo(torrentInfo)
-
-        val fileStateList = torrentInfo.getFileTree()
-
         return IResult.Success(
-            NewTaskConfigModel.TorrentTaskConfig(
-                filePath = torrentUrl,
+            NewTaskConfigModel.TorrentTask(
+                torrentPath = torrentUrl,
                 taskName = taskName,
                 downloadPath = downloadPath,
                 fileCount = fileCount,
-                fileStateList = fileStateList
+                fileTree = torrentInfo.getFileTree()
             )
         )
+    }
+
+    private suspend fun getHttpFileHeader(httpUrl: String): IResult<FileContentHeader> {
+        try {
+            return IResult.Success(fileSizeApiService.getHttpFileHeader(httpUrl))
+        } catch (e: Exception) {
+            return IResult.Error(e, TaskExecuteError.GET_HTTP_FILE_HEADER_ERROR.ordinal)
+        }
+    }
+
+    private suspend fun tryDownloadToGetTreeNode(
+        url: String, fileName: String, timeOut: Long
+    ): IResult<TreeNode> = withContext(defaultDispatcher) {
+
+        val urlType = url.urlType()
+        if (urlType !in arrayOf(
+                DownloadUrlType.THUNDER,
+                DownloadUrlType.HTTP,
+                DownloadUrlType.ED2k,
+                DownloadUrlType.DIRECT
+            )
+        ) {
+            //TODO 返回错误信息
+        }
+        val savePathFile = File(tryDownloadDirectoryPath, fileName)
+        if (!savePathFile.exists()) savePathFile.mkdirs()
+
+        val taskId = XLTaskHelper.instance().addThunderTask(url, savePathFile.path, null)
+        if (taskId == 0L) {
+            return@withContext IResult.Error(
+                Exception("${TaskExecuteError.START_TASK_FAILED.name}:Error Url is [${url}]"),
+                TaskExecuteError.START_TASK_FAILED.ordinal
+            )
+        }
+        return@withContext try {
+            withTimeout(timeOut) {
+                IResult.Success(waitForFileTree(taskId))
+            }
+
+        } catch (e: TimeoutCancellationException) {
+            IResult.Error(
+                Exception(TaskExecuteError.GET_FILE_SIZE_TIMEOUT.name),
+                TaskExecuteError.GET_FILE_SIZE_TIMEOUT.ordinal
+            )
+        } finally {
+            XLTaskHelper.instance().deleteTask(taskId, savePathFile.path)
+        }
+    }
+
+    private suspend fun waitForFileTree(taskId: Long): TreeNode.Directory {
+        while (true) {
+            val taskInfo = XLTaskHelper.instance().getTaskInfo(taskId)
+            if (taskInfo != null) {
+                if (taskInfo.mFileSize != 0L) {
+                    val root = TreeNode.Root
+                    val file = TreeNode.File(
+                        0, taskInfo.mFileName, taskInfo.mFileName.ext(),
+                        taskInfo.mFileSize, true, root, 0
+                    )
+                    root.addChild(file)
+                    return root;
+                }
+            }
+            delay(10)
+        }
     }
 
     private fun checkTorrentHash(mInfoHash: String): Boolean {
         //TODO() 数据库中对比
         return true
-    }
-
-    private fun filterMediaFileIndexes(torrentInfo: TorrentInfo): List<Int> {
-        if (torrentInfo.mSubFileInfo == null) return emptyList()
-        var selectIndexes = mutableListOf<Int>()
-        for (subInfo in torrentInfo.mSubFileInfo) {
-            if (subInfo.mFileName.isMedia()) {
-                selectIndexes.add(subInfo.mFileIndex)
-            }
-        }
-        return selectIndexes
-    }
-
-    private suspend fun calculateTorrentTaskSize(taskId: Long, selectIndexes: List<Int>): Long {
-        var calculateSize = 0L;
-        while (calculateSize == 0L) {
-            for (fileIndex in selectIndexes) {
-                val taskInfo = XLTaskHelper.instance().getBtSubTaskInfo(
-                    taskId, fileIndex
-                ).mTaskInfo;
-
-                if (taskInfo == null || taskInfo.mFileSize == 0L) {
-                    calculateSize = 0L
-                    break;
-                }
-                calculateSize += taskInfo.mFileSize
-            }
-            delay(10)
-        }
-        return calculateSize
-    }
-
-    private suspend fun calculateNormalTaskSize(taskId: Long): Long {
-        var totalSize = 0L
-        while (totalSize == 0L) {
-            val taskInfo = XLTaskHelper.instance().getTaskInfo(taskId)
-            if (taskInfo != null) totalSize = taskInfo.mFileSize
-            delay(10)
-        }
-        return totalSize
     }
 
     override fun DLogger.tag(): String = "XLEngine"

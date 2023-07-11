@@ -52,13 +52,6 @@ class Aria2Engine internal constructor(
         TODO("Not yet implemented")
     }
 
-    override suspend fun getTaskSize(
-        task: StationDownloadTask,
-        timeOut: Long
-    ): IResult<StationDownloadTask> {
-        TODO("Not yet implemented")
-    }
-
     override suspend fun startTask(
         url: String,
         downloadPath: String,

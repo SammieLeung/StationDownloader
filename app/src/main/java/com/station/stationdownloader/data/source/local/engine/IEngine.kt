@@ -18,7 +18,6 @@ interface IEngine {
     /**
      * 获取下载任务的大小
      */
-    suspend fun getTaskSize(task: StationDownloadTask, timeOut: Long): IResult<StationDownloadTask>
      suspend fun startTask(
         url: String,
         downloadPath: String,
@@ -28,7 +27,6 @@ interface IEngine {
         selectIndexes:IntArray
     ):IResult<Long>
     suspend fun stopTask(task: StationDownloadTask)
-    suspend fun getTaskInfo(taskId: Long): StationTaskInfo
     suspend fun configure(key: String, values: Array<String>): IResult<Unit>
 
 

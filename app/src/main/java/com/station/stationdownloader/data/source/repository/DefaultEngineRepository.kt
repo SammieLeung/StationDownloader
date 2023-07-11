@@ -6,8 +6,6 @@ import com.station.stationdownloader.data.IResult
 import com.station.stationdownloader.data.source.IEngineRepository
 import com.station.stationdownloader.data.source.local.engine.IEngine
 import com.station.stationdownloader.data.source.local.engine.NewTaskConfigModel
-import com.station.stationdownloader.data.source.local.model.StationDownloadTask
-import com.station.stationdownloader.data.source.local.model.StationTaskInfo
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -38,7 +36,7 @@ class DefaultEngineRepository(
         }
     }
 
-    override suspend fun initTask(url: String): IResult<NewTaskConfigModel> {
+    override suspend fun initUrl(url: String): IResult<NewTaskConfigModel> {
         return xlEngine.initUrl(url)
     }
 
@@ -68,15 +66,7 @@ class DefaultEngineRepository(
         }
     }
 
-    override suspend fun getTaskSize(
-        startDownloadTask: StationDownloadTask, timeOut: Long
-    ): IResult<StationDownloadTask> {
-        return xlEngine.getTaskSize(startDownloadTask, timeOut)
-    }
 
-    override suspend fun getTaskInfo(taskId: Long): StationTaskInfo {
-        return xlEngine.getTaskInfo(taskId)
-    }
 
     override suspend fun configure(key: String, values: Array<String>): IResult<Unit> {
         val xlConfigResult = xlEngine.configure(key, values)

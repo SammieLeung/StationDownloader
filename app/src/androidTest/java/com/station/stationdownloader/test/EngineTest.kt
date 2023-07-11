@@ -84,7 +84,7 @@ class EngineTest {
                     val taskflow =
                         flow {
                             val result = mEngineRepo
-                                .initTask(httpTask)
+                                .initUrl(httpTask)
                             when (result) {
                                 is IResult.Error -> {
                                     throw result.exception

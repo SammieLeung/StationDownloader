@@ -72,7 +72,7 @@ class MainViewModel @Inject constructor(
                     _mainUiState.update {
                         it.copy(true)
                     }
-                    val result = engineRepo.initTask(it.url)
+                    val result = engineRepo.initUrl(it.url)
                     emit(result)
                 }
             }.collect { result ->
@@ -131,13 +131,13 @@ class MainViewModel @Inject constructor(
                 _addUriState.update {
                     AddUriUiState.SUCCESS
                 }
-                if (result.data is NewTaskConfigModel.TorrentTaskConfig)
+                if (result.data is NewTaskConfigModel.TorrentTask)
                     showTorrentFilesInfo(result.data)
             }
         }
     }
 
-    private fun showTorrentFilesInfo(data: NewTaskConfigModel.TorrentTaskConfig) {
+    private fun showTorrentFilesInfo(data: NewTaskConfigModel.TorrentTask) {
 //        var fileStateList: List<FileTreeModel> = emptyList()
 //        if (data.fileList.isNotEmpty()) {
 //            fileStateList = data.fileList.mapIndexed { index, fileName ->

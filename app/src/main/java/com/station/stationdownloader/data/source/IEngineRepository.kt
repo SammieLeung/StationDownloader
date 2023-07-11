@@ -11,7 +11,7 @@ interface IEngineRepository {
     suspend fun init(): IResult<Unit>
 
     suspend fun unInit(): IResult<Unit>
-    suspend fun initTask(url: String): IResult<NewTaskConfigModel>
+    suspend fun initUrl(url: String): IResult<NewTaskConfigModel>
     suspend fun startTask(
         url: String,
         engine: DownloadEngine = DownloadEngine.XL,
@@ -22,12 +22,6 @@ interface IEngineRepository {
         selectIndexes: IntArray
     ): IResult<Long>
 
-    suspend fun getTaskSize(
-        startDownloadTask: StationDownloadTask,
-        timeOut: Long
-    ): IResult<StationDownloadTask>
-
-    suspend fun getTaskInfo(taskId: Long): StationTaskInfo
     suspend fun configure(key: String, values: Array<String>): IResult<Unit>
 
 }
