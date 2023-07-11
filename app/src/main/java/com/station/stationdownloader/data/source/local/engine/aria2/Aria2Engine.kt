@@ -77,10 +77,6 @@ class Aria2Engine internal constructor(
         TODO("Not yet implemented")
     }
 
-    override suspend fun getTaskInfo(taskId: Long): StationTaskInfo {
-        TODO("Not yet implemented")
-    }
-
     override suspend fun configure(key: String, values: Array<String>): IResult<Unit> {
         TODO("Not yet implemented")
     }

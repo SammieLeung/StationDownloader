@@ -48,7 +48,6 @@ class AddNewTaskDialogFragment : BaseDialogFragment<DialogFragmentAddNewTaskBind
                     taskName=it.name
                     downloadPath=it.downloadPath
 
-                    val adapter = FileStateAdapter()
                 }
             }
         }

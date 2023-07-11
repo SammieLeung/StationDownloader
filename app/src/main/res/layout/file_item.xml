@@ -3,7 +3,10 @@
     xmlns:app="http://schemas.android.com/apk/res-auto">
 
     <data>
-
+        <import type="com.station.stationdownloader.data.source.local.model.TreeNode"/>
+        <variable
+            name="node"
+            type="TreeNode" />
     </data>
 
     <RelativeLayout
@@ -26,9 +29,13 @@
             android:layout_height="wrap_content"
             android:layout_marginStart="20dp"
             android:layout_toEndOf="@id/checkbox"
-            android:layout_toStartOf="@id/fileSize"
+            android:layout_toStartOf="@id/fileExt"
             android:duplicateParentState="true" />
-
+        <TextView
+            android:id="@+id/fileExt"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_toStartOf="@id/fileSize" />
         <TextView
             android:id="@+id/fileSize"
             android:layout_width="wrap_content"

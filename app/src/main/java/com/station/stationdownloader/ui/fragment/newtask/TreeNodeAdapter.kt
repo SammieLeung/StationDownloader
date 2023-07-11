@@ -6,8 +6,8 @@ import androidx.recyclerview.widget.RecyclerView
 import com.station.stationdownloader.data.source.local.model.TreeNode
 import com.station.stationdownloader.databinding.FileItemBinding
 
-class FileStateAdapter(val root: TreeNode.Root) :
-    RecyclerView.Adapter<FileStateAdapter.FileViewHolder>() {
+class TreeNodeAdapter(val root: TreeNode.Root) :
+    RecyclerView.Adapter<TreeNodeAdapter.FileViewHolder>() {
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): FileViewHolder {
         return FileViewHolder.create(parent, viewType)
     }
@@ -58,12 +58,23 @@ class FileStateAdapter(val root: TreeNode.Root) :
         return count
     }
 
-//    private fun TreeNode.Directory.findNodeByIndexRecursive(position: Int):TreeNode?{
-//        var node:TreeNode?=null
-//          children?.forEach{
-//            var currentPos=position
-//        }
-//    }
+    private fun TreeNode.Directory.findNodeByIndexRecursive(position: Int): TreeNode? {
+        var currentPos = position
+        for (child in children) {
+            if (currentPos == 0) {
+                return child
+            }
+            if (child is TreeNode.Directory) {
+                val childNode = child.findNodeByIndexRecursive(currentPos - 1)
+                if (childNode != null)
+                    return childNode
+                currentPos--
+            } else if (child is TreeNode.File) {
+                currentPos--
+            }
+        }
+        return null
+    }
 
 
 }
