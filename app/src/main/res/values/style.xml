@@ -14,6 +14,6 @@
         <item name="android:layout_height">74dp</item>
         <item name="android:textSize">@dimen/t1</item>
         <item name="android:textFontWeight">300</item>
-        <item name="android:background">@drawable/left_menu_button_bg</item>
+        <item name="android:backgroundTint">@color/left_menu_button_background_tint</item>
     </style>
 </resources>

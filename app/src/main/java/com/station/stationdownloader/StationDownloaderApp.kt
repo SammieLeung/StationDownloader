@@ -43,6 +43,15 @@ class StationDownloaderApp : Application() {
         }
     }
 
+    override fun onTerminate() {
+        super.onTerminate()
+        Logger.clearLogAdapters()
+        mApplicationScope.launch {
+            mXLEngine.unInit()
+        }
+
+    }
+
 
     val mBroadCastReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
