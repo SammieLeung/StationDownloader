@@ -31,10 +31,12 @@ android {
     }
     signingConfigs {
         signconfig {
-            keyAlias 'lxp_project'
+            keyAlias 'key0'
             keyPassword '123456'
-            storeFile file('../key/lxpkey.jks')
+            storeFile file('../key/rk3399_system.jks')
             storePassword '123456'
+            v1SigningEnabled true
+            v2SigningEnabled true
         }
     }
     buildTypes {
