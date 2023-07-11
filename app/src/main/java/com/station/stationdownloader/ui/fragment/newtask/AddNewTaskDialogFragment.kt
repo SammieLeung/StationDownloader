@@ -10,7 +10,7 @@ import com.station.stationdownloader.databinding.DialogFragmentAddNewTaskBinding
 import com.station.stationdownloader.ui.base.BaseDialogFragment
 import com.station.stationdownloader.ui.viewmodel.DialogAction
 import com.station.stationdownloader.ui.viewmodel.MainViewModel
-import com.station.stationdownloader.ui.viewmodel.TaskSettingState
+import com.station.stationdownloader.ui.viewmodel.NewTaskState
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.launch
 
@@ -20,31 +20,34 @@ class AddNewTaskDialogFragment : BaseDialogFragment<DialogFragmentAddNewTaskBind
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         mBinding.bindState(
-            vm.taskSettingState,
+            vm.newTaskState,
             vm.dialogAccept
         )
     }
 
     fun DialogFragmentAddNewTaskBinding.bindState(
-        configState: Flow<TaskSettingState>,
+        newTaskState: Flow<NewTaskState>,
         dialogAccept: (DialogAction) -> Unit
     ) {
-        mBinding.cancelBtn.setOnClickListener {
+        cancelBtn.setOnClickListener {
             dismiss()
         }
 
-        mBinding.downloadBtn.setOnClickListener {
+        downloadBtn.setOnClickListener {
         }
 
-        bindCheckBox(mBinding.videoCBox, MainViewModel.VIDEO_FILE, dialogAccept)
-        bindCheckBox(mBinding.audioCBox, MainViewModel.AUDIO_FILE, dialogAccept)
-        bindCheckBox(mBinding.pictureCBox, MainViewModel.PICTURE_FILE, dialogAccept)
-        bindCheckBox(mBinding.otherCBox, MainViewModel.OTHER_FILE, dialogAccept)
+        bindCheckBox(videoCBox, MainViewModel.VIDEO_FILE, dialogAccept)
+        bindCheckBox(audioCBox, MainViewModel.AUDIO_FILE, dialogAccept)
+        bindCheckBox(pictureCBox, MainViewModel.PICTURE_FILE, dialogAccept)
+        bindCheckBox(otherCBox, MainViewModel.OTHER_FILE, dialogAccept)
 
 
         lifecycleScope.launch {
-            configState.collect {
-                if (it is TaskSettingState.PreparingData) {
+            newTaskState.collect {
+                if (it is NewTaskState.PreparingData) {
+                    taskName=it.name
+                    downloadPath=it.downloadPath
+
                     val adapter = FileStateAdapter()
                 }
             }

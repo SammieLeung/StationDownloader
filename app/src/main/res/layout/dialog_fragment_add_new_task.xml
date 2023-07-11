@@ -40,47 +40,54 @@
                 android:id="@+id/filterGroup"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_below="@id/taskFileList">
+                android:layout_below="@id/taskFileList"
+                android:gravity="center"
+                android:orientation="horizontal">
 
-                <CheckBox
-                    android:id="@+id/videoCBox"
+                <LinearLayout
+                    android:id="@+id/filterSets"
                     android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="@string/filter_video" />
+                    android:layout_height="wrap_content">
 
-                <CheckBox
-                    android:id="@+id/audioCBox"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="@string/filter_audio" />
+                    <CheckBox
+                        android:id="@+id/videoCBox"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/filter_video" />
 
-                <CheckBox
-                    android:id="@+id/pictureCBox"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="@string/filter_image" />
+                    <CheckBox
+                        android:id="@+id/audioCBox"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/filter_audio" />
 
-                <CheckBox
-                    android:id="@+id/otherCBox"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="@string/filter_other" />
+                    <CheckBox
+                        android:id="@+id/pictureCBox"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/filter_image" />
+
+                    <CheckBox
+                        android:id="@+id/otherCBox"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/filter_other" />
+                </LinearLayout>
+
+                <Spinner
+                    android:id="@+id/engineSpinner"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content" />
             </LinearLayout>
 
-            <Spinner
-                android:id="@+id/engineSpinner"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_below="@id/filterGroup"
-                android:layout_marginBottom="10dp" />
 
             <LinearLayout
                 android:id="@+id/downloadPathGroup"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
+                android:layout_below="@id/filterGroup"
                 android:layout_alignParentStart="true"
-                android:layout_toStartOf="@id/filePickerBtn"
-                android:layout_below="@id/engineSpinner">
+                android:layout_toStartOf="@id/filePickerBtn">
 
                 <TextView
                     android:id="@+id/downloadPathView"
@@ -94,29 +101,32 @@
                     android:layout_height="wrap_content"
                     android:text="@{downloadSpace}" />
             </LinearLayout>
+
             <Button
                 android:id="@+id/filePickerBtn"
-                android:layout_below="@id/engineSpinner"
-                android:layout_alignParentEnd="true"
                 android:layout_width="wrap_content"
-                android:layout_height="wrap_content"/>
+                android:layout_height="wrap_content"
+                android:layout_below="@id/filterGroup"
+                android:layout_alignParentEnd="true" />
 
             <LinearLayout
-                android:layout_centerHorizontal="true"
-                android:layout_below="@id/filePickerBtn"
                 android:layout_width="wrap_content"
-                android:layout_height="wrap_content">
+                android:layout_height="wrap_content"
+                android:layout_below="@id/filePickerBtn"
+                android:layout_centerHorizontal="true">
+
                 <Button
-                    android:text="@string/download_btn"
                     android:id="@+id/downloadBtn"
                     android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"/>
+                    android:layout_height="wrap_content"
+                    android:text="@string/download_btn" />
+
                 <Button
-                    android:text="@string/cancel_btn"
                     android:id="@+id/cancelBtn"
-                    android:layout_marginLeft="50dp"
                     android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"/>
+                    android:layout_height="wrap_content"
+                    android:layout_marginLeft="50dp"
+                    android:text="@string/cancel_btn" />
             </LinearLayout>
         </RelativeLayout>
     </RelativeLayout>

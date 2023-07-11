@@ -47,8 +47,8 @@ class MainViewModel @Inject constructor(
     private val _mainUiState = MutableStateFlow(MainUiState(false))
     val mainUiState: StateFlow<MainUiState> = _mainUiState.asStateFlow()
 
-    private val _taskSettingState = MutableStateFlow<TaskSettingState>(TaskSettingState.INIT)
-    val taskSettingState: StateFlow<TaskSettingState> = _taskSettingState.asStateFlow()
+    private val _newTaskState = MutableStateFlow<NewTaskState>(NewTaskState.INIT)
+    val newTaskState: StateFlow<NewTaskState> = _newTaskState.asStateFlow()
 
     val accept: (UiAction) -> Unit
     val dialogAccept: (DialogAction) -> Unit
@@ -107,7 +107,7 @@ class MainViewModel @Inject constructor(
 
         viewModelScope.launch {
             resetTaskSettingState.collect {
-                _taskSettingState.value = TaskSettingState.INIT
+                _newTaskState.value = NewTaskState.INIT
             }
         }
 
@@ -131,37 +131,23 @@ class MainViewModel @Inject constructor(
                 _addUriState.update {
                     AddUriUiState.SUCCESS
                 }
-                if (result.data is NewTaskConfigModel.TorrentTask)
-                    showTorrentFilesInfo(result.data)
+                updateNewTaskConfig(result.data)
             }
         }
     }
 
-    private fun showTorrentFilesInfo(data: NewTaskConfigModel.TorrentTask) {
-//        var fileStateList: List<FileTreeModel> = emptyList()
-//        if (data.fileList.isNotEmpty()) {
-//            fileStateList = data.fileList.mapIndexed { index, fileName ->
-//                FileTreeModel.File(
-//                    index,
-//                    fileName,
-//                    fileName.ext(),
-//                    0L,
-//                    index in data.selectIndexes
-//                )
-//
-//            }
-//        }
+    private fun updateNewTaskConfig(data: NewTaskConfigModel) {
         _mainUiState.update {
             it.copy(isShowTorrentFilesInfo = true)
         }
-//        _taskSettingState.update {
-//            TaskSettingState.PreparingData(
-//                name = data.taskName,
-//                fileList = fileStateList,
-//                engine = DownloadEngine.XL,
-//                downloadPath = data.downloadPath
-//            )
-//        }
+        _newTaskState.update {
+            NewTaskState.PreparingData(
+                name = data._name,
+                engine = DownloadEngine.XL,
+                downloadPath = data._downloadPath,
+                fileTree = data._fileTree
+            )
+        }
     }
 
 
@@ -171,8 +157,6 @@ class MainViewModel @Inject constructor(
         const val PICTURE_FILE = 3
         const val OTHER_FILE = 4
     }
-
-    fun String.ext(): String = TaskTools.getExt(this)
 }
 
 sealed class UiAction {
@@ -193,23 +177,22 @@ data class MainUiState(
     val isShowTorrentFilesInfo: Boolean = false
 )
 
-sealed class TaskSettingState {
-    object INIT : TaskSettingState()
+sealed class NewTaskState {
+    object INIT : NewTaskState()
     data class PreparingData(
         val name: String = "",
-        val fileTree: TreeNode,
         val engine: DownloadEngine = DownloadEngine.XL,
         val downloadPath: String = "",
+        val sizeInfo:String="",
+        val fileTree: TreeNode,
         val selectVideo: Boolean = true,
         val selectAudio: Boolean = false,
         val selectImage: Boolean = false,
         val selectOther: Boolean = false,
-    ) : TaskSettingState()
+    ) : NewTaskState()
 
     object LOADING : AddUriUiState<Nothing>()
 }
-
-
 
 
 sealed class AddUriUiState<out T> {
