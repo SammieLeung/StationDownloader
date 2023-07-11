@@ -1,5 +1,5 @@
 <resources>
-  <string name="app_name">StationDownloader</string>
+  <string name="app_name">Station Downloader</string>
   <string name="menu_title">资源下载器</string>
   <string name="add_uri">添加</string>
 

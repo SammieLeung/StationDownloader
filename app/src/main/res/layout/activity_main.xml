@@ -21,47 +21,56 @@
             android:orientation="vertical">
 
             <TextView
+                android:textFontWeight="600"
+                android:autoSizeTextType="uniform"
+                android:layout_marginTop="51dp"
+                android:layout_marginEnd="56dp"
+                android:layout_marginStart="58dp"
+                android:drawablePadding="13dp"
+                android:textSize="31sp"
+                android:gravity="center"
+                android:autoSizeMaxTextSize="31sp"
+                android:drawableStart="@drawable/ic_return"
                 android:id="@+id/titleView"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="@string/app_name">
+                android:text="@string/menu_title">
 
             </TextView>
 
             <Button
+                android:textColor="@color/left_menu_add_button_text_color_state"
+                android:layout_marginTop="68dp"
+                android:textFontWeight="500"
+                style="@style/leftMenuButton"
                 android:id="@+id/addUriBtn"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
                 android:text="@string/add_uri" />
 
             <TextView
+                style="@style/leftMenuButton"
                 android:id="@+id/downloadingTaskItem"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
                 android:text="@string/menu_downloading" />
 
             <TextView
+                style="@style/leftMenuButton"
                 android:id="@+id/downloadedTaskItem"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
                 android:text="@string/menu_downloaded" />
 
             <TextView
+                style="@style/leftMenuButton"
                 android:id="@+id/settingItem"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
                 android:text="@string/menu_setting" />
+
+            <FrameLayout
+                android:id="@+id/fragmentLayout"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent" />
         </LinearLayout>
 
         <RelativeLayout
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:layout_toEndOf="@id/menuLayout">
-
-            <FrameLayout
-                android:id="@+id/fragmentLayout"
-                android:layout_width="match_parent"
-                android:layout_height="match_parent" />
 
             <ProgressBar
                 android:layout_width="100dp"
