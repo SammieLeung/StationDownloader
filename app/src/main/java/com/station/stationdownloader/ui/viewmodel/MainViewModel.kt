@@ -145,7 +145,7 @@ class MainViewModel @Inject constructor(
                 name = data._name,
                 engine = DownloadEngine.XL,
                 downloadPath = data._downloadPath,
-                fileTree = data._fileTree
+                fileTree = data._fileTree as TreeNode.Root
             )
         }
     }
@@ -184,7 +184,7 @@ sealed class NewTaskState {
         val engine: DownloadEngine = DownloadEngine.XL,
         val downloadPath: String = "",
         val sizeInfo:String="",
-        val fileTree: TreeNode,
+        val fileTree: TreeNode.Root,
         val selectVideo: Boolean = true,
         val selectAudio: Boolean = false,
         val selectImage: Boolean = false,

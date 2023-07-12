@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<layout xmlns:android="http://schemas.android.com/apk/res/android">
+<layout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
 
     <data>
 
@@ -34,6 +35,9 @@
                 android:id="@+id/taskFileList"
                 android:layout_width="match_parent"
                 android:layout_height="263dp"
+                app:layoutManager="LinearLayoutManager"
+                android:orientation="vertical"
+                android:paddingVertical="5dp"
                 android:layout_below="@id/titleView" />
 
             <LinearLayout

@@ -10,31 +10,58 @@ import com.station.stationdownloader.R
 class ThreeStateCheckbox : AppCompatCheckBox {
     constructor(context: Context) : super(context)
     constructor(context: Context, attrs: AttributeSet?) : super(context, attrs)
-    constructor(context: Context, attrs: AttributeSet?, defStyleAttr: Int) : super(context, attrs, defStyleAttr)
+    constructor(context: Context, attrs: AttributeSet?, defStyleAttr: Int) : super(
+        context,
+        attrs,
+        defStyleAttr
+    )
 
-    private val middle_states = intArrayOf(R.attr.complex_state_part)
-    private val focus_middle_states= intArrayOf(R.attr.complex_state_part,android.R.attr.state_middle)
+    private val focusStates = intArrayOf(android.R.attr.state_focused)
+    private val hoverStates = intArrayOf(android.R.attr.state_hovered)
+    private val middleStates = intArrayOf(android.R.attr.state_middle)
+    private val focusMiddleStates =
+        intArrayOf(android.R.attr.state_middle, android.R.attr.state_focused)
+    private val hoverMiddleStates =
+        intArrayOf(android.R.attr.state_middle, android.R.attr.state_hovered)
+    private val checkedStates = intArrayOf(android.R.attr.state_checked)
+    private val focusCheckedStates =
+        intArrayOf(android.R.attr.state_checked, android.R.attr.state_focused)
+    private val hoverCheckedStates =
+        intArrayOf(android.R.attr.state_checked, android.R.attr.state_hovered)
+
     private var isMiddle: Boolean = false
     private var mBroadcasting: Boolean = false
     private var onStateChangeListener: OnStateChangeListener? = null
 
-    private val checkDrawable = resources.getDrawable(R.drawable.ic_c)
-    private val unCheckDrawable = ...
-    private val middleDrawable = ...
+    private val checkedDrawable = resources.getDrawable(R.drawable.ic_checked, null)
+    private val checkedFocusDrawable = resources.getDrawable(R.drawable.ic_checked_focus, null)
+    private val uncheckedDrawable = resources.getDrawable(R.drawable.ic_unchecked, null)
+    private val uncheckedFocusDrawable = resources.getDrawable(R.drawable.ic_unchecked_focus, null)
+    private val middleDrawable = resources.getDrawable(R.drawable.ic_checked_middle, null)
+    private val middleFocusDrawable =
+        resources.getDrawable(R.drawable.ic_checked_middle_focus, null)
 
     init {
         val stateListDrawable = StateListDrawable()
-        stateListDrawable.addState(middle_states, middleDrawable)
-        stateListDrawable.addState(intArrayOf(),)
-        stateListDrawable.addState(intArrayOf(),)
 
-        stateListDrawable.addState(intArrayOf(),)
+        stateListDrawable.addState(middleStates, middleDrawable)
+        stateListDrawable.addState(focusMiddleStates, middleFocusDrawable)
+        stateListDrawable.addState(hoverMiddleStates, middleFocusDrawable)
 
-        stateListDrawable.addState(intArrayOf(),)
+        stateListDrawable.addState(checkedStates, checkedDrawable)
+        stateListDrawable.addState(focusCheckedStates, checkedFocusDrawable)
+        stateListDrawable.addState(hoverCheckedStates, checkedFocusDrawable)
 
-        stateListDrawable.addState(intArrayOf(android.R.attr.state_checked), checkDrawable)
-        stateListDrawable.addState(intArrayOf(), unCheckDrawable)
-        stateListDrawable.setBounds(0, 0, stateListDrawable.minimumWidth, stateListDrawable.minimumHeight)
+        stateListDrawable.addState(intArrayOf(), uncheckedDrawable)
+        stateListDrawable.addState(focusStates, uncheckedFocusDrawable)
+        stateListDrawable.addState(hoverStates, uncheckedFocusDrawable)
+
+        stateListDrawable.setBounds(
+            0,
+            0,
+            stateListDrawable.minimumWidth,
+            stateListDrawable.minimumHeight
+        )
         setCompoundDrawables(stateListDrawable, null, null, null)
     }
 
@@ -109,7 +136,7 @@ class ThreeStateCheckbox : AppCompatCheckBox {
     override fun onCreateDrawableState(extraSpace: Int): IntArray {
         val drawableState = super.onCreateDrawableState(extraSpace + 1)
         if (getState() == null) {
-            View.mergeDrawableStates(drawableState, states)
+            View.mergeDrawableStates(drawableState, intArrayOf(android.R.attr.state_middle))
         }
         return drawableState
     }

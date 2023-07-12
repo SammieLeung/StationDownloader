@@ -62,8 +62,39 @@ class TorrentTest {
         }
     }
 
+    private fun TreeNode.Directory.getChildrenCount(): Int {
+        var count = 0;
+        _children?.forEach {
+            if (it is TreeNode.File)
+                count++
+            else if (it is TreeNode.Directory) {
+                count += it.getChildrenCount()
+                count++
+            }
+        }
+        return count
+    }
+
+    private fun TreeNode.Directory.findNodeByIndexRecursive(position: Int): TreeNode? {
+        var currentPos = position
+        for (child in children) {
+            if (currentPos == 0) {
+                return child
+            }
+            if (child is TreeNode.Directory) {
+                val childNode = child.findNodeByIndexRecursive(currentPos - 1)
+                if (childNode != null)
+                    return childNode
+                currentPos -= child.getChildrenCount() + 1
+            } else if (child is TreeNode.File) {
+                currentPos--
+            }
+        }
+        return null
+    }
+
     fun TorrentInfo.getFileTree(): TreeNode {
-        val root =TreeNode.Root
+        val root = TreeNode.Root
 
         for (fileInfo in mSubFileInfo) {
             val filePath =
@@ -121,11 +152,13 @@ class TorrentTest {
         Logger.d(torrentInfo.mIsMultiFiles)
         Logger.d(torrentInfo.mFileCount)
 
-        val treeNode = torrentInfo.getFileTree() as TreeNode.Directory
-        treeNode.getByFileIndex(15)?.toggle()
-        treeNode.getByFileIndex(2)?.toggle()
-        treeNode.getByFileIndex(3)?.toggle()
 
+        val treeNode = torrentInfo.getFileTree() as TreeNode.Directory
+//        treeNode.getByFileIndex(15)?.toggle()
+//        treeNode.getByFileIndex(2)?.toggle()
+//        treeNode.getByFileIndex(3)?.toggle()
+
+        treeNode.findNodeByIndexRecursive(2)
 
         printFileTree(treeNode)
 //        val TAG = "testTorrent"

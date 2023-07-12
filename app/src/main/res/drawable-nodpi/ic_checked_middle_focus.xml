@@ -3,5 +3,5 @@
     <item
         android:width="30dp"
         android:height="30dp"
-        android:drawable="@drawable/vector_checked_part" />
+        android:drawable="@drawable/vector_checked_middle_focus" />
 </layer-list>

@@ -28,6 +28,10 @@ sealed class TreeNode(
             isChecked = select
             parent.notifyChange(this)
         }
+
+        override fun toString(): String {
+            return "File>>$fileName"
+        }
     }
 
     open class Directory(
@@ -126,6 +130,10 @@ sealed class TreeNode(
             children.forEach {
                 it.autoSelect(select)
             }
+        }
+
+        override fun toString(): String {
+            return "Dir>>$folderName"
         }
 
         fun toggleFold() {
