@@ -117,7 +117,7 @@ class TorrentTest {
                             comp,
                             TaskTools.getExt(comp),
                             fileInfo.mFileSize,
-                            isChecked = if (TaskTools.isMediaFile(comp)) true else false,
+                            isChecked = if (TaskTools.isVideoFile(comp)) true else false,
                             parent = currentNode,
                             deep = idx
                         )

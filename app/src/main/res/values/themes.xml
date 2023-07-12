@@ -1,8 +1,9 @@
 <resources xmlns:app="http://schemas.android.com/apk/res-auto" xmlns:tools="http://schemas.android.com/tools">
     <!-- Base application theme. -->
-    <style name="Theme.StationDownloader" parent="StationTheme">
+    <style name="AppTheme" parent="StationTheme">
     </style>
 
-
+    <style name="AppTheme.Dialog" parent="StationTheme.Dialog">
+    </style>
 
 </resources>

@@ -10,6 +10,7 @@ import com.orhanobut.logger.Logger
 import com.station.stationdownloader.data.source.local.engine.IEngine
 import com.station.stationdownloader.di.XLEngineAnnotation
 import com.station.stationkitkt.DimenUtils
+import com.station.stationkitkt.MimeTypeHelper
 import com.station.stationkitkt.MoshiHelper
 import dagger.hilt.android.HiltAndroidApp
 import kotlinx.coroutines.CoroutineScope
@@ -40,6 +41,7 @@ class StationDownloaderApp : Application() {
             mXLEngine.init()
             Stetho.initializeWithDefaults(applicationContext)
             MoshiHelper.init()
+            MimeTypeHelper.init(applicationContext)
         }
     }
 

@@ -1,5 +1,7 @@
 package com.station.stationdownloader.data.source.local.model
 
+import com.station.stationdownloader.utils.TaskTools
+
 sealed class TreeNode(
     val _name: String,
     val _parent: TreeNode?,
@@ -31,6 +33,22 @@ sealed class TreeNode(
 
         override fun toString(): String {
             return "File>>$fileName"
+        }
+
+        fun isVideo():Boolean{
+            return TaskTools.isVideoFile(fileExt)
+        }
+
+        fun isAudio():Boolean{
+            return TaskTools.isAudioFile(fileExt)
+        }
+
+        fun isImage():Boolean{
+            return TaskTools.isImageFile(fileExt)
+        }
+
+        fun isCompress():Boolean{
+            return TaskTools.isCompress(fileExt)
         }
     }
 

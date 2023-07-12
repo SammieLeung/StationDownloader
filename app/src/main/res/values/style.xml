@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <style name="Divider.Vertical" parent="Theme.StationDownloader">
+    <style name="Divider.Vertical" parent="AppTheme">
         <item name="android:background">#33FFFFFF</item>
         <item name="android:layout_marginStart">8dp</item>
         <item name="android:layout_marginEnd">8dp</item>

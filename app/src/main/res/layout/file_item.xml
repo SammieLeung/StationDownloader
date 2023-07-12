@@ -3,33 +3,42 @@
     xmlns:app="http://schemas.android.com/apk/res-auto">
 
     <data>
-        <import type="com.station.stationdownloader.data.source.local.model.TreeNode"/>
+        <import type="com.station.stationdownloader.data.source.local.model.TreeNode.File"/>
         <variable
             name="node"
-            type="TreeNode" />
+            type="File" />
     </data>
 
     <RelativeLayout
         android:layout_width="match_parent"
         android:layout_height="56dp"
+        android:paddingHorizontal="20dp"
         android:background="@drawable/file_item_bg">
 
         <com.station.stationdownloader.view.ThreeStateCheckbox
             android:id="@+id/checkbox"
             android:layout_width="30dp"
             android:layout_height="30dp"
+            android:layout_centerVertical="true"
             android:layout_alignParentStart="true"
             android:layout_marginEnd="17dp"
             android:duplicateParentState="true" />
-
+        <ImageView
+            android:layout_toEndOf="@id/checkbox"
+            android:id="@+id/icon"
+            android:layout_centerVertical="true"
+            android:src="@{}"
+            android:layout_width="40dp"
+            android:layout_height="40dp"/>
         <TextView
+            android:layout_centerVertical="true"
             android:textSize="12sp"
             android:textFontWeight="300"
             android:id="@+id/fileName"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginStart="20dp"
-            android:layout_toEndOf="@id/checkbox"
+            android:layout_toEndOf="@id/icon"
             android:layout_toStartOf="@id/fileExt"
             android:duplicateParentState="true" />
         <TextView

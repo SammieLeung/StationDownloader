@@ -1,7 +1,6 @@
 package com.station.stationdownloader.data.source.local.engine.xl
 
 import android.content.Context
-import com.orhanobut.logger.Logger
 import com.station.stationdownloader.DownloadUrlType
 import com.station.stationdownloader.ITaskState
 import com.station.stationdownloader.contants.ConfigureError
@@ -18,9 +17,7 @@ import com.station.stationdownloader.data.source.ITorrentInfoRepository
 import com.station.stationdownloader.data.source.local.engine.IEngine
 import com.station.stationdownloader.data.source.local.engine.NewTaskConfigModel
 import com.station.stationdownloader.data.source.local.model.StationDownloadTask
-import com.station.stationdownloader.data.source.local.model.StationTaskInfo
 import com.station.stationdownloader.data.source.local.model.TreeNode
-import com.station.stationdownloader.data.source.local.model.asStationTaskInfo
 import com.station.stationdownloader.data.source.remote.FileContentHeader
 import com.station.stationdownloader.data.source.remote.FileSizeApiService
 import com.station.stationdownloader.utils.DLogger
@@ -404,13 +401,6 @@ class XLEngine internal constructor(
 
     private fun String.urlType(): DownloadUrlType = TaskTools.getUrlType(this)
 
-    private fun String.fileType() = TaskTools.isMediaFile(ext())
-
-    private fun String.isMedia(): Boolean {
-        return TaskTools.isMediaFile(this)
-    }
-
-
     fun TorrentInfo.getFileTree(): TreeNode {
         val root = TreeNode.Root
 
@@ -435,7 +425,7 @@ class XLEngine internal constructor(
                             comp,
                             TaskTools.getExt(comp),
                             fileInfo.mFileSize,
-                            isChecked = if (TaskTools.isMediaFile(comp)) true else false,
+                            isChecked = if (TaskTools.isVideoFile(comp)) true else false,
                             parent = currentNode,
                             deep = idx
                         )

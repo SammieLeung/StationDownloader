@@ -1,10 +1,18 @@
 package com.station.stationdownloader.utils
 
 import com.station.stationdownloader.DownloadUrlType
+import com.station.stationdownloader.DownloadWorker
+import com.station.stationdownloader.data.source.IEngineRepository
+import com.station.stationkitkt.MimeTypeHelper
+import dagger.hilt.EntryPoint
+import dagger.hilt.InstallIn
+import dagger.hilt.android.EntryPointAccessors
+import dagger.hilt.components.SingletonComponent
 import java.io.File
 import java.io.UnsupportedEncodingException
 import java.net.URLDecoder
 import java.util.Base64
+import javax.inject.Inject
 
 const val MAGNET_PROTOCOL = "magnet:?xt=urn:btih:"
 const val HTTP_PROTOCOL = "http://"
@@ -14,7 +22,6 @@ const val FTP_PROTOCOL = "ftp://"
 const val ED2K_PROTOCOL = "ed2k://"
 
 object TaskTools {
-
     /**
      * 解码迅雷链接为普通连接
      */
@@ -110,18 +117,38 @@ object TaskTools {
     /**
      * 是否是媒体文件
      */
-    fun isMediaFile(fileName: String): Boolean {
-        return when (fileName.substringAfterLast('.', "")) {
-            "avi", "mp4", "m4v",
-            "mkv", "mov", "mpeg",
-            "mpg", "mpe", "rm",
-            "rmvb", "3gp", "wmv",
-            "asf", "asx", "dat",
-            "vob", "m3u8", "webm",
-            "flv","ts"-> true
-            else -> false
-        }
+    fun isVideoFile(fileName: String): Boolean {
+//        return when (fileName.substringAfter('.', "")) {
+//            "avi", "mp4", "m4v",
+//            "mkv", "mov", "mpeg",
+//            "mpg", "mpe", "rm",
+//            "rmvb", "3gp", "wmv",
+//            "asf", "asx", "dat",
+//            "vob", "m3u8", "webm",
+//            "flv","ts"-> true
+//            else -> false
+//        }
+        return MimeTypeHelper.isVideo(fileName.substringAfter(".", ""))
     }
+
+    fun isAudioFile(fileName: String): Boolean {
+        return MimeTypeHelper.isAudio(fileName.substringAfter(".", ""))
+    }
+
+
+    fun isImageFile(fileName: String): Boolean {
+        return MimeTypeHelper.isImage(fileName.substringAfter(".", ""))
+    }
+
+    fun isCompress(fileName: String):Boolean{
+             return when (fileName.substringAfter('.', "")) {
+            "rar", "gz", "7z",
+            "zip", "tar","tgz" -> true
+
+                 else -> false
+             }
+    }
+
 
     fun deSelectedIndexes(fileCount: Int, selectIndexes: List<Int>): List<Int> {
         val deSelectedIndexes = mutableListOf<Int>()

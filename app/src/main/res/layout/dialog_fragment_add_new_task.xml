@@ -18,10 +18,12 @@
     </data>
 
     <RelativeLayout
+        android:theme="@style/AppTheme.Dialog"
         android:layout_width="match_parent"
         android:layout_height="match_parent">
 
         <RelativeLayout
+            android:background="#FF1A232C"
             android:layout_width="750dp"
             android:layout_height="wrap_content">
 
@@ -34,6 +36,7 @@
             <androidx.recyclerview.widget.RecyclerView
                 android:id="@+id/taskFileList"
                 android:layout_width="match_parent"
+                android:background="#2F363F"
                 android:layout_height="263dp"
                 app:layoutManager="LinearLayoutManager"
                 android:orientation="vertical"
