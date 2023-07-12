@@ -3,15 +3,17 @@ package com.station.stationdownloader.ui.fragment.newtask
 import android.util.Log
 import android.view.LayoutInflater
 import android.view.ViewGroup
+import androidx.databinding.ViewDataBinding
 import androidx.recyclerview.widget.RecyclerView
 import com.station.stationdownloader.data.source.local.model.TreeNode
 import com.station.stationdownloader.databinding.FileItemBinding
+import com.station.stationdownloader.databinding.FolderItemBinding
 import com.station.stationdownloader.utils.DLogger
 import com.station.stationdownloader.utils.TaskTools
 import com.station.stationkitkt.dp
 
 class TreeNodeAdapter :
-    RecyclerView.Adapter<TreeNodeAdapter.FileViewHolder>(),DLogger {
+    RecyclerView.Adapter<TreeNodeAdapter.FileViewHolder>(), DLogger {
     lateinit var root: TreeNode.Root
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): FileViewHolder {
         return FileViewHolder.create(parent, viewType)
@@ -19,6 +21,15 @@ class TreeNodeAdapter :
 
     override fun getItemCount(): Int {
         return root.getChildrenCount()
+    }
+
+    override fun getItemViewType(position: Int): Int {
+        return root.findNodeByIndexRecursive(position)?.let {
+            if (it is TreeNode.File)
+                return FileViewHolder.TYPE_FILE
+            else
+                return FileViewHolder.TYPE_DIRECTORY
+        } ?: FileViewHolder.TYPE_FILE
     }
 
 
@@ -69,43 +80,54 @@ class TreeNodeAdapter :
         return null
     }
 
-    class FileViewHolder(val binding: FileItemBinding) : RecyclerView.ViewHolder(binding.root) {
+    class FileViewHolder(val binding: ViewDataBinding) : RecyclerView.ViewHolder(binding.root) {
+
         fun bind(treeNode: TreeNode) {
             when (treeNode) {
                 is TreeNode.Directory -> {
-                    binding.fileName.setText(treeNode.folderName)
-                    binding.checkbox.setState(null)
+                    val folderItemBinding = this.binding as FolderItemBinding
+                    folderItemBinding.node = treeNode
+                    when (treeNode.checkState) {
+                        TreeNode.FolderCheckState.ALL ->
+                            folderItemBinding.checkbox.setState(true)
 
-                    binding.root.setPadding((treeNode.deep * 20).dp,  binding.root.paddingTop,  binding.root.paddingRight,  binding.root.paddingBottom)
-//                    when (treeNode.checkState) {
-//                        TreeNode.FolderCheckState.ALL ->
-//                            binding.checkbox.setState(true)
-//
-//                        TreeNode.FolderCheckState.PART ->
-//                            binding.checkbox.setState(null)
-//
-//                        TreeNode.FolderCheckState.NONE ->
-//                            binding.checkbox.setState(false)
-//                    }
+                        TreeNode.FolderCheckState.PART ->
+                            folderItemBinding.checkbox.setState(null)
+
+                        TreeNode.FolderCheckState.NONE ->
+                            folderItemBinding.checkbox.setState(false)
+                    }
                 }
 
                 is TreeNode.File -> {
-                    binding.fileName.setText(treeNode.fileName)
-                    binding.checkbox.isChecked = treeNode.isChecked
-                    binding.root.setPadding((treeNode.deep * 20).dp,  binding.root.paddingTop,  binding.root.paddingRight,  binding.root.paddingBottom)
+                    val fileItemBinding = this.binding as FileItemBinding
+                    fileItemBinding.node = treeNode
                 }
             }
         }
 
 
         companion object {
+            const val TYPE_DIRECTORY = 1
+            const val TYPE_FILE = 0
             fun create(parent: ViewGroup, viewType: Int): FileViewHolder {
-                val binding = FileItemBinding.inflate(
-                    LayoutInflater.from(parent.context),
-                    parent,
-                    false
-                )
-                return FileViewHolder(binding)
+                return if (viewType == TYPE_DIRECTORY) {
+                    FileViewHolder(
+                        FolderItemBinding.inflate(
+                            LayoutInflater.from(parent.context),
+                            parent,
+                            false
+                        )
+                    )
+                } else {
+                    FileViewHolder(
+                        FileItemBinding.inflate(
+                            LayoutInflater.from(parent.context),
+                            parent,
+                            false
+                        )
+                    )
+                }
             }
         }
     }

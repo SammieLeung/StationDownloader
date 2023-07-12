@@ -35,20 +35,24 @@ sealed class TreeNode(
             return "File>>$fileName"
         }
 
-        fun isVideo():Boolean{
+        fun isVideo(): Boolean {
             return TaskTools.isVideoFile(fileExt)
         }
 
-        fun isAudio():Boolean{
+        fun isAudio(): Boolean {
             return TaskTools.isAudioFile(fileExt)
         }
 
-        fun isImage():Boolean{
+        fun isImage(): Boolean {
             return TaskTools.isImageFile(fileExt)
         }
 
-        fun isCompress():Boolean{
+        fun isCompress(): Boolean {
             return TaskTools.isCompress(fileExt)
+        }
+
+        fun toHumanReadingFileSize(): String {
+            return TaskTools.toHumanReading(fileSize)
         }
     }
 
@@ -158,9 +162,13 @@ sealed class TreeNode(
             isFold = !isFold
         }
 
+        fun toHumanReadingSelectSize(): String {
+            return TaskTools.toHumanReading(totalCheckedFileSize)
+        }
+
     }
 
-    object Root: Directory(
+    object Root : Directory(
         folderName = "root",
         parent = null,
         deep = -1
