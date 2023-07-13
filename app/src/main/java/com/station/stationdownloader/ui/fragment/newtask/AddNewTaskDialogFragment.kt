@@ -13,6 +13,7 @@ import com.station.stationdownloader.ui.base.BaseDialogFragment
 import com.station.stationdownloader.ui.viewmodel.DialogAction
 import com.station.stationdownloader.ui.viewmodel.MainViewModel
 import com.station.stationdownloader.ui.viewmodel.NewTaskState
+import com.station.stationdownloader.ui.viewmodel.UiAction
 import com.station.stationtheme.spinner.StationSpinnerAdapter
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.launch
@@ -53,6 +54,7 @@ class AddNewTaskDialogFragment : BaseDialogFragment<DialogFragmentAddNewTaskBind
         }
 
         downloadBtn.setOnClickListener {
+            vm.accept(UiAction.StartTask)
         }
 
         bindCheckBox(videoCBox, MainViewModel.VIDEO_FILE, dialogAccept)

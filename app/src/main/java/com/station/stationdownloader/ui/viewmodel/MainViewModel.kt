@@ -66,6 +66,8 @@ class MainViewModel @Inject constructor(
         viewModelScope.launch {
             initTask.flatMapLatest {
                 flow {
+                    Logger.d("initTask flow")
+
                     _addUriState.update {
                         AddUriUiState.LOADING
                     }
@@ -87,6 +89,7 @@ class MainViewModel @Inject constructor(
 
         return { action ->
             viewModelScope.launch {
+                Logger.d("help")
                 actionStateFlow.emit(action)
             }
         }
@@ -137,9 +140,6 @@ class MainViewModel @Inject constructor(
     }
 
     private fun updateNewTaskConfig(data: NewTaskConfigModel) {
-        _mainUiState.update {
-            it.copy(isShowTorrentFilesInfo = true)
-        }
         _newTaskState.update {
             NewTaskState.PreparingData(
                 name = data._name,
@@ -161,6 +161,7 @@ class MainViewModel @Inject constructor(
 
 sealed class UiAction {
     data class InitTask(val url: String) : UiAction()
+    data class StartDownloadTask(val task:NewTaskConfigModel):UiAction()
 }
 
 sealed class DialogAction {
@@ -174,7 +175,6 @@ sealed class DialogAction {
 
 data class MainUiState(
     val isLoading: Boolean = false,
-    val isShowTorrentFilesInfo: Boolean = false
 )
 
 sealed class NewTaskState {

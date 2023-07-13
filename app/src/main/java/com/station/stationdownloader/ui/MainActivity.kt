@@ -31,6 +31,7 @@ import com.station.stationdownloader.ui.base.BaseActivity
 import com.station.stationdownloader.ui.fragment.newtask.AddNewTaskDialogFragment
 import com.station.stationdownloader.ui.fragment.AddUriDialogFragment
 import com.station.stationdownloader.ui.viewmodel.MainViewModel
+import com.station.stationdownloader.ui.viewmodel.NewTaskState
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -69,11 +70,10 @@ class MainActivity : BaseActivity<ActivityMainBinding>() {
                     }
                 }
                 launch {
-                    vm.mainUiState.map { it.isShowTorrentFilesInfo }.distinctUntilChanged()
+                    vm.newTaskState.map { it is NewTaskState.PreparingData }.distinctUntilChanged()
                         .collectLatest {
-                            if (it) {
+                            if (it)
                                 AddNewTaskDialogFragment().show(supportFragmentManager, "")
-                            }
                         }
 
                 }
