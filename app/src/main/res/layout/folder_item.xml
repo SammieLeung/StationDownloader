@@ -1,59 +1,66 @@
 <?xml version="1.0" encoding="utf-8"?>
-<layout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto">
+<layout xmlns:android="http://schemas.android.com/apk/res/android">
 
     <data>
-        <import type="com.station.stationdownloader.data.source.local.model.TreeNode.Directory"/>
-        <import type="com.station.stationdownloader.R"/>
+
+        <import type="com.station.stationdownloader.data.source.local.model.TreeNode.Directory" />
+
+        <import type="com.station.stationdownloader.R" />
+
         <variable
             name="node"
             type="Directory" />
+
     </data>
 
     <RelativeLayout
+        android:id="@+id/itemView"
         android:layout_width="match_parent"
         android:layout_height="56dp"
-        android:paddingHorizontal="20dp"
         android:background="@drawable/file_item_bg">
 
         <com.station.stationdownloader.view.ThreeStateCheckbox
             android:id="@+id/checkbox"
             android:layout_width="30dp"
             android:layout_height="30dp"
-            android:layout_centerVertical="true"
             android:layout_alignParentStart="true"
+            android:layout_centerVertical="true"
             android:layout_marginEnd="17dp"
             android:duplicateParentState="true" />
+
         <ImageView
-            android:layout_toEndOf="@id/checkbox"
             android:id="@+id/icon"
-            android:layout_centerVertical="true"
-            android:src="@mipmap/ic_folder"
             android:layout_width="40dp"
-            android:layout_height="40dp"/>
-        <TextView
-            android:text="@{node.folderName}"
+            android:layout_height="40dp"
             android:layout_centerVertical="true"
-            android:textSize="12sp"
-            android:textFontWeight="300"
+            android:layout_toEndOf="@id/checkbox"
+            android:src="@mipmap/ic_folder" />
+
+        <TextView
             android:id="@+id/fileName"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:layout_centerVertical="true"
             android:layout_marginStart="20dp"
-            android:layout_toEndOf="@id/icon"
             android:layout_toStartOf="@id/fileExt"
-            android:duplicateParentState="true" />
+            android:layout_toEndOf="@id/icon"
+            android:duplicateParentState="true"
+            android:text="@{node.folderName}"
+            android:textFontWeight="300"
+            android:textSize="12sp" />
+
         <TextView
             android:id="@+id/fileExt"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_toStartOf="@id/fileSize" />
+
         <TextView
-            android:text="@{node.toHumanReadingSelectSize()}"
             android:id="@+id/fileSize"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_alignParentEnd="true" />
+            android:layout_alignParentEnd="true"
+            android:text="@{node.toHumanReadingSelectSize()}" />
 
 
     </RelativeLayout>

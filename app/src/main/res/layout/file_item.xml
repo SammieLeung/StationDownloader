@@ -11,9 +11,9 @@
     </data>
 
     <RelativeLayout
+        android:id="@+id/itemView"
         android:layout_width="match_parent"
         android:layout_height="56dp"
-        android:paddingHorizontal="20dp"
         android:background="@drawable/file_item_bg">
 
         <com.station.stationdownloader.view.ThreeStateCheckbox

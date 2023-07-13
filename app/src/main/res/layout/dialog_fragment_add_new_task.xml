@@ -18,30 +18,36 @@
     </data>
 
     <RelativeLayout
-        android:theme="@style/AppTheme.Dialog"
         android:layout_width="match_parent"
-        android:layout_height="match_parent">
+        android:layout_height="match_parent"
+        android:theme="@style/AppTheme.Dialog">
 
         <RelativeLayout
+            android:layout_width="1040dp"
+            android:layout_height="wrap_content"
             android:background="#FF1A232C"
-            android:layout_width="750dp"
-            android:layout_height="wrap_content">
+            android:paddingHorizontal="45dp"
+            android:paddingTop="30dp"
+            android:paddingBottom="45dp">
 
             <TextView
+                android:textSize="24sp"
+                android:textFontWeight="500"
                 android:id="@+id/titleView"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:layout_marginBottom="15dp"
                 android:text="@{taskName}" />
 
             <androidx.recyclerview.widget.RecyclerView
                 android:id="@+id/taskFileList"
                 android:layout_width="match_parent"
-                android:background="#2F363F"
                 android:layout_height="263dp"
-                app:layoutManager="LinearLayoutManager"
+                android:layout_below="@id/titleView"
+                android:background="#2F363F"
                 android:orientation="vertical"
                 android:paddingVertical="5dp"
-                android:layout_below="@id/titleView" />
+                app:layoutManager="LinearLayoutManager" />
 
             <LinearLayout
                 android:id="@+id/filterGroup"
@@ -52,6 +58,7 @@
                 android:orientation="horizontal">
 
                 <LinearLayout
+                    android:theme="@style/AppTheme.CheckBox"
                     android:id="@+id/filterSets"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content">
@@ -63,18 +70,21 @@
                         android:text="@string/filter_video" />
 
                     <CheckBox
+                        android:layout_marginStart="22dp"
                         android:id="@+id/audioCBox"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="@string/filter_audio" />
 
                     <CheckBox
+                        android:layout_marginStart="22dp"
                         android:id="@+id/pictureCBox"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="@string/filter_image" />
 
                     <CheckBox
+                        android:layout_marginStart="22dp"
                         android:id="@+id/otherCBox"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"

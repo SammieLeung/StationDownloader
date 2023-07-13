@@ -44,7 +44,9 @@ object MimeTypeHelper {
     }
 
     fun isVideo(ext: String): Boolean {
-        return videoMimeList.contains(ext.substringAfter("."))
+        val data=ext.substringAfter(".")
+        val boo= videoMimeList.contains(data)
+        return boo
     }
 
     fun isAudio(ext: String): Boolean {

@@ -39,7 +39,6 @@ class TreeNodeAdapter :
         if (treeNode != null) {
             holder.bind(treeNode)
         }
-
     }
 
     fun fillData(root: TreeNode.Root) {
@@ -87,6 +86,12 @@ class TreeNodeAdapter :
                 is TreeNode.Directory -> {
                     val folderItemBinding = this.binding as FolderItemBinding
                     folderItemBinding.node = treeNode
+                    folderItemBinding.itemView.setPadding(
+                        (treeNode.deep * TREE_NODE_INDENT).dp + 20.dp,
+                        0,
+                        20.dp,
+                        0
+                    )
                     when (treeNode.checkState) {
                         TreeNode.FolderCheckState.ALL ->
                             folderItemBinding.checkbox.setState(true)
@@ -102,12 +107,19 @@ class TreeNodeAdapter :
                 is TreeNode.File -> {
                     val fileItemBinding = this.binding as FileItemBinding
                     fileItemBinding.node = treeNode
+                    fileItemBinding.itemView.setPadding(
+                        (treeNode.deep * TREE_NODE_INDENT).dp + 20.dp,
+                        0,
+                        20.dp,
+                        0
+                    )
                 }
             }
         }
 
 
         companion object {
+            const val TREE_NODE_INDENT = 30
             const val TYPE_DIRECTORY = 1
             const val TYPE_FILE = 0
             fun create(parent: ViewGroup, viewType: Int): FileViewHolder {

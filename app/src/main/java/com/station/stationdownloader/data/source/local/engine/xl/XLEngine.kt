@@ -425,7 +425,7 @@ class XLEngine internal constructor(
                             comp,
                             TaskTools.getExt(comp),
                             fileInfo.mFileSize,
-                            isChecked = if (TaskTools.isVideoFile(comp)) true else false,
+                            isChecked = TaskTools.isVideoFile(comp),
                             parent = currentNode,
                             deep = idx
                         )

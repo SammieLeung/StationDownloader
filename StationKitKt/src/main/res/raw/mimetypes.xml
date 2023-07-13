@@ -503,6 +503,7 @@
   <mimeType extension=".mjf" type="audio/x-vnd.audioexplosion.mjuicemediafile" />
   <mimeType extension=".mjp2" type="video/mj2" />
   <mimeType extension=".mjpg" type="video/x-motion-jpeg" />
+  <mimeType extension=".mkv" type="video/mkv" />
   <mimeType extension=".mlp" type="application/vnd.dolby.mlp" description="Dolby Meridian Lossless Packing" />
   <mimeType extension=".mm" type="application/base64" />
   <mimeType extension=".mmd" type="application/vnd.chipnuts.karaoke-mmd" description="Karaoke on Chipnuts Chipsets" />
