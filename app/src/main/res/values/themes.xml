@@ -8,8 +8,8 @@
 
     <style name="AppTheme.CheckBox" parent="AppTheme">
         <item name="stationCheckboxButtonSize">18dp</item>
-        <item name="android:textSize">@dimen/t2</item>
-        <item name="android:textFontWeight">300</item>
-        <item name="android:textColor">#FF646477</item>
     </style>
+
+
+
 </resources>

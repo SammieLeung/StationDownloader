@@ -3,8 +3,11 @@
     xmlns:app="http://schemas.android.com/apk/res-auto">
 
     <data>
-        <import type="com.station.stationdownloader.data.source.local.model.TreeNode.File"/>
-        <import type="com.station.stationdownloader.R"/>
+
+        <import type="com.station.stationdownloader.data.source.local.model.TreeNode.File" />
+
+        <import type="com.station.stationdownloader.R" />
+
         <variable
             name="node"
             type="File" />
@@ -17,45 +20,48 @@
         android:background="@drawable/file_item_bg">
 
         <com.station.stationdownloader.view.ThreeStateCheckbox
-            android:checked="@{node.checked}"
             android:id="@+id/checkbox"
             android:layout_width="30dp"
             android:layout_height="30dp"
-            android:layout_centerVertical="true"
             android:layout_alignParentStart="true"
+            android:layout_centerVertical="true"
             android:layout_marginEnd="17dp"
+            android:checked="@{node.checked}"
             android:duplicateParentState="true" />
+
         <ImageView
-            android:layout_toEndOf="@id/checkbox"
             android:id="@+id/icon"
-            android:layout_centerVertical="true"
-            app:imageResource="@{node.video?R.mipmap.ic_video:node.audio?R.mipmap.ic_music:node.image?R.mipmap.ic_image:node.compress?R.mipmap.ic_compress:R.mipmap.ic_other}"
             android:layout_width="40dp"
-            android:layout_height="40dp"/>
-        <TextView
-            android:text="@{node.fileName}"
+            android:layout_height="40dp"
             android:layout_centerVertical="true"
-            android:textSize="12sp"
-            android:textFontWeight="300"
+            android:layout_toEndOf="@id/checkbox"
+            app:imageResource="@{node.video?R.mipmap.ic_video:node.audio?R.mipmap.ic_music:node.image?R.mipmap.ic_image:node.compress?R.mipmap.ic_compress:R.mipmap.ic_other}" />
+
+        <TextView
             android:id="@+id/fileName"
+            style="@style/FileItem"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginStart="20dp"
-            android:layout_toEndOf="@id/icon"
             android:layout_toStartOf="@id/fileExt"
-            android:duplicateParentState="true" />
+            android:layout_toEndOf="@id/icon"
+            android:duplicateParentState="true"
+            android:text="@{node.fileName}" />
+
         <TextView
-            android:text="@{node.fileExt}"
             android:id="@+id/fileExt"
+            style="@style/FileItem"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_toStartOf="@id/fileSize" />
+            android:layout_toStartOf="@id/fileSize"
+            android:text="@{node.fileExt}" />
+
         <TextView
-            android:text="@{node.toHumanReadingFileSize()}"
             android:id="@+id/fileSize"
+            style="@style/FileItem"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_alignParentEnd="true" />
+            android:layout_alignParentEnd="true"
+            android:text="@{node.toHumanReadingFileSize()}" />
 
 
     </RelativeLayout>

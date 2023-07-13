@@ -21,8 +21,8 @@
 
         <com.station.stationdownloader.view.ThreeStateCheckbox
             android:id="@+id/checkbox"
-            android:layout_width="30dp"
-            android:layout_height="30dp"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
             android:layout_alignParentStart="true"
             android:layout_centerVertical="true"
             android:layout_marginEnd="17dp"
@@ -38,25 +38,25 @@
 
         <TextView
             android:id="@+id/fileName"
+            style="@style/FileItem"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_centerVertical="true"
-            android:layout_marginStart="20dp"
             android:layout_toStartOf="@id/fileExt"
             android:layout_toEndOf="@id/icon"
             android:duplicateParentState="true"
-            android:text="@{node.folderName}"
-            android:textFontWeight="300"
-            android:textSize="12sp" />
+            android:text="@{node.folderName}" />
 
         <TextView
             android:id="@+id/fileExt"
+            style="@style/FileItem"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_toStartOf="@id/fileSize" />
 
         <TextView
             android:id="@+id/fileSize"
+            style="@style/FileItem"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_alignParentEnd="true"

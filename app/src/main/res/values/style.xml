@@ -8,12 +8,27 @@
         <item name="android:layout_marginBottom">3dp</item>
     </style>
     
-    <style name="leftMenuButton" parent="Station.Widget.Button">
+    <style name="LeftMenuButton" parent="Station.Widget.Button">
         <item name="android:layout_marginStart">15dp</item>
         <item name="android:layout_width">270dp</item>
         <item name="android:layout_height">74dp</item>
         <item name="android:textSize">@dimen/t1</item>
         <item name="android:textFontWeight">300</item>
         <item name="android:backgroundTint">@color/left_menu_button_background_tint</item>
+    </style>
+    
+    <style name="FileItem">
+        <item name="android:layout_marginStart">10dp</item>
+        <item name="android:layout_centerVertical">true</item>
+        <item name="android:textFontWeight">400</item>
+        <item name="android:textSize">12sp</item>
+
+    </style>
+
+    <style name="VideoTypeCheckBoxStyle">
+        <item name="android:textSize">@dimen/t2</item>
+        <item name="android:textFontWeight">300</item>
+        <item name="android:textColor">#FF646477</item>
+        <item name="android:paddingStart">8dp</item>
     </style>
 </resources>

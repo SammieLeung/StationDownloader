@@ -43,7 +43,7 @@
 
             <Button
                 android:id="@+id/addUriBtn"
-                style="@style/leftMenuButton"
+                style="@style/LeftMenuButton"
                 android:layout_marginTop="68dp"
                 android:backgroundTint="@color/left_menu_add_button_background_tint"
                 android:text="@string/add_uri"
@@ -52,17 +52,17 @@
 
             <TextView
                 android:id="@+id/downloadingTaskItem"
-                style="@style/leftMenuButton"
+                style="@style/LeftMenuButton"
                 android:text="@string/menu_downloading" />
 
             <TextView
                 android:id="@+id/downloadedTaskItem"
-                style="@style/leftMenuButton"
+                style="@style/LeftMenuButton"
                 android:text="@string/menu_downloaded" />
 
             <TextView
                 android:id="@+id/settingItem"
-                style="@style/leftMenuButton"
+                style="@style/LeftMenuButton"
                 android:text="@string/menu_setting" />
 
 

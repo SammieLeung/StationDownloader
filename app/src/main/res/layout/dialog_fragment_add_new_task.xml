@@ -23,9 +23,9 @@
         android:theme="@style/AppTheme.Dialog">
 
         <RelativeLayout
-            android:layout_width="1040dp"
+            android:background="@drawable/station_dialog_background"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:background="#FF1A232C"
             android:paddingHorizontal="45dp"
             android:paddingTop="30dp"
             android:paddingBottom="45dp">
@@ -64,12 +64,14 @@
                     android:layout_height="wrap_content">
 
                     <CheckBox
+                        style="@style/VideoTypeCheckBoxStyle"
                         android:id="@+id/videoCBox"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="@string/filter_video" />
 
                     <CheckBox
+                        style="@style/VideoTypeCheckBoxStyle"
                         android:layout_marginStart="22dp"
                         android:id="@+id/audioCBox"
                         android:layout_width="wrap_content"
@@ -77,6 +79,7 @@
                         android:text="@string/filter_audio" />
 
                     <CheckBox
+                        style="@style/VideoTypeCheckBoxStyle"
                         android:layout_marginStart="22dp"
                         android:id="@+id/pictureCBox"
                         android:layout_width="wrap_content"
@@ -84,6 +87,7 @@
                         android:text="@string/filter_image" />
 
                     <CheckBox
+                        style="@style/VideoTypeCheckBoxStyle"
                         android:layout_marginStart="22dp"
                         android:id="@+id/otherCBox"
                         android:layout_width="wrap_content"
