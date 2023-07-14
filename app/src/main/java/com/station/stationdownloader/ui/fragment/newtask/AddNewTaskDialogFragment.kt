@@ -4,21 +4,25 @@ import android.content.DialogInterface
 import android.os.Bundle
 import android.view.View
 import android.widget.CheckBox
-import android.widget.Spinner
+import android.widget.CompoundButton
 import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.lifecycleScope
-import com.station.stationdownloader.R
+import com.station.stationdownloader.data.source.local.model.TreeNode
 import com.station.stationdownloader.databinding.DialogFragmentAddNewTaskBinding
 import com.station.stationdownloader.ui.base.BaseDialogFragment
 import com.station.stationdownloader.ui.viewmodel.DialogAction
 import com.station.stationdownloader.ui.viewmodel.MainViewModel
 import com.station.stationdownloader.ui.viewmodel.NewTaskState
-import com.station.stationdownloader.ui.viewmodel.UiAction
+import com.station.stationdownloader.utils.DLogger
 import com.station.stationtheme.spinner.StationSpinnerAdapter
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.filter
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 
-class AddNewTaskDialogFragment : BaseDialogFragment<DialogFragmentAddNewTaskBinding>() {
+class AddNewTaskDialogFragment : BaseDialogFragment<DialogFragmentAddNewTaskBinding>(), DLogger {
     val vm: MainViewModel by activityViewModels<MainViewModel>()
     val taskFileListAdapter: TreeNodeAdapter = TreeNodeAdapter()
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
@@ -54,24 +58,41 @@ class AddNewTaskDialogFragment : BaseDialogFragment<DialogFragmentAddNewTaskBind
         }
 
         downloadBtn.setOnClickListener {
-            vm.accept(UiAction.StartTask)
+//            vm.accept(UiAction.StartDownloadTask(vm.))
         }
 
-        bindCheckBox(videoCBox, MainViewModel.VIDEO_FILE, dialogAccept)
-        bindCheckBox(audioCBox, MainViewModel.AUDIO_FILE, dialogAccept)
-        bindCheckBox(pictureCBox, MainViewModel.PICTURE_FILE, dialogAccept)
-        bindCheckBox(otherCBox, MainViewModel.OTHER_FILE, dialogAccept)
+
 
 
         lifecycleScope.launch {
             newTaskState.collect {
                 if (it is NewTaskState.PreparingData) {
-                    taskName = it.name
-                    downloadPath = it.downloadPath
-                    engineSpinner.setSelection(it.engine.ordinal)
-                    taskFileListAdapter.fillData(it.fileTree)
+                    val data = it.task
+                    taskName = data._name
+                    downloadPath = data._downloadPath
+                    engineSpinner.setSelection(data._downloadEngine.ordinal)
+                    taskFileListAdapter.fillData(data._fileTree as TreeNode.Root)
+                    videoCBox.isChecked = it.selectVideo
+                    audioCBox.isChecked = it.selectAudio
+                    otherCBox.isChecked = it.selectOther
+                    pictureCBox.isChecked = it.selectImage
+
+                    bindCheckBox(videoCBox, MainViewModel.VIDEO_FILE, dialogAccept)
+                    bindCheckBox(audioCBox, MainViewModel.AUDIO_FILE, dialogAccept)
+                    bindCheckBox(pictureCBox, MainViewModel.PICTURE_FILE, dialogAccept)
+                    bindCheckBox(otherCBox, MainViewModel.OTHER_FILE, dialogAccept)
                 }
             }
+        }
+
+        lifecycleScope.launch {
+            newTaskState.filter { it is NewTaskState.PreparingData }.map { (it as NewTaskState.PreparingData).selectVideo }.distinctUntilChanged().collect{
+                logger("selectVideo $it")
+                vm.updateVideo()
+            }
+        }
+
+        lifecycleScope.launch {
         }
     }
 
@@ -82,6 +103,8 @@ class AddNewTaskDialogFragment : BaseDialogFragment<DialogFragmentAddNewTaskBind
         dialogAccept: (DialogAction) -> Unit
     ) {
         checkBox.setOnCheckedChangeListener { buttonView, isChecked ->
+            logger("p0 ${buttonView?.isChecked}")
+            logger("p1 $isChecked")
             if (isChecked) {
                 dialogAccept(DialogAction.CheckAll(fileType))
             } else {
@@ -93,6 +116,10 @@ class AddNewTaskDialogFragment : BaseDialogFragment<DialogFragmentAddNewTaskBind
     override fun onDismiss(dialog: DialogInterface) {
         super.onDismiss(dialog)
         vm.dialogAccept(DialogAction.ResetTaskSettingDialogState)
+    }
+
+    override fun DLogger.tag(): String {
+        return "AddNewTaskDialogFragment"
     }
 }
 

@@ -174,7 +174,7 @@ sealed class TreeNode(
         deep = -1
     )
 
-    protected abstract fun autoSelect(select: Boolean)
+    abstract fun autoSelect(select: Boolean)
 
     abstract fun toggle()
 
@@ -186,4 +186,37 @@ sealed class TreeNode(
     enum class FolderCheckState {
         ALL, PART, NONE
     }
+}
+
+public fun TreeNode.Directory.getChildrenCount(): Int {
+    var count = 0;
+    _children?.forEach {
+        if (it is TreeNode.File)
+            count++
+        else if (it is TreeNode.Directory) {
+            count += it.getChildrenCount()
+            count++
+        }
+    }
+    return count
+}
+
+
+
+public fun TreeNode.Directory.findNodeByIndexRecursive(position: Int): TreeNode? {
+    var currentPos = position
+    for (child in children) {
+        if (currentPos == 0) {
+            return child
+        }
+        if (child is TreeNode.Directory) {
+            val childNode = child.findNodeByIndexRecursive(currentPos - 1)
+            if (childNode != null)
+                return childNode
+            currentPos -= child.getChildrenCount() + 1
+        } else if (child is TreeNode.File) {
+            currentPos--
+        }
+    }
+    return null
 }

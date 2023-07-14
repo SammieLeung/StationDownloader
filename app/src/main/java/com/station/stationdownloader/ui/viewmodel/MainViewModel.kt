@@ -142,12 +142,19 @@ class MainViewModel @Inject constructor(
     private fun updateNewTaskConfig(data: NewTaskConfigModel) {
         _newTaskState.update {
             NewTaskState.PreparingData(
-                name = data._name,
-                engine = DownloadEngine.XL,
-                downloadPath = data._downloadPath,
-                fileTree = data._fileTree as TreeNode.Root
+               task = data
             )
         }
+    }
+
+    fun updateVideo() {
+            _newTaskState.update {
+                if(it is NewTaskState.PreparingData){
+                    it.copy(selectVideo = true)
+                }else{
+                    it
+                }
+            }
     }
 
 
@@ -180,11 +187,7 @@ data class MainUiState(
 sealed class NewTaskState {
     object INIT : NewTaskState()
     data class PreparingData(
-        val name: String = "",
-        val engine: DownloadEngine = DownloadEngine.XL,
-        val downloadPath: String = "",
-        val sizeInfo:String="",
-        val fileTree: TreeNode.Root,
+        val task: NewTaskConfigModel,
         val selectVideo: Boolean = true,
         val selectAudio: Boolean = false,
         val selectImage: Boolean = false,
