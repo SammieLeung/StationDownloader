@@ -20,13 +20,13 @@
         android:background="@drawable/file_item_bg">
 
         <com.station.stationdownloader.view.ThreeStateCheckbox
+            style="@style/AppTheme.CheckBox.WithOutBackground"
             android:id="@+id/checkbox"
             android:layout_width="30dp"
             android:layout_height="30dp"
             android:layout_alignParentStart="true"
             android:layout_centerVertical="true"
             android:layout_marginEnd="17dp"
-            android:checked="@{node.checked}"
             android:duplicateParentState="true" />
 
         <ImageView
@@ -40,6 +40,8 @@
         <TextView
             android:id="@+id/fileName"
             style="@style/FileItem"
+            android:maxLines="3"
+            android:ellipsize="middle"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_toStartOf="@id/fileExt"

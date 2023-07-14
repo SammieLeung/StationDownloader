@@ -20,6 +20,7 @@
         android:background="@drawable/file_item_bg">
 
         <com.station.stationdownloader.view.ThreeStateCheckbox
+            style="@style/AppTheme.CheckBox.WithOutBackground"
             android:id="@+id/checkbox"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
@@ -37,25 +38,19 @@
             android:src="@mipmap/ic_folder" />
 
         <TextView
-            android:id="@+id/fileName"
+            android:id="@+id/folderName"
             style="@style/FileItem"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_centerVertical="true"
-            android:layout_toStartOf="@id/fileExt"
+            android:layout_toStartOf="@id/selectFileSize"
             android:layout_toEndOf="@id/icon"
             android:duplicateParentState="true"
             android:text="@{node.folderName}" />
 
-        <TextView
-            android:id="@+id/fileExt"
-            style="@style/FileItem"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_toStartOf="@id/fileSize" />
 
         <TextView
-            android:id="@+id/fileSize"
+            android:id="@+id/selectFileSize"
             style="@style/FileItem"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"

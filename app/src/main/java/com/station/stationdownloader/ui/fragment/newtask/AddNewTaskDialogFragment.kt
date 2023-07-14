@@ -4,7 +4,6 @@ import android.content.DialogInterface
 import android.os.Bundle
 import android.view.View
 import android.widget.CheckBox
-import android.widget.CompoundButton
 import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.lifecycleScope
 import com.station.stationdownloader.data.source.local.model.TreeNode
@@ -16,7 +15,6 @@ import com.station.stationdownloader.ui.viewmodel.NewTaskState
 import com.station.stationdownloader.utils.DLogger
 import com.station.stationtheme.spinner.StationSpinnerAdapter
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.map
@@ -24,7 +22,9 @@ import kotlinx.coroutines.launch
 
 class AddNewTaskDialogFragment : BaseDialogFragment<DialogFragmentAddNewTaskBinding>(), DLogger {
     val vm: MainViewModel by activityViewModels<MainViewModel>()
-    val taskFileListAdapter: TreeNodeAdapter = TreeNodeAdapter()
+    val taskFileListAdapter: TreeNodeAdapter by lazy {
+        TreeNodeAdapter()
+    }
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         mBinding.initRecyclerView()

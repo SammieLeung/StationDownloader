@@ -128,25 +128,25 @@ object TaskTools {
 //            "flv","ts"-> true
 //            else -> false
 //        }
-        return MimeTypeHelper.isVideo(fileName.substringAfter(".", ""))
+        return MimeTypeHelper.isVideo(fileName.substringAfter("."))
     }
 
     fun isAudioFile(fileName: String): Boolean {
-        return MimeTypeHelper.isAudio(fileName.substringAfter(".", ""))
+        return MimeTypeHelper.isAudio(fileName.substringAfter("."))
     }
 
 
     fun isImageFile(fileName: String): Boolean {
-        return MimeTypeHelper.isImage(fileName.substringAfter(".", ""))
+        return MimeTypeHelper.isImage(fileName.substringAfter("."))
     }
 
-    fun isCompress(fileName: String):Boolean{
-             return when (fileName.substringAfter('.', "")) {
+    fun isCompress(fileName: String): Boolean {
+        return when (fileName.substringAfter('.')) {
             "rar", "gz", "7z",
-            "zip", "tar","tgz" -> true
+            "zip", "tar", "tgz" -> true
 
-                 else -> false
-             }
+            else -> false
+        }
     }
 
 

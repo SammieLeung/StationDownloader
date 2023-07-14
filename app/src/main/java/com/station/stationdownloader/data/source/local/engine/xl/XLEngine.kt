@@ -320,7 +320,7 @@ class XLEngine internal constructor(
                 taskName = taskName,
                 downloadPath = downloadPath,
                 fileCount = fileCount,
-                fileTree = torrentInfo.getFileTree()
+                fileTree = torrentInfo.createFileTree()
             )
         )
     }
@@ -401,7 +401,7 @@ class XLEngine internal constructor(
 
     private fun String.urlType(): DownloadUrlType = TaskTools.getUrlType(this)
 
-    fun TorrentInfo.getFileTree(): TreeNode {
+    private fun TorrentInfo.createFileTree(): TreeNode {
         val root = TreeNode.Root
 
         for (fileInfo in mSubFileInfo) {

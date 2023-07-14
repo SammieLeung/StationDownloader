@@ -141,7 +141,7 @@ class ThreeStateCheckbox : AppCompatCheckBox {
         return drawableState
     }
 
-    fun setOnStateChangeListener(listener: OnStateChangeListener) {
+    fun setOnStateChangeListener(listener: OnStateChangeListener?) {
         this.onStateChangeListener = listener
     }
 

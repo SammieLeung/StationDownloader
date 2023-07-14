@@ -202,7 +202,6 @@ public fun TreeNode.Directory.getChildrenCount(): Int {
 }
 
 
-
 public fun TreeNode.Directory.findNodeByIndexRecursive(position: Int): TreeNode? {
     var currentPos = position
     for (child in children) {
@@ -219,4 +218,30 @@ public fun TreeNode.Directory.findNodeByIndexRecursive(position: Int): TreeNode?
         }
     }
     return null
+}
+
+public fun TreeNode.Directory.getChildAbsolutionPosition(treeNode: TreeNode): Int {
+    var currentPos = -1
+    for (idx in 0 until getChildrenCount()) {
+        val child = children[idx]
+        if (child == treeNode)
+            return idx
+        if (child is TreeNode.Directory) {
+            val childPos = child.getChildAbsolutionPosition(treeNode)
+            if (childPos != -1) {
+                return idx + childPos + 1
+            } else {
+                currentPos += child.getChildrenCount() + 1
+            }
+        }
+    }
+    return currentPos
+}
+
+public fun TreeNode.getParenPosition(pos: Int): Int {
+    if (_parent != null) {
+        if (_parent._children != null)
+            return pos - _parent._children.indexOf(this) - 1
+    }
+    return -1
 }
