@@ -26,7 +26,6 @@ class DirectoryViewHolder(
     }
 
     fun bind(treeNode: TreeNode.Directory, position: Int) {
-
         binding.node = treeNode
         addIndent(treeNode.deep)
         checkBox.setOnStateChangeListener(null)
@@ -55,8 +54,6 @@ class DirectoryViewHolder(
                 }
             }
         })
-
-
     }
 
     private fun addIndent(deep: Int) {

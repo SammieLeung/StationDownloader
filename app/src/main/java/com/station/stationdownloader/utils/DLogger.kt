@@ -4,7 +4,7 @@ import android.util.Log
 
 interface DLogger {
     fun logger(message: String) {
-        Log.d(tag(), "[${tag()}]>>$message<<")
+        Log.w(tag(), "[${tag()}]>>$message<<")
     }
 
     fun takeTime(t:Long){

@@ -5,7 +5,7 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.orhanobut.logger.Logger
-import com.station.stationdownloader.DownloadEngine
+import com.station.stationdownloader.FileType
 import com.station.stationdownloader.data.IResult
 import com.station.stationdownloader.data.source.IConfigurationRepository
 import com.station.stationdownloader.data.source.IEngineRepository
@@ -13,7 +13,8 @@ import com.station.stationdownloader.data.source.ITorrentInfoRepository
 import com.station.stationdownloader.data.source.local.engine.NewTaskConfigModel
 import com.station.stationdownloader.data.source.local.model.StationDownloadTask
 import com.station.stationdownloader.data.source.local.model.TreeNode
-import com.station.stationdownloader.utils.TaskTools
+import com.station.stationdownloader.data.source.local.model.filterFile
+import com.station.stationdownloader.utils.DLogger
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -30,7 +31,7 @@ import javax.inject.Inject
 class MainViewModel @Inject constructor(
     val application: Application,
     val stateHandle: SavedStateHandle,
-) : ViewModel() {
+) : ViewModel(),DLogger {
     @Inject
     lateinit var engineRepo: IEngineRepository
 
@@ -97,22 +98,40 @@ class MainViewModel @Inject constructor(
 
     private fun initAddUriDialogAcceptAction(): (DialogAction) -> Unit {
         val actionStateFlow: MutableSharedFlow<DialogAction> = MutableSharedFlow()
-        val resetAddUriState =
+        val actionResetAddUriState =
             actionStateFlow.filterIsInstance<DialogAction.ResetAddUriDialogState>()
-        val resetTaskSettingState =
+        val actionResetTaskSettingState =
             actionStateFlow.filterIsInstance<DialogAction.ResetTaskSettingDialogState>()
+        val actionCheckStateFlow = actionStateFlow.filterIsInstance<DialogAction.CheckState>()
 
         viewModelScope.launch {
-            resetAddUriState.collect {
+            actionResetAddUriState.collect {
                 _addUriState.value = AddUriUiState.INIT
             }
         }
 
         viewModelScope.launch {
-            resetTaskSettingState.collect {
+            actionResetTaskSettingState.collect {
                 _newTaskState.value = NewTaskState.INIT
             }
         }
+
+        viewModelScope.launch {
+            actionCheckStateFlow.collect {
+                logger("actionCheckStateFlow collect")
+                val filterType = it.fileType
+                if(_newTaskState.value is NewTaskState.PreparingData){
+                    _newTaskState.update { it ->
+                        val oldData=it as NewTaskState.PreparingData
+                        if (oldData.task._fileTree is TreeNode.Directory)
+                            oldData.task._fileTree.filterFile(filterType, true)
+                        oldData.copy()
+                    }
+                }
+
+            }
+        }
+
 
         return { dialogAction ->
             viewModelScope.launch {
@@ -142,41 +161,36 @@ class MainViewModel @Inject constructor(
     private fun updateNewTaskConfig(data: NewTaskConfigModel) {
         _newTaskState.update {
             NewTaskState.PreparingData(
-               task = data
+                task = data
             )
         }
     }
 
     fun updateVideo() {
-            _newTaskState.update {
-                if(it is NewTaskState.PreparingData){
-                    it.copy(selectVideo = true)
-                }else{
-                    it
-                }
+        _newTaskState.update {
+            if (it is NewTaskState.PreparingData) {
+                it.copy(fileFilterGroup = it.fileFilterGroup.copy(selectVideo = true))
+            } else {
+                it
             }
+        }
     }
 
-
-    companion object {
-        const val VIDEO_FILE = 1
-        const val AUDIO_FILE = 2
-        const val PICTURE_FILE = 3
-        const val OTHER_FILE = 4
+    override fun DLogger.tag(): String {
+        return MainViewModel::class.java.simpleName
     }
 }
 
 sealed class UiAction {
     data class InitTask(val url: String) : UiAction()
-    data class StartDownloadTask(val task:NewTaskConfigModel):UiAction()
+    data class StartDownloadTask(val task: NewTaskConfigModel) : UiAction()
 }
 
 sealed class DialogAction {
     object ResetAddUriDialogState : DialogAction()
     object ResetTaskSettingDialogState : DialogAction()
 
-    data class CheckAll(val fileType: Int) : DialogAction()
-    data class UnCheckAll(val fileType: Int) : DialogAction()
+    data class CheckState(val fileType: FileType, val isSelect: Boolean) : DialogAction()
 
 }
 
@@ -188,14 +202,18 @@ sealed class NewTaskState {
     object INIT : NewTaskState()
     data class PreparingData(
         val task: NewTaskConfigModel,
-        val selectVideo: Boolean = true,
-        val selectAudio: Boolean = false,
-        val selectImage: Boolean = false,
-        val selectOther: Boolean = false,
+        val fileFilterGroup: fileFilterGroup = fileFilterGroup()
     ) : NewTaskState()
 
     object LOADING : AddUriUiState<Nothing>()
 }
+
+data class fileFilterGroup(
+    val selectVideo: Boolean = true,
+    val selectAudio: Boolean = false,
+    val selectImage: Boolean = false,
+    val selectOther: Boolean = false,
+)
 
 
 sealed class AddUriUiState<out T> {

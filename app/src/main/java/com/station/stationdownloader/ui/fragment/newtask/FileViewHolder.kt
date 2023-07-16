@@ -22,8 +22,8 @@ class FileViewHolder(val binding: FileItemBinding) :
     }
 
     fun bind(treeNode: TreeNode.File, position: Int) {
-        binding.root.setOnFocusChangeListener(null)
-        binding.checkbox.setOnStateChangeListener(null)
+        binding.root.onFocusChangeListener = null
+        binding.checkbox.setOnStateChangeListener(listener = null)
         binding.node = treeNode
         binding.checkbox.setState(treeNode.isChecked)
         addIndent(treeNode.deep)
@@ -36,14 +36,12 @@ class FileViewHolder(val binding: FileItemBinding) :
                 checkbox: ThreeStateCheckbox,
                 newState: Boolean?
             ) {
-
                 if(newState!=null){
                     checkbox.post {
                         treeNode.autoSelect(newState)
                         notifyParent(treeNode,position)
                     }
                 }
-
 //                logger("${treeNode.fileName} $newState")
             }
         })

@@ -1,5 +1,6 @@
 package com.station.stationdownloader.data.source.local.model
 
+import com.station.stationdownloader.FileType
 import com.station.stationdownloader.utils.TaskTools
 
 sealed class TreeNode(
@@ -27,7 +28,7 @@ sealed class TreeNode(
         }
 
         override fun autoSelect(select: Boolean) {
-            if(isChecked!=select) {
+            if (isChecked != select) {
                 isChecked = select
                 parent.notifyChange(this)
             }
@@ -246,4 +247,44 @@ public fun TreeNode.getParenPosition(pos: Int): Int {
             return pos - _parent._children.indexOf(this) - 1
     }
     return -1
+}
+
+public fun TreeNode.Directory.filterFile(fileType: FileType, isSelect: Boolean) {
+
+    children.forEach {
+        when (it) {
+            is TreeNode.Directory -> {
+                it.filterFile(fileType, isSelect)
+            }
+
+            is TreeNode.File -> {
+                when (fileType) {
+                    FileType.VIDEO -> {
+                        if (it.isVideo()) {
+                            it.autoSelect(isSelect)
+                        }
+                    }
+
+                    FileType.AUDIO -> {
+                        if (it.isAudio()) {
+                            it.autoSelect(isSelect)
+                        }
+                    }
+
+                    FileType.IMG -> {
+                        if (it.isImage()) {
+                            it.autoSelect(isSelect)
+                        }
+                    }
+
+                    FileType.OTHER -> {
+                        if (!(it.isAudio() || it.isVideo() || it.isImage())) {
+                            it.autoSelect(isSelect)
+                        }
+                    }
+                }
+            }
+        }
+    }
+
 }
