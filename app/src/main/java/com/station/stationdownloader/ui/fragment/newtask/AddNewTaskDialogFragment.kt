@@ -1,9 +1,15 @@
 package com.station.stationdownloader.ui.fragment.newtask
 
 import android.content.DialogInterface
+import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
+import android.os.Environment
+import android.provider.DocumentsContract
 import android.view.View
 import android.widget.CheckBox
+import androidx.activity.result.ActivityResultCallback
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.lifecycleScope
 import com.station.stationdownloader.FileType
@@ -20,27 +26,41 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
+import java.io.File
 
 class AddNewTaskDialogFragment : BaseDialogFragment<DialogFragmentAddNewTaskBinding>(), DLogger {
+
     private val vm: MainViewModel by activityViewModels<MainViewModel>()
+    private val openDocumentTree =
+        registerForActivityResult(ActivityResultContracts.OpenDocumentTree(),
+            ActivityResultCallback {
+                printCodeLine()
+            })
     private val taskFileListAdapter: TreeNodeAdapter by lazy {
         TreeNodeAdapter()
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-        mBinding.initRecyclerView()
-        mBinding.initSpinner()
-        mBinding.bindState(
-            vm.newTaskState,
-            vm.dialogAccept
-        )
+        logger("savedInstanceState ${savedInstanceState?.getString("ok")}")
+        if(savedInstanceState==null) {
+            mBinding.initRecyclerView()
+            mBinding.initSpinner()
+            mBinding.bindState(
+                vm.newTaskState,
+                vm.dialogAccept
+            )
+        }
     }
+
+        override fun onSaveInstanceState(outState: Bundle) {
+            super.onSaveInstanceState(outState)
+        }
 
     private fun DialogFragmentAddNewTaskBinding.initRecyclerView() {
         taskFileList.adapter = taskFileListAdapter
         //动画时间设置为0，因为动画可能会导致项目闪烁
-        taskFileList.itemAnimator?.changeDuration=0
+        taskFileList.itemAnimator?.changeDuration = 0
     }
 
     private fun DialogFragmentAddNewTaskBinding.initSpinner() {
@@ -62,28 +82,31 @@ class AddNewTaskDialogFragment : BaseDialogFragment<DialogFragmentAddNewTaskBind
         }
 
         downloadBtn.setOnClickListener {
-//            vm.accept(UiAction.StartDownloadTask(vm.))
+        }
+
+        filePickerBtn.setOnClickListener {
+            openDocumentTree.launch(null)
         }
 
 
         val newTaskConfigFlow = newTaskState
             .filter {
-            it is NewTaskState.PreparingData
-        }.map {
-            (it as NewTaskState.PreparingData)
-        }.distinctUntilChanged()
+                it is NewTaskState.PreparingData
+            }.map {
+                (it as NewTaskState.PreparingData)
+            }.distinctUntilChanged()
 
         val fileFilterGroupFlow = newTaskState.filter { it is NewTaskState.PreparingData }.map {
             (it as NewTaskState.PreparingData).fileFilterGroup
         }.distinctUntilChanged()
         lifecycleScope.launch {
-            newTaskState.collect{
+            newTaskState.collect {
                 logger("newTaskState collect")
             }
         }
         lifecycleScope.launch {
             newTaskConfigFlow.collect {
-                val task=it.task
+                val task = it.task
 
                 logger("newTaskConfigFlow collect ${task._fileTree.toString()}")
                 taskName = task._name
@@ -135,6 +158,8 @@ class AddNewTaskDialogFragment : BaseDialogFragment<DialogFragmentAddNewTaskBind
     override fun DLogger.tag(): String {
         return "AddNewTaskDialogFragment"
     }
+
+
 }
 
 

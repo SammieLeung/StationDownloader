@@ -32,6 +32,7 @@ import com.station.stationdownloader.ui.fragment.newtask.AddNewTaskDialogFragmen
 import com.station.stationdownloader.ui.fragment.AddUriDialogFragment
 import com.station.stationdownloader.ui.viewmodel.MainViewModel
 import com.station.stationdownloader.ui.viewmodel.NewTaskState
+import com.station.stationdownloader.utils.DLogger
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -42,7 +43,7 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @AndroidEntryPoint
-class MainActivity : BaseActivity<ActivityMainBinding>() {
+class MainActivity : BaseActivity<ActivityMainBinding>(), DLogger {
 
     val vm: MainViewModel by viewModels<MainViewModel>()
     var toast: Toast? = null
@@ -72,8 +73,18 @@ class MainActivity : BaseActivity<ActivityMainBinding>() {
                 launch {
                     vm.newTaskState.map { it is NewTaskState.PreparingData }.distinctUntilChanged()
                         .collectLatest {
-                            if (it)
-                                AddNewTaskDialogFragment().show(supportFragmentManager, "")
+                            if (it) {
+                                if (supportFragmentManager.findFragmentByTag(
+                                        AddNewTaskDialogFragment::class.java.simpleName
+                                    )?.isVisible == true
+                                ) {
+                                    return@collectLatest
+                                }
+                                AddNewTaskDialogFragment().show(
+                                    supportFragmentManager,
+                                    AddNewTaskDialogFragment::class.java.simpleName
+                                )
+                            }
                         }
 
                 }
@@ -173,5 +184,9 @@ class MainActivity : BaseActivity<ActivityMainBinding>() {
 
     companion object {
         const val ACTION_FILE_PICKER = "com.firefly.FILE_PICKER"
+    }
+
+    override fun DLogger.tag(): String {
+        return MainActivity.javaClass.simpleName
     }
 }

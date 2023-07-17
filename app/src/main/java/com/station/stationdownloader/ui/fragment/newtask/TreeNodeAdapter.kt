@@ -60,9 +60,10 @@ class TreeNodeAdapter() : RecyclerView.Adapter<RecyclerView.ViewHolder>(), DLogg
         const val TREE_NODE_INDENT = 30
     }
 }
-
+const val print:Boolean=false
 fun printFileTree(treeNode: TreeNode, indent: String = "", tag: String = "treeNode") {
-
+    if(!print)
+        return
     val prefix = if (treeNode is TreeNode.Directory) {
         val dir = treeNode
         when (dir.checkState) {
