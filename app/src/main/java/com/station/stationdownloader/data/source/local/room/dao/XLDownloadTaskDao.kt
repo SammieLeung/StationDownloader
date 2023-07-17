@@ -16,6 +16,8 @@ import kotlinx.coroutines.flow.Flow
 interface XLDownloadTaskDao {
     @Query("SELECT * FROM xl_download_task")
     suspend fun getTasks(): List<XLDownloadTaskEntity>
+    @Query("SELECT * FROM xl_download_task WHERE url=:url")
+    suspend fun getTaskByUrl(url:String):XLDownloadTaskEntity?
     @Query("SELECT * FROM xl_download_task")
     fun observeTasksStream(): Flow<List<XLDownloadTaskEntity>>
     @Insert(onConflict = OnConflictStrategy.IGNORE)

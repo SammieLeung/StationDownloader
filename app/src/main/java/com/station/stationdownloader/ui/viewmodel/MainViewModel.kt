@@ -6,8 +6,11 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.orhanobut.logger.Logger
 import com.station.stationdownloader.FileType
+import com.station.stationdownloader.contants.TaskExecuteError
+import com.station.stationdownloader.contants.UNKNOWN_ERROR
 import com.station.stationdownloader.data.IResult
 import com.station.stationdownloader.data.source.IConfigurationRepository
+import com.station.stationdownloader.data.source.IDownloadTaskRepository
 import com.station.stationdownloader.data.source.IEngineRepository
 import com.station.stationdownloader.data.source.ITorrentInfoRepository
 import com.station.stationdownloader.data.source.local.engine.NewTaskConfigModel
@@ -20,7 +23,6 @@ import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flow
@@ -35,6 +37,9 @@ class MainViewModel @Inject constructor(
 ) : ViewModel(), DLogger {
     @Inject
     lateinit var engineRepo: IEngineRepository
+
+    @Inject
+    lateinit var taskRepo: IDownloadTaskRepository
 
     @Inject
     lateinit var configRepo: IConfigurationRepository
@@ -64,6 +69,7 @@ class MainViewModel @Inject constructor(
     private fun initAcceptAction(): (UiAction) -> Unit {
         val actionStateFlow: MutableSharedFlow<UiAction> = MutableSharedFlow()
         val initTask = actionStateFlow.filterIsInstance<UiAction.InitTask>()
+        val startTask = actionStateFlow.filterIsInstance<UiAction.StartDownloadTask>()
 
         viewModelScope.launch {
             initTask.flatMapLatest {
@@ -87,6 +93,34 @@ class MainViewModel @Inject constructor(
             }
         }
 
+        viewModelScope.launch {
+            startTask.flatMapLatest {
+                flow {
+                    val newTask = it.task
+                    when (newTask) {
+                        is NewTaskConfigModel.NormalTask -> {
+                            val existsTask = taskRepo.getTaskByUrl(newTask.originUrl)
+
+                        }
+
+                        is NewTaskConfigModel.TorrentTask -> {
+                            val existsTask = taskRepo.getTaskByUrl(newTask.torrentPath)
+                            if (existsTask != null) {
+                                emit(
+                                    IResult.Error(
+                                        Exception(TaskExecuteError.TORRENT_TASK_EXISTS.name),
+                                        TaskExecuteError.TORRENT_TASK_EXISTS.ordinal
+                                    )
+                                )
+                            }else{
+                                taskRepo.insertTask(newTask)
+                            }
+                        }
+                    }
+                    emit("")
+                }
+            }
+        }
 
 
         return { action ->
@@ -105,7 +139,7 @@ class MainViewModel @Inject constructor(
             actionStateFlow.filterIsInstance<DialogAction.ResetTaskSettingDialogState>()
         val initCheckStateFlow = actionStateFlow.filterIsInstance<DialogAction.CheckState>()
 
-        val setDownloadPath=actionStateFlow.filterIsInstance<DialogAction.SetDownloadPath>()
+        val setDownloadPath = actionStateFlow.filterIsInstance<DialogAction.SetDownloadPath>()
 
         viewModelScope.launch {
             initAddUriState.collect {
@@ -128,13 +162,13 @@ class MainViewModel @Inject constructor(
                         if (it.task._fileTree is TreeNode.Directory) {
                             it.task._fileTree.filterFile(checkState.fileType, checkState.isSelect)
                         }
-                        val filterGroup=when(checkState.fileType){
+                        val filterGroup = when (checkState.fileType) {
                             FileType.VIDEO -> it.fileFilterGroup.copy(selectVideo = checkState.isSelect)
-                            FileType.AUDIO ->  it.fileFilterGroup.copy(selectAudio = checkState.isSelect)
-                            FileType.IMG ->  it.fileFilterGroup.copy(selectImage = checkState.isSelect)
-                            FileType.OTHER ->  it.fileFilterGroup.copy(selectOther = checkState.isSelect)
+                            FileType.AUDIO -> it.fileFilterGroup.copy(selectAudio = checkState.isSelect)
+                            FileType.IMG -> it.fileFilterGroup.copy(selectImage = checkState.isSelect)
+                            FileType.OTHER -> it.fileFilterGroup.copy(selectOther = checkState.isSelect)
                         }
-                        it.copy(it.task,filterGroup )
+                        it.copy(it.task, filterGroup)
                     } else {
                         it
                     }
@@ -146,9 +180,8 @@ class MainViewModel @Inject constructor(
 
 
         viewModelScope.launch {
-            setDownloadPath.collect{
-                setDownloadPath->
-                if(_newTaskState.value is NewTaskState.PreparingData){
+            setDownloadPath.collect { setDownloadPath ->
+                if (_newTaskState.value is NewTaskState.PreparingData) {
                     _newTaskState.update {
                         (it as NewTaskState.PreparingData).copy(
                             task = it.task.update(
@@ -193,16 +226,6 @@ class MainViewModel @Inject constructor(
         }
     }
 
-    fun updateVideo() {
-        _newTaskState.update {
-            if (it is NewTaskState.PreparingData) {
-                it.copy(fileFilterGroup = it.fileFilterGroup.copy(selectVideo = true))
-            } else {
-                it
-            }
-        }
-    }
-
     override fun DLogger.tag(): String {
         return MainViewModel::class.java.simpleName
     }
@@ -218,7 +241,7 @@ sealed class DialogAction {
     object ResetTaskSettingDialogState : DialogAction()
 
     data class CheckState(val fileType: FileType, val isSelect: Boolean) : DialogAction()
-    data class SetDownloadPath(val downloadPath: String):DialogAction()
+    data class SetDownloadPath(val downloadPath: String) : DialogAction()
 
 }
 

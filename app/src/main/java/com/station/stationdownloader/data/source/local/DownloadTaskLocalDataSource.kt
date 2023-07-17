@@ -35,4 +35,8 @@ class DownloadTaskLocalDataSource internal constructor(
     override suspend fun insertTask(task: XLDownloadTaskEntity): Long {
         return downloadTaskDao.insertTask(task)
     }
+
+    override suspend fun getTaskByUrl(url: String): XLDownloadTaskEntity? {
+        return downloadTaskDao.getTaskByUrl(url)
+    }
 }

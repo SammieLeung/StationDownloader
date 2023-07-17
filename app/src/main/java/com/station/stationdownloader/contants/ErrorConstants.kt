@@ -18,6 +18,7 @@ enum class TaskExecuteError {
     START_TASK_URL_TYPE_ERROR,
     START_TASK_FAILED,
     TORRENT_INFO_IS_NULL,
+    TORRENT_TASK_EXISTS
 
 }
 

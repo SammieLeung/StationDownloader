@@ -12,7 +12,8 @@ import kotlinx.coroutines.flow.Flow
  */
 class DefaultDownloadTaskRepository(
     private val localDataSource: IDownloadTaskDataSource,
-) : IDownloadTaskRepository {
+
+    ) : IDownloadTaskRepository {
     override suspend fun getTasks(): List<XLDownloadTaskEntity> {
         return when (val result = localDataSource.getTasks()) {
             is IResult.Success -> {
@@ -25,6 +26,10 @@ class DefaultDownloadTaskRepository(
             }
         }
 
+    }
+
+    override suspend fun getTaskByUrl(url: String): XLDownloadTaskEntity? {
+      return  localDataSource.getTaskByUrl(url)
     }
 
     override fun getTasksStream(): Flow<IResult<List<XLDownloadTaskEntity>>> {

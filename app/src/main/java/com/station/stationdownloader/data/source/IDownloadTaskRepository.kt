@@ -10,6 +10,7 @@ import kotlinx.coroutines.flow.Flow
  */
 interface IDownloadTaskRepository {
     suspend fun getTasks():List<XLDownloadTaskEntity>
+    suspend fun getTaskByUrl(url:String):XLDownloadTaskEntity?
     fun getTasksStream(): Flow<IResult<List<XLDownloadTaskEntity>>>
     suspend fun insertTask(task: XLDownloadTaskEntity):Long
 }

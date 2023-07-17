@@ -2,6 +2,7 @@ package com.station.stationdownloader.data.source.local.engine
 
 import com.station.stationdownloader.DownloadEngine
 import com.station.stationdownloader.data.source.local.model.TreeNode
+import com.station.stationdownloader.data.source.local.room.entities.XLDownloadTaskEntity
 
 sealed class NewTaskConfigModel(
     val _name: String,
@@ -63,4 +64,19 @@ sealed class NewTaskConfigModel(
         }
     }
 
+
+
+}
+
+fun NewTaskConfigModel.asXLDownloadTaskEntity():XLDownloadTaskEntity{
+    when(this){
+        is NewTaskConfigModel.NormalTask -> {
+            XLDownloadTaskEntity(id=0,url=this.originUrl,name=this.taskName)
+            //TODO asXLDownloadTaskEntity
+        }
+        is NewTaskConfigModel.TorrentTask -> {
+
+
+        }
+    }
 }
