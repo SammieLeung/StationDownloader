@@ -200,6 +200,7 @@ sealed class DialogAction {
     object ResetTaskSettingDialogState : DialogAction()
 
     data class CheckState(val fileType: FileType, val isSelect: Boolean) : DialogAction()
+    data class DownloadPath(val downloadPath: String):DialogAction()
 
 }
 

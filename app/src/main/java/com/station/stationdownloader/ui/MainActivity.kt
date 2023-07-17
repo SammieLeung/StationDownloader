@@ -2,12 +2,10 @@ package com.station.stationdownloader.ui
 
 import android.app.Activity
 import android.content.Context
-import android.content.Intent
 import android.os.Bundle
 import android.view.View
 import android.view.View.OnFocusChangeListener
 import android.widget.Toast
-import androidx.activity.result.contract.ActivityResultContract
 import androidx.activity.viewModels
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
@@ -18,18 +16,14 @@ import com.orhanobut.logger.Logger
 import com.station.stationdownloader.DownloadEngine
 import com.station.stationdownloader.DownloadUrlType
 import com.station.stationdownloader.R
-import com.station.stationdownloader.contants.EXTRA_CONFIRM_DIALOG
-import com.station.stationdownloader.contants.EXTRA_SELECT_TYPE
-import com.station.stationdownloader.contants.EXTRA_SUPPORT_NET
-import com.station.stationdownloader.contants.EXTRA_TITLE
-import com.station.stationdownloader.contants.SelectType
 import com.station.stationdownloader.data.source.IEngineRepository
 import com.station.stationdownloader.databinding.ActivityMainBinding
 import com.station.stationdownloader.navgator.AppNavigator
 import com.station.stationdownloader.navgator.Destination
 import com.station.stationdownloader.ui.base.BaseActivity
-import com.station.stationdownloader.ui.fragment.newtask.AddNewTaskDialogFragment
+import com.station.stationdownloader.ui.contract.SelectFileActivityResultContract
 import com.station.stationdownloader.ui.fragment.AddUriDialogFragment
+import com.station.stationdownloader.ui.fragment.newtask.AddNewTaskDialogFragment
 import com.station.stationdownloader.ui.viewmodel.MainViewModel
 import com.station.stationdownloader.ui.viewmodel.NewTaskState
 import com.station.stationdownloader.utils.DLogger
@@ -47,12 +41,8 @@ class MainActivity : BaseActivity<ActivityMainBinding>(), DLogger {
 
     val vm: MainViewModel by viewModels<MainViewModel>()
     var toast: Toast? = null
-    private val mFilePickerActivityResultContract = SelectFileActivityResultContract()
     private val mFilePickerActivityLauncher =
-        registerForActivityResult(mFilePickerActivityResultContract) {
-            if (it == Activity.RESULT_OK) {
-
-            }
+        registerForActivityResult(SelectFileActivityResultContract()) {
         }
 
 
@@ -164,29 +154,8 @@ class MainActivity : BaseActivity<ActivityMainBinding>(), DLogger {
         }
     }
 
-    inner class SelectFileActivityResultContract : ActivityResultContract<Unit?, Int>() {
-        override fun createIntent(context: Context, input: Unit?): Intent {
-            val intent = Intent(ACTION_FILE_PICKER)
-            intent.putExtra(EXTRA_SELECT_TYPE, SelectType.SELECT_TYPE_DEVICE.type)
-            intent.putExtra(EXTRA_SUPPORT_NET, false)
-            intent.putExtra(
-                EXTRA_TITLE,
-                resources.getString(R.string.title_select_device)
-            )
-            intent.putExtra(EXTRA_CONFIRM_DIALOG, false)
-            return intent
-        }
-
-        override fun parseResult(resultCode: Int, intent: Intent?): Int {
-            return resultCode
-        }
-    }
-
-    companion object {
-        const val ACTION_FILE_PICKER = "com.firefly.FILE_PICKER"
-    }
 
     override fun DLogger.tag(): String {
-        return MainActivity.javaClass.simpleName
+        return MainActivity::class.java.simpleName
     }
 }

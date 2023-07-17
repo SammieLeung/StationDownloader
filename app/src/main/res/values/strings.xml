@@ -16,5 +16,5 @@
   <string name="cancel_btn">取消</string>
 
   <string name="title_select_device">选择下载的设备</string>
-
+  <string name="title_select_download_path">选择下载目录</string>
 </resources>

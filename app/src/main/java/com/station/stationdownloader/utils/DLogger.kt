@@ -3,7 +3,7 @@ package com.station.stationdownloader.utils
 import android.util.Log
 
 interface DLogger {
-    fun logger(message: String) {
+    fun logger(message: Any?) {
         Log.w(tag(), "[${tag()}]>>$message<<")
     }
 
