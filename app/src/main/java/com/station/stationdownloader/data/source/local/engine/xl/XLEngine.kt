@@ -256,11 +256,13 @@ class XLEngine internal constructor(
                 if (fileContentHeader.content_length != -1L) {
                     val root = TreeNode.Directory.createRoot()
                     val file = TreeNode.File(
-                        0,
-                        taskName,
-                        taskName.ext(),
-                        fileContentHeader.content_length,
-                        true, root, 0
+                        fileIndex = 0,
+                        fileName = taskName,
+                        fileExt = taskName.ext(),
+                        fileSize = fileContentHeader.content_length,
+                        isChecked = true,
+                        parent = root,
+                        deep = 0
                     )
                     root.addChild(file)
                     return IResult.Success(normalTask.copy(fileTree = root))

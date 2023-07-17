@@ -3,14 +3,12 @@ package com.station.stationdownloader.ui.fragment.newtask
 import android.content.Context
 import android.content.DialogInterface
 import android.content.Intent
-import android.net.Uri
 import android.os.Bundle
 import android.provider.DocumentsContract
 import android.provider.MediaStore
 import android.util.Base64
 import android.view.View
 import android.widget.CheckBox
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.documentfile.provider.DocumentFile
 import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.lifecycleScope
@@ -63,7 +61,7 @@ class AddNewTaskDialogFragment : BaseDialogFragment<DialogFragmentAddNewTaskBind
         if (it != null) {
             val base64Id: String = it.pathSegments[1] //dir id
             val decodeData = String(Base64.decode(base64Id, Base64.DEFAULT))
-            vm.dialogAccept(DialogAction.DownloadPath(decodeData))
+            vm.dialogAccept(DialogAction.SetDownloadPath(decodeData))
         }
 
     }
@@ -179,8 +177,7 @@ class AddNewTaskDialogFragment : BaseDialogFragment<DialogFragmentAddNewTaskBind
     }
 
     private fun openFilePicker() {
-        openDocumentTree.launch(null)
-//        openStationPicker.launch(null)
+        openStationPicker.launch(null)
     }
 
     private fun unBindCheckBox(vararg checkBoxes: CheckBox) {

@@ -38,30 +38,30 @@ object MimeTypeHelper {
                         || it.value.startsWith("image/")
                         )
             }.map {
-                it.key.substringAfter(".")
+                it.key.substringAfterLast(".")
             }.forEach { otherList.add(it) }
         }
     }
 
     fun isVideo(ext: String): Boolean {
-        val data=ext.substringAfter(".")
+        val data=ext.substringAfterLast(".")
         val boo= videoMimeList.contains(data)
         return boo
     }
 
     fun isAudio(ext: String): Boolean {
-        return audioMimeList.contains(ext.substringAfter("."))
+        return audioMimeList.contains(ext.substringAfterLast("."))
     }
 
     fun isImage(ext: String): Boolean {
-        return imageMimeList.contains(ext.substringAfter("."))
+        return imageMimeList.contains(ext.substringAfterLast("."))
     }
 
     private fun filter(source: Map<String, String>, tag: String): List<String> {
         return source.filter {
             it.value.startsWith(tag)
         }.map {
-            it.key.substringAfter(".")
+            it.key.substringAfterLast(".")
         }
     }
 

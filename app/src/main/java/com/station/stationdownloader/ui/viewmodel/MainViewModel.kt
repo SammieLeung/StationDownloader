@@ -20,6 +20,7 @@ import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flow
@@ -98,26 +99,28 @@ class MainViewModel @Inject constructor(
 
     private fun initAddUriDialogAcceptAction(): (DialogAction) -> Unit {
         val actionStateFlow: MutableSharedFlow<DialogAction> = MutableSharedFlow()
-        val actionResetAddUriState =
+        val initAddUriState =
             actionStateFlow.filterIsInstance<DialogAction.ResetAddUriDialogState>()
-        val actionResetTaskSettingState =
+        val initTaskSettingState =
             actionStateFlow.filterIsInstance<DialogAction.ResetTaskSettingDialogState>()
-        val actionCheckStateFlow = actionStateFlow.filterIsInstance<DialogAction.CheckState>()
+        val initCheckStateFlow = actionStateFlow.filterIsInstance<DialogAction.CheckState>()
+
+        val setDownloadPath=actionStateFlow.filterIsInstance<DialogAction.SetDownloadPath>()
 
         viewModelScope.launch {
-            actionResetAddUriState.collect {
+            initAddUriState.collect {
                 _addUriState.value = AddUriUiState.INIT
             }
         }
 
         viewModelScope.launch {
-            actionResetTaskSettingState.collect {
+            initTaskSettingState.collect {
                 _newTaskState.value = NewTaskState.INIT
             }
         }
 
         viewModelScope.launch {
-            actionCheckStateFlow.collect { checkState ->
+            initCheckStateFlow.collect { checkState ->
                 logger("actionCheckStateFlow collect")
                 checkState.fileType
                 _newTaskState.update {
@@ -141,6 +144,21 @@ class MainViewModel @Inject constructor(
             }
         }
 
+
+        viewModelScope.launch {
+            setDownloadPath.collect{
+                setDownloadPath->
+                if(_newTaskState.value is NewTaskState.PreparingData){
+                    _newTaskState.update {
+                        (it as NewTaskState.PreparingData).copy(
+                            task = it.task.update(
+                                downloadPath = setDownloadPath.downloadPath
+                            )
+                        )
+                    }
+                }
+            }
+        }
 
         return { dialogAction ->
             viewModelScope.launch {
@@ -200,7 +218,7 @@ sealed class DialogAction {
     object ResetTaskSettingDialogState : DialogAction()
 
     data class CheckState(val fileType: FileType, val isSelect: Boolean) : DialogAction()
-    data class DownloadPath(val downloadPath: String):DialogAction()
+    data class SetDownloadPath(val downloadPath: String):DialogAction()
 
 }
 

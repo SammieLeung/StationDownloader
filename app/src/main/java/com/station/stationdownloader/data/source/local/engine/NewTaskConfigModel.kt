@@ -39,4 +39,28 @@ sealed class NewTaskConfigModel(
         _fileTree = fileTree
     )
 
+    fun update(
+        name: String = this._name,
+        downloadPath: String = this._downloadPath,
+        downloadEngine: DownloadEngine = this._downloadEngine,
+    ): NewTaskConfigModel {
+        return when (this) {
+            is NormalTask -> {
+                this.copy(
+                    taskName = name,
+                    downloadPath = downloadPath,
+                    engine = downloadEngine
+                )
+            }
+
+            is TorrentTask -> {
+                this.copy(
+                    taskName = name,
+                    downloadPath = downloadPath,
+                    engine = downloadEngine
+                )
+            }
+        }
+    }
+
 }
