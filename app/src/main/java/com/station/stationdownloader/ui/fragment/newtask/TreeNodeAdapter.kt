@@ -12,7 +12,7 @@ import com.station.stationdownloader.utils.DLogger
 import com.station.stationdownloader.utils.TaskTools
 
 class TreeNodeAdapter() : RecyclerView.Adapter<RecyclerView.ViewHolder>(), DLogger {
-    lateinit var root: TreeNode.Root
+    lateinit var root: TreeNode.Directory
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
         return if (viewType == R.layout.file_item) {
@@ -45,7 +45,7 @@ class TreeNodeAdapter() : RecyclerView.Adapter<RecyclerView.ViewHolder>(), DLogg
     }
 
 
-    fun fillData(root: TreeNode.Root) {
+    fun fillData(root: TreeNode.Directory) {
         this.root = root
         printFileTree(root)
         notifyDataSetChanged()

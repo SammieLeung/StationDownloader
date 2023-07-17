@@ -242,7 +242,7 @@ class XLEngine internal constructor(
             url = realUrl,
             taskName = taskName,
             downloadPath = downloadPath,
-            fileTree = TreeNode.Root
+            fileTree = TreeNode.Directory.createRoot()
         )
 
         if (realUrl.urlType() == DownloadUrlType.MAGNET) {
@@ -254,7 +254,7 @@ class XLEngine internal constructor(
             if (result is IResult.Success) {
                 val fileContentHeader = result.data
                 if (fileContentHeader.content_length != -1L) {
-                    val root = TreeNode.Root
+                    val root = TreeNode.Directory.createRoot()
                     val file = TreeNode.File(
                         0,
                         taskName,
@@ -272,7 +272,7 @@ class XLEngine internal constructor(
         if (result is IResult.Success) {
             return IResult.Success(normalTask.copy(fileTree = result.data))
         }
-        val root = TreeNode.Root
+        val root = TreeNode.Directory.createRoot()
         val file = TreeNode.File(
             0,
             taskName,
@@ -377,7 +377,7 @@ class XLEngine internal constructor(
             val taskInfo = XLTaskHelper.instance().getTaskInfo(taskId)
             if (taskInfo != null) {
                 if (taskInfo.mFileSize != 0L) {
-                    val root = TreeNode.Root
+                    val root = TreeNode.Directory.createRoot()
                     val file = TreeNode.File(
                         0, taskInfo.mFileName, taskInfo.mFileName.ext(),
                         taskInfo.mFileSize, true, root, 0
@@ -402,7 +402,7 @@ class XLEngine internal constructor(
     private fun String.urlType(): DownloadUrlType = TaskTools.getUrlType(this)
 
     private fun TorrentInfo.createFileTree(): TreeNode {
-        val root = TreeNode.Root
+        val root = TreeNode.Directory.createRoot()
 
         for (fileInfo in mSubFileInfo) {
             val filePath =

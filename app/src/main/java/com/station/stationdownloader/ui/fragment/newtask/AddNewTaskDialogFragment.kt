@@ -64,23 +64,30 @@ class AddNewTaskDialogFragment : BaseDialogFragment<DialogFragmentAddNewTaskBind
         }
 
 
-        val newTaskConfigFlow = newTaskState.filter {
+        val newTaskConfigFlow = newTaskState
+            .filter {
             it is NewTaskState.PreparingData
         }.map {
-            (it as NewTaskState.PreparingData).task
+            (it as NewTaskState.PreparingData)
         }.distinctUntilChanged()
 
         val fileFilterGroupFlow = newTaskState.filter { it is NewTaskState.PreparingData }.map {
             (it as NewTaskState.PreparingData).fileFilterGroup
         }.distinctUntilChanged()
-
+        lifecycleScope.launch {
+            newTaskState.collect{
+                logger("newTaskState collect")
+            }
+        }
         lifecycleScope.launch {
             newTaskConfigFlow.collect {
-                logger("newTaskConfigFlow collect")
-                taskName = it._name
-                downloadPath = it._downloadPath
-                engineSpinner.setSelection(it._downloadEngine.ordinal)
-                taskFileListAdapter.fillData(it._fileTree as TreeNode.Root)
+                val task=it.task
+
+                logger("newTaskConfigFlow collect ${task._fileTree.toString()}")
+                taskName = task._name
+                downloadPath = task._downloadPath
+                engineSpinner.setSelection(task._downloadEngine.ordinal)
+                taskFileListAdapter.fillData(task._fileTree as TreeNode.Directory)
             }
         }
 

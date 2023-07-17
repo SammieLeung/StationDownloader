@@ -31,7 +31,7 @@ import javax.inject.Inject
 class MainViewModel @Inject constructor(
     val application: Application,
     val stateHandle: SavedStateHandle,
-) : ViewModel(),DLogger {
+) : ViewModel(), DLogger {
     @Inject
     lateinit var engineRepo: IEngineRepository
 
@@ -117,17 +117,26 @@ class MainViewModel @Inject constructor(
         }
 
         viewModelScope.launch {
-            actionCheckStateFlow.collect {
+            actionCheckStateFlow.collect { checkState ->
                 logger("actionCheckStateFlow collect")
-                val filterType = it.fileType
-                if(_newTaskState.value is NewTaskState.PreparingData){
-                    _newTaskState.update { it ->
-                        val oldData=it as NewTaskState.PreparingData
-                        if (oldData.task._fileTree is TreeNode.Directory)
-                            oldData.task._fileTree.filterFile(filterType, true)
-                        oldData.copy()
+                checkState.fileType
+                _newTaskState.update {
+                    if (it is NewTaskState.PreparingData) {
+                        if (it.task._fileTree is TreeNode.Directory) {
+                            it.task._fileTree.filterFile(checkState.fileType, checkState.isSelect)
+                        }
+                        val filterGroup=when(checkState.fileType){
+                            FileType.VIDEO -> it.fileFilterGroup.copy(selectVideo = checkState.isSelect)
+                            FileType.AUDIO ->  it.fileFilterGroup.copy(selectAudio = checkState.isSelect)
+                            FileType.IMG ->  it.fileFilterGroup.copy(selectImage = checkState.isSelect)
+                            FileType.OTHER ->  it.fileFilterGroup.copy(selectOther = checkState.isSelect)
+                        }
+                        it.copy(it.task,filterGroup )
+                    } else {
+                        it
                     }
                 }
+
 
             }
         }

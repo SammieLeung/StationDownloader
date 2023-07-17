@@ -27,6 +27,10 @@ sealed class TreeNode(
             autoSelect(!isChecked)
         }
 
+        override fun isRoot(): Boolean {
+            return false
+        }
+
         override fun autoSelect(select: Boolean) {
             if (isChecked != select) {
                 isChecked = select
@@ -59,7 +63,7 @@ sealed class TreeNode(
         }
     }
 
-    open class Directory(
+    data class Directory(
         val folderName: String,
         var checkState: FolderCheckState = FolderCheckState.NONE,
         var totalCheckedFileSize: Long = 0,
@@ -150,6 +154,10 @@ sealed class TreeNode(
             }
         }
 
+        override fun isRoot(): Boolean {
+            return folderName == ROOT && _parent == null && _deep == -1
+        }
+
 
         override fun autoSelect(select: Boolean) {
             children.forEach {
@@ -169,25 +177,31 @@ sealed class TreeNode(
             return TaskTools.toHumanReading(totalCheckedFileSize)
         }
 
-    }
+        companion object {
+            fun createRoot(): Directory {
+                return Directory(
+                    folderName = ROOT,
+                    parent = null,
+                    deep = -1
+                )
+            }
+        }
 
-    object Root : Directory(
-        folderName = "root",
-        parent = null,
-        deep = -1
-    )
+    }
 
     abstract fun autoSelect(select: Boolean)
 
     abstract fun toggle()
 
 
-    fun isRoot(): Boolean {
-        return _parent == null && _deep == -1
-    }
+    abstract fun isRoot(): Boolean
 
     enum class FolderCheckState {
         ALL, PART, NONE
+    }
+
+    companion object {
+        private const val ROOT = "root"
     }
 }
 

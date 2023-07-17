@@ -94,7 +94,7 @@ class TorrentTest {
     }
 
     fun TorrentInfo.getFileTree(): TreeNode {
-        val root = TreeNode.Root
+        val root = TreeNode.Directory.createRoot()
 
         for (fileInfo in mSubFileInfo) {
             val filePath =

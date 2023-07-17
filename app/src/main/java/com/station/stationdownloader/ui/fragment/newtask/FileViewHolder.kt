@@ -49,7 +49,7 @@ class FileViewHolder(val binding: FileItemBinding) :
     }
 
     fun notifyParent(node:TreeNode?,pos:Int){
-        if(node!=null&&node._parent !is TreeNode.Root) {
+        if(node?._parent != null &&!node._parent.isRoot()) {
             val parentPos = node.getParenPosition(pos)
             bindingAdapter?.notifyItemChanged(parentPos)
             notifyParent(node._parent, parentPos)
