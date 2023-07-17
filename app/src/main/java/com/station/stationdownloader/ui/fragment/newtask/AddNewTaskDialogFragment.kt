@@ -39,6 +39,8 @@ class AddNewTaskDialogFragment : BaseDialogFragment<DialogFragmentAddNewTaskBind
 
     private fun DialogFragmentAddNewTaskBinding.initRecyclerView() {
         taskFileList.adapter = taskFileListAdapter
+        //动画时间设置为0，因为动画可能会导致项目闪烁
+        taskFileList.itemAnimator?.changeDuration=0
     }
 
     private fun DialogFragmentAddNewTaskBinding.initSpinner() {
