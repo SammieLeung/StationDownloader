@@ -18,6 +18,5 @@ sealed class IResult<out R> {
     }
 }
 
-
 val IResult<*>.succeeded
     get() = this is IResult.Success && data != null

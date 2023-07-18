@@ -4,7 +4,13 @@ import android.app.Application
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import androidx.work.Constraints
+import androidx.work.NetworkType
+import androidx.work.OneTimeWorkRequestBuilder
+import androidx.work.WorkManager
+import androidx.work.WorkRequest
 import com.orhanobut.logger.Logger
+import com.station.stationdownloader.DownloadWorker
 import com.station.stationdownloader.FileType
 import com.station.stationdownloader.contants.TaskExecuteError
 import com.station.stationdownloader.data.IResult
@@ -29,6 +35,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -101,39 +108,44 @@ class MainViewModel @Inject constructor(
                 flow {
                     if (_newTaskState.value !is NewTaskState.PreparingData)
                         return@flow
-                    engineRepo.startTask((_newTaskState.value as NewTaskState.PreparingData).task)
 
-                    when (val newTask = (_newTaskState.value as NewTaskState.PreparingData).task) {
-                        is NewTaskConfigModel.NormalTask -> {
-                            val existsTask = taskRepo.getTaskByUrl(newTask.originUrl)
-                            if (existsTask != null) {
-                                emit(
-                                    IResult.Error(
-                                        Exception(TaskExecuteError.NORMAL_TASK_EXISTS.name),
-                                        TaskExecuteError.NORMAL_TASK_EXISTS.ordinal
-                                    )
-                                )
-                            } else {
-                                taskRepo.insertTask(newTask.asXLDownloadTaskEntity())
-                                taskRepo.getTaskByUrl(newTask.originUrl)?.let {
-                                    emit(IResult.Success(it.asStationDownloadTask()))
-                                }
-                            }
+                    val result =
+                        taskRepo.saveTask((_newTaskState.value as NewTaskState.PreparingData).task)
+                    when (result) {
+                        is IResult.Error -> {
+                            emit(result)
                         }
 
-                        is NewTaskConfigModel.TorrentTask -> {
-                            val existsTask = taskRepo.getTaskByUrl(newTask.torrentPath)
-                            if (existsTask != null) {
-                                emit(IResult.Success(existsTask.copy(downloadPath = ).asStationDownloadTask()))
-                            } else {
-                                taskRepo.insertTask(newTask.asXLDownloadTaskEntity())
-                                taskRepo.getTaskByUrl(newTask.torrentPath)?.let {
-                                    emit(IResult.Success(it.asStationDownloadTask()))
-                                }
-                            }
+                        is IResult.Success -> {
+
+                            val constraints = Constraints.Builder()
+                                .setRequiredNetworkType(NetworkType.CONNECTED)
+                                .setRequiresBatteryNotLow(true)
+                                .build()
+
+                            val downloadTaskWorker: WorkRequest =
+                                OneTimeWorkRequestBuilder<DownloadWorker>()
+                                    .setConstraints(constraints)
+                                    .build()
+
+                            WorkManager
+                                .getInstance(application)
+                                .enqueue(downloadTaskWorker)
+
+
+                            emit(engineRepo.startTask(result.data.asStationDownloadTask()))
                         }
                     }
+
+
                 }
+            }.map {
+                when (it) {
+                    is IResult.Error -> it
+                    is IResult.Success -> {
+                    }
+                }
+
             }.collect {
                 Logger.d("${it}")
                 _newTaskState.update {
@@ -149,7 +161,6 @@ class MainViewModel @Inject constructor(
             }
         }
     }
-    private fun
 
     private fun initAddUriDialogAcceptAction(): (DialogAction) -> Unit {
         val actionStateFlow: MutableSharedFlow<DialogAction> = MutableSharedFlow()

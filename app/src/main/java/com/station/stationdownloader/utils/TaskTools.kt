@@ -1,18 +1,11 @@
 package com.station.stationdownloader.utils
 
 import com.station.stationdownloader.DownloadUrlType
-import com.station.stationdownloader.DownloadWorker
-import com.station.stationdownloader.data.source.IEngineRepository
 import com.station.stationkitkt.MimeTypeHelper
-import dagger.hilt.EntryPoint
-import dagger.hilt.InstallIn
-import dagger.hilt.android.EntryPointAccessors
-import dagger.hilt.components.SingletonComponent
 import java.io.File
 import java.io.UnsupportedEncodingException
 import java.net.URLDecoder
 import java.util.Base64
-import javax.inject.Inject
 
 const val MAGNET_PROTOCOL = "magnet:?xt=urn:btih:"
 const val HTTP_PROTOCOL = "http://"

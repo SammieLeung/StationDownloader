@@ -95,11 +95,13 @@ object EngineModule {
     fun provideEngineRepo(
         @XLEngineAnnotation xlEngine: IEngine,
         @Aria2EngineAnnotation aria2Engine: IEngine,
+        downloadTaskRepo: IDownloadTaskRepository,
         @IoDispatcher ioDispatcher: CoroutineDispatcher
     ): IEngineRepository {
         return DefaultEngineRepository(
             xlEngine = xlEngine,
             aria2Engine = aria2Engine,
+            downloadTaskRepo = downloadTaskRepo,
             ioDispatcher = ioDispatcher
         )
     }
@@ -120,7 +122,7 @@ object EngineModule {
             context = context,
             configurationDataSource = configurationDataSource,
             torrentInfoRepo = torrentInfoRepo,
-            fileSizeApiService=fileSizeApiService,
+            fileSizeApiService = fileSizeApiService,
             externalScope = externalScope,
             ioDispatcher = ioDispatcher,
             defaultDispatcher = defaultDispatcher
@@ -134,7 +136,7 @@ object EngineModule {
         @ApplicationContext context: Context,
         @DefaultDispatcher defaultDispatcher: CoroutineDispatcher
     ): IEngine {
-        return Aria2Engine(context,defaultDispatcher)
+        return Aria2Engine(context, defaultDispatcher)
     }
 
 }

@@ -6,6 +6,7 @@ import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Update
+import com.station.stationdownloader.DownloadEngine
 import com.station.stationdownloader.data.source.local.room.entities.XLDownloadTaskEntity
 import kotlinx.coroutines.flow.Flow
 
@@ -19,6 +20,9 @@ interface XLDownloadTaskDao {
     suspend fun getTasks(): List<XLDownloadTaskEntity>
     @Query("SELECT * FROM xl_download_task WHERE url=:url")
     suspend fun getTaskByUrl(url:String):XLDownloadTaskEntity?
+    @Query("SELECT * FROM xl_download_task WHERE url=:url AND download_path=:downloadPath")
+    suspend fun getTaskByUrl(url:String,downloadPath:String):XLDownloadTaskEntity?
+
     @Query("SELECT * FROM xl_download_task")
     fun observeTasksStream(): Flow<List<XLDownloadTaskEntity>>
     @Insert(onConflict = OnConflictStrategy.IGNORE)

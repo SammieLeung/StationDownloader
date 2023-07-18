@@ -12,8 +12,8 @@ interface IEngineRepository {
     suspend fun unInit(): IResult<Unit>
     suspend fun initUrl(url: String): IResult<NewTaskConfigModel>
     suspend fun startTask(
-       taskConfigModel: NewTaskConfigModel
-    ): IResult<StationDownloadTask>
+       stationDownloadTask: StationDownloadTask
+    ): IResult<Long>
 
     suspend fun configure(key: String, values: Array<String>): IResult<Unit>
 

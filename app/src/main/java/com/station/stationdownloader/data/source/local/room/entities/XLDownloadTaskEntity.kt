@@ -54,7 +54,7 @@ data class XLDownloadTaskEntity @JvmOverloads constructor(
 
 fun XLDownloadTaskEntity.asStationDownloadTask(): StationDownloadTask {
     return StationDownloadTask(
-        id=0,
+        id=id,
         torrentId = torrentId,
         url = url,
         realUrl = realUrl,

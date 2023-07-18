@@ -1,5 +1,7 @@
 package com.station.stationdownloader.data.source.local
 
+import com.station.stationdownloader.DownloadEngine
+import com.station.stationdownloader.contants.SqlError
 import com.station.stationdownloader.data.source.IDownloadTaskDataSource
 import com.station.stationdownloader.data.source.local.room.dao.XLDownloadTaskDao
 import com.station.stationdownloader.data.source.local.room.entities.XLDownloadTaskEntity
@@ -18,18 +20,19 @@ class DownloadTaskLocalDataSource internal constructor(
     private val downloadTaskDao: XLDownloadTaskDao,
     private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO
 ) : IDownloadTaskDataSource {
-    override suspend fun getTasks(): IResult<List<XLDownloadTaskEntity>> = withContext(ioDispatcher) {
-        return@withContext try {
-            IResult.Success(downloadTaskDao.getTasks())
-        } catch (e: Exception) {
-            IResult.Error(exception =  e)
-        }
-    }
-
-    override  fun getTasksStream(): Flow<IResult<List<XLDownloadTaskEntity>>> {
-            return downloadTaskDao.observeTasksStream().map {
-                IResult.Success(it)
+    override suspend fun getTasks(): IResult<List<XLDownloadTaskEntity>> =
+        withContext(ioDispatcher) {
+            return@withContext try {
+                IResult.Success(downloadTaskDao.getTasks())
+            } catch (e: Exception) {
+                IResult.Error(exception = e)
             }
+        }
+
+    override fun getTasksStream(): Flow<IResult<List<XLDownloadTaskEntity>>> {
+        return downloadTaskDao.observeTasksStream().map {
+            IResult.Success(it)
+        }
     }
 
     override suspend fun insertTask(task: XLDownloadTaskEntity): Long {
@@ -40,7 +43,22 @@ class DownloadTaskLocalDataSource internal constructor(
         return downloadTaskDao.getTaskByUrl(url)
     }
 
-    override suspend fun updateTask(task: XLDownloadTaskEntity): Int {
-        return downloadTaskDao.updateTask(task)
+    override suspend fun getTaskByUrl(
+        url: String,
+        downloadPath: String
+    ): IResult<XLDownloadTaskEntity> {
+        val xlDownloadTaskEntity = downloadTaskDao.getTaskByUrl(url, downloadPath)
+        return if (xlDownloadTaskEntity == null) {
+            IResult.Error(
+                Exception(SqlError.TASK_NOT_FOUND.name),
+                SqlError.TASK_NOT_FOUND.ordinal
+            )
+        } else {
+            IResult.Success(xlDownloadTaskEntity)
+        }
+    }
+
+    override suspend fun updateTask(task: XLDownloadTaskEntity): IResult<Int> {
+        return IResult.Success(downloadTaskDao.updateTask(task))
     }
 }
