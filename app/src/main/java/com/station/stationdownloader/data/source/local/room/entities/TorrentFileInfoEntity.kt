@@ -8,10 +8,10 @@ import com.station.stationdownloader.data.source.local.model.StationTorrentFileI
 import com.xunlei.downloadlib.parameter.TorrentFileInfo
 
 @Entity(
-    tableName = "xl_torrent_file_info",
+    tableName = "torrent_file_info",
     indices = [Index(value = ["torrent_id", "real_index"], unique = true)]
 )
-data class XLTorrentFileInfoEntity @JvmOverloads constructor(
+data class TorrentFileInfoEntity @JvmOverloads constructor(
     @PrimaryKey(autoGenerate = true)
     var id: Long,
     @ColumnInfo(name = "torrent_id")
@@ -28,8 +28,8 @@ data class XLTorrentFileInfoEntity @JvmOverloads constructor(
     var subPath: String = "",
 )
 
-fun TorrentFileInfo.asXLTorrentFileInfoEntity(torrentId: Long): XLTorrentFileInfoEntity {
-    return XLTorrentFileInfoEntity(
+fun TorrentFileInfo.asTorrentFileInfoEntity(torrentId: Long): TorrentFileInfoEntity {
+    return TorrentFileInfoEntity(
         id = 0,
         torrentId = torrentId,
         fileIndex = this.mFileIndex,

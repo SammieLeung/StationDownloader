@@ -3,8 +3,6 @@ package com.station.stationdownloader.data.source.local.engine
 import com.station.stationdownloader.DownloadUrlType
 import com.station.stationdownloader.data.IResult
 import com.station.stationdownloader.data.source.local.model.StationDownloadTask
-import com.station.stationdownloader.data.source.local.model.StationTaskInfo
-import com.station.stationdownloader.utils.TaskTools
 
 /**
  * author: Sam Leung

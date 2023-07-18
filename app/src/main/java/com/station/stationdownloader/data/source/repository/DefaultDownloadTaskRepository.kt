@@ -39,4 +39,8 @@ class DefaultDownloadTaskRepository(
     override suspend fun insertTask(task: XLDownloadTaskEntity): Long {
         return localDataSource.insertTask(task)
     }
+
+    override suspend fun updateTask(task: XLDownloadTaskEntity): Int {
+        return localDataSource.updateTask(task)
+    }
 }

@@ -2,9 +2,10 @@ package com.station.stationdownloader.data.source.local.engine
 
 import com.station.stationdownloader.DownloadEngine
 import com.station.stationdownloader.DownloadUrlType
+import com.station.stationdownloader.data.source.local.model.StationDownloadTask
 import com.station.stationdownloader.data.source.local.model.TreeNode
+import com.station.stationdownloader.data.source.local.model.getSelectedFileIndexes
 import com.station.stationdownloader.data.source.local.room.entities.XLDownloadTaskEntity
-import com.station.stationdownloader.utils.TaskTools
 
 sealed class NewTaskConfigModel(
     val _name: String,
@@ -30,7 +31,7 @@ sealed class NewTaskConfigModel(
     )
 
     data class TorrentTask(
-        val torrentId:Long,
+        val torrentId: Long,
         val torrentPath: String,
         val taskName: String,
         val downloadPath: String,
@@ -71,20 +72,21 @@ sealed class NewTaskConfigModel(
 
 }
 
-fun NewTaskConfigModel.asXLDownloadTaskEntity(): XLDownloadTaskEntity {
+fun NewTaskConfigModel.asStationDownloadTask(): StationDownloadTask {
     return when (this) {
         is NewTaskConfigModel.NormalTask -> {
             val root = this._fileTree as TreeNode.Directory
             val fileSize = root.totalCheckedFileSize
-            XLDownloadTaskEntity(
-                id = 0,
-                torrentId = -1,
+            val selectIndexes = root.getSelectedFileIndexes()
+            StationDownloadTask(
                 url = this.originUrl,
+                realUrl = this.url,
                 name = this.taskName,
                 urlType = urlType,
                 engine = this.engine,
                 totalSize = fileSize,
-                downloadPath = this.downloadPath
+                downloadPath = this.downloadPath,
+                selectIndexes = selectIndexes,
             )
 
         }
@@ -92,15 +94,58 @@ fun NewTaskConfigModel.asXLDownloadTaskEntity(): XLDownloadTaskEntity {
         is NewTaskConfigModel.TorrentTask -> {
             val root = this._fileTree as TreeNode.Directory
             val fileSize = root.totalCheckedFileSize
-            XLDownloadTaskEntity(
-                id = 0,
-                torrentId = this.torrentId,
+            val selectIndexes = root.getSelectedFileIndexes()
+            StationDownloadTask(
+                torrentId=this.torrentId,
                 url = this.torrentPath,
+                realUrl = this.torrentPath,
                 name = this.taskName,
                 urlType = DownloadUrlType.TORRENT,
                 engine = this.engine,
                 totalSize = fileSize,
-                downloadPath = this.downloadPath
+                downloadPath = this.downloadPath,
+                selectIndexes = selectIndexes,
+            )
+
+        }
+    }
+}
+
+fun NewTaskConfigModel.asXLDownloadTaskEntity(): XLDownloadTaskEntity {
+    return when (this) {
+        is NewTaskConfigModel.NormalTask -> {
+            val root = this._fileTree as TreeNode.Directory
+            val fileSize = root.totalCheckedFileSize
+            val selectIndexes = root.getSelectedFileIndexes()
+            XLDownloadTaskEntity(
+                id =0L,
+                url = this.originUrl,
+                realUrl = this.url,
+                name = this.taskName,
+                urlType = urlType,
+                engine = this.engine,
+                totalSize = fileSize,
+                downloadPath = this.downloadPath,
+                selectIndexes = selectIndexes
+            )
+
+        }
+
+        is NewTaskConfigModel.TorrentTask -> {
+            val root = this._fileTree as TreeNode.Directory
+            val fileSize = root.totalCheckedFileSize
+            val selectIndexes = root.getSelectedFileIndexes()
+            XLDownloadTaskEntity(
+                id = 0L,
+                torrentId=this.torrentId,
+                url = this.torrentPath,
+                realUrl = this.torrentPath,
+                name = this.taskName,
+                urlType = DownloadUrlType.TORRENT,
+                engine = this.engine,
+                totalSize = fileSize,
+                downloadPath = this.downloadPath,
+                selectIndexes = selectIndexes,
             )
 
         }

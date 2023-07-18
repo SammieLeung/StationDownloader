@@ -3,8 +3,10 @@ package com.station.stationdownloader.data.source.repository
 import com.station.stationdownloader.data.IResult
 import com.station.stationdownloader.data.source.ITorrentInfoDataSource
 import com.station.stationdownloader.data.source.ITorrentInfoRepository
-import com.station.stationdownloader.data.source.local.room.entities.asXLTorrentFileInfoEntity
-import com.station.stationdownloader.data.source.local.room.entities.asXLTorrentInfoEntity
+import com.station.stationdownloader.data.source.local.room.entities.TorrentFileInfoEntity
+import com.station.stationdownloader.data.source.local.room.entities.TorrentInfoEntity
+import com.station.stationdownloader.data.source.local.room.entities.asTorrentFileInfoEntity
+import com.station.stationdownloader.data.source.local.room.entities.asTorrentInfoEntity
 import com.xunlei.downloadlib.parameter.TorrentInfo
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
@@ -28,7 +30,7 @@ class DefaultTorrentInfoRepository(
             is IResult.Error -> {
                 val result = externalScope.async {
                     val torrentId =
-                        localDataSource.saveTorrentInfo(torrentInfo.asXLTorrentInfoEntity())
+                        localDataSource.saveTorrentInfo(torrentInfo.asTorrentInfoEntity())
                     if (torrentId > 0) {
                         saveTorrentFileInfos(torrentInfo, torrentId)
                     }
@@ -40,13 +42,17 @@ class DefaultTorrentInfoRepository(
         }
     }
 
+    override suspend fun getTorrentByHash(hash: String): IResult<Map<TorrentInfoEntity, List<TorrentFileInfoEntity>>> {
+        return localDataSource.getTorrentByHash(hash)
+    }
+
     /**
      * 保存TorrentFileInfo
      */
     private suspend fun saveTorrentFileInfos(torrentInfo: TorrentInfo, torrentId: Long) {
         if (torrentInfo.mSubFileInfo != null) {
             for (torrentFileInfo in torrentInfo.mSubFileInfo) {
-                val entity = torrentFileInfo.asXLTorrentFileInfoEntity(torrentId)
+                val entity = torrentFileInfo.asTorrentFileInfoEntity(torrentId)
                 (localDataSource.getTorrentFileInfo(
                     entity.torrentId,
                     entity.realIndex

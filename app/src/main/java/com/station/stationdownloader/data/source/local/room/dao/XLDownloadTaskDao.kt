@@ -5,6 +5,7 @@ import androidx.room.Delete
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
+import androidx.room.Update
 import com.station.stationdownloader.data.source.local.room.entities.XLDownloadTaskEntity
 import kotlinx.coroutines.flow.Flow
 
@@ -24,5 +25,6 @@ interface XLDownloadTaskDao {
     suspend fun insertTask(task: XLDownloadTaskEntity):Long
     @Delete
     suspend fun deleteTask(task: XLDownloadTaskEntity):Int
-
+    @Update
+    suspend fun updateTask(task: XLDownloadTaskEntity):Int
 }

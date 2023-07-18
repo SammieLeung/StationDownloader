@@ -16,8 +16,8 @@ import com.station.stationdownloader.data.source.local.ConfigurationLocalDataSou
 import com.station.stationdownloader.data.source.local.DownloadTaskLocalDataSource
 import com.station.stationdownloader.data.source.local.TorrentInfoLocalDataSource
 import com.station.stationdownloader.data.source.local.room.dao.XLDownloadTaskDao
-import com.station.stationdownloader.data.source.local.room.dao.XLTorrentFileInfoDao
-import com.station.stationdownloader.data.source.local.room.dao.XLTorrentInfoDao
+import com.station.stationdownloader.data.source.local.room.dao.TorrentFileInfoDao
+import com.station.stationdownloader.data.source.local.room.dao.TorrentInfoDao
 import com.station.stationdownloader.data.source.remote.FileSizeApiService
 import com.station.stationdownloader.data.source.repository.DefaultConfigurationRepository
 import com.station.stationdownloader.data.source.repository.DefaultEngineRepository
@@ -153,8 +153,8 @@ object TorrentInfoModule {
 
     @Provides
     fun provideTorrentInfoLocalDataSource(
-        torrentInfoDao: XLTorrentInfoDao,
-        torrentFileInfoDao: XLTorrentFileInfoDao,
+        torrentInfoDao: TorrentInfoDao,
+        torrentFileInfoDao: TorrentFileInfoDao,
         @IoDispatcher
         ioDispatcher: CoroutineDispatcher
     ): ITorrentInfoDataSource {

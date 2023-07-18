@@ -302,3 +302,17 @@ public fun TreeNode.Directory.filterFile(fileType: FileType, isSelect: Boolean) 
     }
 
 }
+
+public fun TreeNode.Directory.getSelectedFileIndexes():List<Int>{
+    val selectedList= mutableListOf<Int>()
+    _children?.forEach {
+        if(it is TreeNode.File && it.isChecked){
+            selectedList.add(it.fileIndex)
+        }
+        else if(it is TreeNode.Directory){
+            selectedList.addAll(it.getSelectedFileIndexes())
+        }
+    }
+    selectedList.sort()
+    return selectedList
+}

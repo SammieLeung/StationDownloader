@@ -18,6 +18,7 @@ import com.station.stationdownloader.data.source.local.engine.IEngine
 import com.station.stationdownloader.data.source.local.engine.NewTaskConfigModel
 import com.station.stationdownloader.data.source.local.model.StationDownloadTask
 import com.station.stationdownloader.data.source.local.model.TreeNode
+import com.station.stationdownloader.data.source.local.room.entities.TorrentInfoEntity
 import com.station.stationdownloader.data.source.remote.FileContentHeader
 import com.station.stationdownloader.data.source.remote.FileSizeApiService
 import com.station.stationdownloader.utils.DLogger
@@ -244,7 +245,7 @@ class XLEngine internal constructor(
             url = realUrl,
             taskName = taskName,
             downloadPath = downloadPath,
-            urlType=TaskTools.getUrlType(realUrl),
+            urlType = TaskTools.getUrlType(realUrl),
             fileTree = TreeNode.Directory.createRoot()
         )
 
@@ -268,7 +269,12 @@ class XLEngine internal constructor(
                         deep = 0
                     )
                     root.addChild(file)
-                    return IResult.Success(normalTask.copy(fileTree = root, urlType = DownloadUrlType.HTTP))
+                    return IResult.Success(
+                        normalTask.copy(
+                            fileTree = root,
+                            urlType = DownloadUrlType.HTTP
+                        )
+                    )
                 }
             }
         }
@@ -295,7 +301,7 @@ class XLEngine internal constructor(
      * 初始化种子任务
      */
     private suspend fun initTorrentUrl(torrentUrl: String): IResult<NewTaskConfigModel> {
-        val torrentInfo =
+        var torrentInfo =
             XLTaskHelper.instance().getTorrentInfo(torrentUrl) ?: return IResult.Error(
                 Exception(TaskExecuteError.TORRENT_INFO_IS_NULL.name),
                 TaskExecuteError.TORRENT_INFO_IS_NULL.ordinal
@@ -304,9 +310,6 @@ class XLEngine internal constructor(
             Exception(TaskExecuteError.TORRENT_INFO_IS_NULL.name),
             TaskExecuteError.TORRENT_INFO_IS_NULL.ordinal
         )
-
-        checkTorrentHash(torrentInfo.mInfoHash)
-
 
         if (torrentInfo.mIsMultiFiles && torrentInfo.mSubFileInfo == null) return IResult.Error(
             Exception(TaskExecuteError.SUB_TORRENT_INFO_IS_NULL.name),
@@ -317,11 +320,12 @@ class XLEngine internal constructor(
         val downloadPath =
             File(configurationDataSource.getDownloadPath(), taskName.substringAfterLast(".")).path
         val fileCount = torrentInfo.mFileCount
-
-        val torrentId=torrentInfoRepo.saveTorrentInfo(torrentInfo)
+        var torrentId = checkTorrentHash(torrentInfo.mInfoHash)
+        if (torrentId == null)
+            torrentId = torrentInfoRepo.saveTorrentInfo(torrentInfo)
         return IResult.Success(
             NewTaskConfigModel.TorrentTask(
-                torrentId=torrentId,
+                torrentId = torrentId,
                 torrentPath = torrentUrl,
                 taskName = taskName,
                 downloadPath = downloadPath,
@@ -396,9 +400,19 @@ class XLEngine internal constructor(
         }
     }
 
-    private fun checkTorrentHash(mInfoHash: String): Boolean {
-        //TODO() 数据库中对比
-        return true
+    private suspend fun checkTorrentHash(hash: String): Long? {
+        return when (val result = torrentInfoRepo.getTorrentByHash(hash)) {
+            is IResult.Error -> {
+                null
+            }
+
+            is IResult.Success -> {
+                result.data.firstNotNullOfOrNull {
+                    it.key.id
+                }
+            }
+        }
+        return null
     }
 
     override fun DLogger.tag(): String = "XLEngine"

@@ -3,7 +3,7 @@ package com.station.stationdownloader.data.source.local.model
 import com.xunlei.downloadlib.parameter.XLTaskInfo
 
 
-data class StationTaskInfo(
+data class StationTaskStateInfo(
     val taskId: Long,
     val status: Int,
     val speed: Long,
@@ -11,8 +11,8 @@ data class StationTaskInfo(
     val totalSize: Long,
 )
 
-fun XLTaskInfo.asStationTaskInfo(): StationTaskInfo {
-    return StationTaskInfo(
+fun XLTaskInfo.asStationTaskInfo(): StationTaskStateInfo {
+    return StationTaskStateInfo(
         taskId = this.mTaskId,
         status = this.mTaskStatus,
         speed = this.mDownloadSpeed,

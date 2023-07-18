@@ -13,4 +13,5 @@ interface IDownloadTaskRepository {
     suspend fun getTaskByUrl(url:String):XLDownloadTaskEntity?
     fun getTasksStream(): Flow<IResult<List<XLDownloadTaskEntity>>>
     suspend fun insertTask(task: XLDownloadTaskEntity):Long
+    suspend fun updateTask(task:XLDownloadTaskEntity):IResult<Int>
 }

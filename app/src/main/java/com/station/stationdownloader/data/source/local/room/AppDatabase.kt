@@ -5,18 +5,18 @@ import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
 import com.station.stationdownloader.data.source.local.room.converter.StringListConverter
 import com.station.stationdownloader.data.source.local.room.dao.XLDownloadTaskDao
-import com.station.stationdownloader.data.source.local.room.dao.XLTorrentFileInfoDao
-import com.station.stationdownloader.data.source.local.room.dao.XLTorrentInfoDao
+import com.station.stationdownloader.data.source.local.room.dao.TorrentFileInfoDao
+import com.station.stationdownloader.data.source.local.room.dao.TorrentInfoDao
 import com.station.stationdownloader.data.source.local.room.entities.XLDownloadTaskEntity
-import com.station.stationdownloader.data.source.local.room.entities.XLTorrentFileInfoEntity
-import com.station.stationdownloader.data.source.local.room.entities.XLTorrentInfoEntity
+import com.station.stationdownloader.data.source.local.room.entities.TorrentFileInfoEntity
+import com.station.stationdownloader.data.source.local.room.entities.TorrentInfoEntity
 
 /**
  * author: Sam Leung
  * date:  2023/5/15
  */
 @Database(
-    entities = [XLDownloadTaskEntity::class, XLTorrentInfoEntity::class, XLTorrentFileInfoEntity::class],
+    entities = [XLDownloadTaskEntity::class, TorrentInfoEntity::class, TorrentFileInfoEntity::class],
     version = 1
 )
 @TypeConverters(
@@ -24,6 +24,6 @@ import com.station.stationdownloader.data.source.local.room.entities.XLTorrentIn
 )
 abstract class AppDatabase : RoomDatabase() {
     abstract fun getXLDownloadTaskDao(): XLDownloadTaskDao
-    abstract fun getXLTorrentInfoDao():XLTorrentInfoDao
-    abstract fun getXLTorrentFileInfoDao():XLTorrentFileInfoDao
+    abstract fun getTorrentInfoDao():TorrentInfoDao
+    abstract fun getTorrentFileInfoDao():TorrentFileInfoDao
 }

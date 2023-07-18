@@ -120,28 +120,28 @@ class EngineTest {
                         Logger.d(it)
                     }
 
-                    val startTask = taskflow.map {
-                        val result = mEngineRepo.startTask(
-                            it.url,
-                            it.engine,
-                            it.downloadPath,
-                            it.name,
-                            it.urlType,
-                            it.fileCount,
-                            it.selectIndexes.toIntArray()
-                        )
-                        when (result) {
-                            is IResult.Error -> {
-                                throw result.exception
-                            }
-
-                            is IResult.Success -> {
-                                result.data
-                            }
-                        }
-                    }.catch {
-                        Logger.d(it)
-                    }
+//                    val startTask = taskflow.map {
+//                        val result = mEngineRepo.startTask(
+//                            it.url,
+//                            it.engine,
+//                            it.downloadPath,
+//                            it.name,
+//                            it.urlType,
+//                            it.fileCount,
+//                            it.selectIndexes.toIntArray()
+//                        )
+//                        when (result) {
+//                            is IResult.Error -> {
+//                                throw result.exception
+//                            }
+//
+//                            is IResult.Success -> {
+//                                result.data
+//                            }
+//                        }
+//                    }.catch {
+//                        Logger.d(it)
+//                    }
 
 
 //                    startTask.collect {

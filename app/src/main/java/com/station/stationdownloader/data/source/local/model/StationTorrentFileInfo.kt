@@ -1,6 +1,6 @@
 package com.station.stationdownloader.data.source.local.model
 
-import com.station.stationdownloader.data.source.local.room.entities.XLTorrentFileInfoEntity
+import com.station.stationdownloader.data.source.local.room.entities.TorrentFileInfoEntity
 import java.io.Serializable
 
 
@@ -10,10 +10,11 @@ data class StationTorrentFileInfo(
     var fileSize: Long = 0,
     var realIndex: Int = 0,
     var subPath: String = "",
+    var isChecked:Boolean=false
 ): Serializable
 
-fun StationTorrentFileInfo.asTorrentFileInfoEntity(torrentId: Long): XLTorrentFileInfoEntity {
-    return XLTorrentFileInfoEntity(
+fun StationTorrentFileInfo.asXLTorrentFileInfoEntity(torrentId: Long): TorrentFileInfoEntity {
+    return TorrentFileInfoEntity(
         id = 0,
         torrentId = torrentId,
         fileIndex = this.fileIndex,

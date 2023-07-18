@@ -7,6 +7,7 @@ import androidx.room.PrimaryKey
 import com.station.stationdownloader.DownloadEngine
 import com.station.stationdownloader.DownloadTaskStatus
 import com.station.stationdownloader.DownloadUrlType
+import com.station.stationdownloader.data.source.local.model.StationDownloadTask
 import org.jetbrains.annotations.NotNull
 
 /**
@@ -24,6 +25,8 @@ data class XLDownloadTaskEntity @JvmOverloads constructor(
     val torrentId: Long = -1,
     @NotNull
     val url: String,
+    @ColumnInfo(name="real_url")
+    val realUrl:String,
     val name: String = "",
     @ColumnInfo(defaultValue = "PENDING")
     val status: DownloadTaskStatus = DownloadTaskStatus.PENDING,
@@ -36,7 +39,35 @@ data class XLDownloadTaskEntity @JvmOverloads constructor(
     val totalSize: Long = -1,
     @ColumnInfo(name = "download_path")
     val downloadPath: String = "",
+    //TODO @Deprecate
+    @ColumnInfo(name = "select_indexes")
+    val selectIndexes: List<Int> = emptyList(),
+    //TODO @Deprecate
+    @ColumnInfo(name = "file_list")
+    val fileList: List<String> = emptyList(),
+    //TODO @Deprecate
+    @ColumnInfo(name = "file_count")
+    val fileCount: Int = 0,
     @ColumnInfo(name = "create_time")
     val createTime: Long = System.currentTimeMillis(),
 )
 
+fun XLDownloadTaskEntity.asStationDownloadTask(): StationDownloadTask {
+    return StationDownloadTask(
+        id=0,
+        torrentId = torrentId,
+        url = url,
+        realUrl = realUrl,
+        name = name,
+        urlType = urlType,
+        status = status,
+        engine = engine,
+        downloadPath = downloadPath,
+        downloadSize = downloadSize,
+        totalSize = totalSize,
+        selectIndexes = selectIndexes,
+        fileList = fileList,
+        fileCount = fileCount,
+        createTime = createTime
+    )
+}
