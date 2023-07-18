@@ -1,15 +1,12 @@
 package com.station.stationdownloader.ui.fragment.newtask
 
-import android.content.Context
 import android.content.DialogInterface
 import android.content.Intent
 import android.os.Bundle
-import android.provider.DocumentsContract
-import android.provider.MediaStore
+import android.provider.Contacts.Intents.UI
 import android.util.Base64
 import android.view.View
 import android.widget.CheckBox
-import androidx.documentfile.provider.DocumentFile
 import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.lifecycleScope
 import com.station.stationdownloader.FileType
@@ -23,14 +20,15 @@ import com.station.stationdownloader.ui.contract.SelectType
 import com.station.stationdownloader.ui.viewmodel.DialogAction
 import com.station.stationdownloader.ui.viewmodel.MainViewModel
 import com.station.stationdownloader.ui.viewmodel.NewTaskState
+import com.station.stationdownloader.ui.viewmodel.UiAction
 import com.station.stationdownloader.utils.DLogger
 import com.station.stationtheme.spinner.StationSpinnerAdapter
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
-import java.io.File
 
 
 class AddNewTaskDialogFragment : BaseDialogFragment<DialogFragmentAddNewTaskBinding>(), DLogger {
@@ -42,17 +40,12 @@ class AddNewTaskDialogFragment : BaseDialogFragment<DialogFragmentAddNewTaskBind
     private val openDocumentTree = registerForActivityResult(
         OpenDocumentTreeActivityResultContract()
     ) {
-        if (it != null && context != null) {
+        if (it != null) {
             //获取文件夹的永久访问权限（重启后仍然生效）
-            context?.contentResolver?.takePersistableUriPermission(
+            requireContext().contentResolver.takePersistableUriPermission(
                 it,
                 Intent.FLAG_GRANT_WRITE_URI_PERMISSION
             )
-            logger(it)
-            logger(DocumentsContract.getTreeDocumentId(it))
-            val rootUri = DocumentsContract.buildTreeDocumentUri("com.android.externalstorage.documents","primary:Station")
-            val rootDocumentFile = DocumentFile.fromSingleUri(requireContext(), rootUri)
-            logger(rootDocumentFile?.uri)
         }
     }
 
@@ -71,34 +64,6 @@ class AddNewTaskDialogFragment : BaseDialogFragment<DialogFragmentAddNewTaskBind
         TreeNodeAdapter()
     }
 
-    fun convertDocumentFileToFile(context: Context, documentFile: DocumentFile?): File? {
-        if(documentFile==null)
-            return null
-        val documentId = DocumentsContract.getDocumentId(documentFile.uri)
-        val split = documentId.split(":".toRegex()).dropLastWhile { it.isEmpty() }
-            .toTypedArray()
-        val type = split[0]
-        val uri = MediaStore.Files.getContentUri("external")
-        val selection = MediaStore.Files.FileColumns._ID + "=?"
-        val selectionArgs = arrayOf(split[1])
-        val projection = arrayOf(MediaStore.Files.FileColumns.DATA)
-        val sortOrder: String? = null
-        try {
-            context.contentResolver.query(uri, projection, selection, selectionArgs, sortOrder)
-                .use { cursor ->
-                    if (cursor != null && cursor.moveToFirst()) {
-                        val columnIndex =
-                            cursor.getColumnIndexOrThrow(MediaStore.Files.FileColumns.DATA)
-                        val path = cursor.getString(columnIndex)
-                        return File(path)
-                    }
-                }
-        } catch (e: Exception) {
-            e.printStackTrace()
-        }
-        return null
-    }
-
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         stationPickerContract.setPickerDialogTitle(getString(R.string.title_select_download_path))
@@ -106,7 +71,7 @@ class AddNewTaskDialogFragment : BaseDialogFragment<DialogFragmentAddNewTaskBind
             mBinding.initRecyclerView()
             mBinding.initSpinner()
             mBinding.bindState(
-                vm.newTaskState, vm.dialogAccept
+                vm.newTaskState, vm.accept,vm.dialogAccept
             )
         }
     }
@@ -127,13 +92,17 @@ class AddNewTaskDialogFragment : BaseDialogFragment<DialogFragmentAddNewTaskBind
     }
 
     private fun DialogFragmentAddNewTaskBinding.bindState(
-        newTaskState: Flow<NewTaskState>, dialogAccept: (DialogAction) -> Unit
+        newTaskState: Flow<NewTaskState>,
+        accept: (UiAction) -> Unit,
+        dialogAccept: (DialogAction) -> Unit
     ) {
         cancelBtn.setOnClickListener {
             dismiss()
         }
 
-        downloadBtn.setOnClickListener {}
+        downloadBtn.setOnClickListener {
+            accept(UiAction.StartDownloadTask)
+        }
 
         filePickerBtn.setOnClickListener {
             openFilePicker()
@@ -149,6 +118,9 @@ class AddNewTaskDialogFragment : BaseDialogFragment<DialogFragmentAddNewTaskBind
         val fileFilterGroupFlow = newTaskState.filter { it is NewTaskState.PreparingData }.map {
             (it as NewTaskState.PreparingData).fileFilterGroup
         }.distinctUntilChanged()
+
+        val successStart=newTaskState.filter { it is NewTaskState.SUCCESS }
+
         lifecycleScope.launch {
             newTaskConfigFlow.collect {
                 val task = it.task
@@ -174,6 +146,13 @@ class AddNewTaskDialogFragment : BaseDialogFragment<DialogFragmentAddNewTaskBind
                 bindCheckBox(otherCBox, FileType.OTHER, dialogAccept)
             }
         }
+
+        lifecycleScope.launch {
+            successStart.collect{
+                dismiss()
+            }
+        }
+
     }
 
     private fun openFilePicker() {

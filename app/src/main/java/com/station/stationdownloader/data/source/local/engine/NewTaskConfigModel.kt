@@ -1,8 +1,10 @@
 package com.station.stationdownloader.data.source.local.engine
 
 import com.station.stationdownloader.DownloadEngine
+import com.station.stationdownloader.DownloadUrlType
 import com.station.stationdownloader.data.source.local.model.TreeNode
 import com.station.stationdownloader.data.source.local.room.entities.XLDownloadTaskEntity
+import com.station.stationdownloader.utils.TaskTools
 
 sealed class NewTaskConfigModel(
     val _name: String,
@@ -16,6 +18,7 @@ sealed class NewTaskConfigModel(
         /*经过系统处理的链接*/
         val url: String,
         val taskName: String,
+        val urlType: DownloadUrlType,
         val downloadPath: String,
         val engine: DownloadEngine = DownloadEngine.XL,
         val fileTree: TreeNode
@@ -27,6 +30,7 @@ sealed class NewTaskConfigModel(
     )
 
     data class TorrentTask(
+        val torrentId:Long,
         val torrentPath: String,
         val taskName: String,
         val downloadPath: String,
@@ -65,17 +69,39 @@ sealed class NewTaskConfigModel(
     }
 
 
-
 }
 
-fun NewTaskConfigModel.asXLDownloadTaskEntity():XLDownloadTaskEntity{
-    when(this){
+fun NewTaskConfigModel.asXLDownloadTaskEntity(): XLDownloadTaskEntity {
+    return when (this) {
         is NewTaskConfigModel.NormalTask -> {
-            XLDownloadTaskEntity(id=0,url=this.originUrl,name=this.taskName)
-            //TODO asXLDownloadTaskEntity
-        }
-        is NewTaskConfigModel.TorrentTask -> {
+            val root = this._fileTree as TreeNode.Directory
+            val fileSize = root.totalCheckedFileSize
+            XLDownloadTaskEntity(
+                id = 0,
+                torrentId = -1,
+                url = this.originUrl,
+                name = this.taskName,
+                urlType = urlType,
+                engine = this.engine,
+                totalSize = fileSize,
+                downloadPath = this.downloadPath
+            )
 
+        }
+
+        is NewTaskConfigModel.TorrentTask -> {
+            val root = this._fileTree as TreeNode.Directory
+            val fileSize = root.totalCheckedFileSize
+            XLDownloadTaskEntity(
+                id = 0,
+                torrentId = this.torrentId,
+                url = this.torrentPath,
+                name = this.taskName,
+                urlType = DownloadUrlType.TORRENT,
+                engine = this.engine,
+                totalSize = fileSize,
+                downloadPath = this.downloadPath
+            )
 
         }
     }

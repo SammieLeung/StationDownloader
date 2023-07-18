@@ -80,14 +80,16 @@ class XLEngine internal constructor(
             if (isSupportNetWork) {/*对thunder link进行解码，用于支持用thunder link包裹磁链的任务*/
                 if (decodeUrl.urlType() == DownloadUrlType.THUNDER) {
                     val realUrl = TaskTools.thunderLinkDecode(decodeUrl)
-                    if (TaskTools.isSupportNetworkUrl(realUrl)) return@withContext initNormalUrl(
-                        originUrl,
-                        realUrl
-                    )
-                    else return@withContext IResult.Error(
-                        Exception("${TaskExecuteError.NOT_SUPPORT_URL.name}:[originUrl]->$originUrl [RealUrl]->$realUrl"),
-                        TaskExecuteError.NOT_SUPPORT_URL.ordinal
-                    )
+                    if (TaskTools.isSupportNetworkUrl(realUrl))
+                        return@withContext initNormalUrl(
+                            originUrl,
+                            realUrl
+                        )
+                    else
+                        return@withContext IResult.Error(
+                            Exception("${TaskExecuteError.NOT_SUPPORT_URL.name}:[originUrl]->$originUrl [RealUrl]->$realUrl"),
+                            TaskExecuteError.NOT_SUPPORT_URL.ordinal
+                        )
                 }
                 return@withContext initNormalUrl(originUrl, decodeUrl)
             }
@@ -113,7 +115,7 @@ class XLEngine internal constructor(
         selectIndexes: IntArray
     ): IResult<Long> = withContext(defaultDispatcher) {
         when (urlType) {
-            DownloadUrlType.THUNDER, DownloadUrlType.HTTP, DownloadUrlType.ED2k, DownloadUrlType.DIRECT -> {
+            DownloadUrlType.NORMAL, DownloadUrlType.THUNDER, DownloadUrlType.HTTP, DownloadUrlType.ED2k, DownloadUrlType.DIRECT -> {
                 val taskId = XLTaskHelper.instance().addThunderTask(url, downloadPath, name)
                 if (taskId == 0L) {
                     return@withContext IResult.Error(
@@ -242,6 +244,7 @@ class XLEngine internal constructor(
             url = realUrl,
             taskName = taskName,
             downloadPath = downloadPath,
+            urlType=TaskTools.getUrlType(realUrl),
             fileTree = TreeNode.Directory.createRoot()
         )
 
@@ -265,7 +268,7 @@ class XLEngine internal constructor(
                         deep = 0
                     )
                     root.addChild(file)
-                    return IResult.Success(normalTask.copy(fileTree = root))
+                    return IResult.Success(normalTask.copy(fileTree = root, urlType = DownloadUrlType.HTTP))
                 }
             }
         }
@@ -315,9 +318,10 @@ class XLEngine internal constructor(
             File(configurationDataSource.getDownloadPath(), taskName.substringAfterLast(".")).path
         val fileCount = torrentInfo.mFileCount
 
-        torrentInfoRepo.saveTorrentInfo(torrentInfo)
+        val torrentId=torrentInfoRepo.saveTorrentInfo(torrentInfo)
         return IResult.Success(
             NewTaskConfigModel.TorrentTask(
+                torrentId=torrentId,
                 torrentPath = torrentUrl,
                 taskName = taskName,
                 downloadPath = downloadPath,

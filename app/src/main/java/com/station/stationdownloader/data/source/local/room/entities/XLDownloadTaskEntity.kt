@@ -36,15 +36,6 @@ data class XLDownloadTaskEntity @JvmOverloads constructor(
     val totalSize: Long = -1,
     @ColumnInfo(name = "download_path")
     val downloadPath: String = "",
-    //TODO @Deprecate
-    @ColumnInfo(name = "select_indexes")
-    val selectIndexes: List<Int> = emptyList(),
-    //TODO @Deprecate
-    @ColumnInfo(name = "file_list")
-    val fileList: List<String> = emptyList(),
-    //TODO @Deprecate
-    @ColumnInfo(name = "file_count")
-    val fileCount: Int = 0,
     @ColumnInfo(name = "create_time")
     val createTime: Long = System.currentTimeMillis(),
 )

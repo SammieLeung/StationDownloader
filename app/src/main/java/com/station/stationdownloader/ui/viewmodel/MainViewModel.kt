@@ -14,6 +14,7 @@ import com.station.stationdownloader.data.source.IDownloadTaskRepository
 import com.station.stationdownloader.data.source.IEngineRepository
 import com.station.stationdownloader.data.source.ITorrentInfoRepository
 import com.station.stationdownloader.data.source.local.engine.NewTaskConfigModel
+import com.station.stationdownloader.data.source.local.engine.asXLDownloadTaskEntity
 import com.station.stationdownloader.data.source.local.model.StationDownloadTask
 import com.station.stationdownloader.data.source.local.model.TreeNode
 import com.station.stationdownloader.data.source.local.model.filterFile
@@ -23,6 +24,7 @@ import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flow
@@ -96,8 +98,9 @@ class MainViewModel @Inject constructor(
         viewModelScope.launch {
             startTask.flatMapLatest {
                 flow {
-                    val newTask = it.task
-                    when (newTask) {
+                    if (_newTaskState.value !is NewTaskState.PreparingData)
+                        return@flow
+                    when (val newTask = (_newTaskState.value as NewTaskState.PreparingData).task) {
                         is NewTaskConfigModel.NormalTask -> {
                             val existsTask = taskRepo.getTaskByUrl(newTask.originUrl)
 
@@ -112,12 +115,19 @@ class MainViewModel @Inject constructor(
                                         TaskExecuteError.TORRENT_TASK_EXISTS.ordinal
                                     )
                                 )
-                            }else{
-                                taskRepo.insertTask(newTask)
+                            } else {
+
+                                emit(
+                                    IResult.Success(newTask.asXLDownloadTaskEntity())
+                                )
                             }
                         }
                     }
-                    emit("")
+                }
+            }.collect {
+                Logger.d("${it}")
+                _newTaskState.update {
+                    NewTaskState.SUCCESS
                 }
             }
         }
@@ -233,7 +243,7 @@ class MainViewModel @Inject constructor(
 
 sealed class UiAction {
     data class InitTask(val url: String) : UiAction()
-    data class StartDownloadTask(val task: NewTaskConfigModel) : UiAction()
+    object StartDownloadTask : UiAction()
 }
 
 sealed class DialogAction {
@@ -255,6 +265,7 @@ sealed class NewTaskState {
         val task: NewTaskConfigModel,
         val fileFilterGroup: fileFilterGroup = fileFilterGroup()
     ) : NewTaskState()
+    object SUCCESS:NewTaskState()
 
     object LOADING : AddUriUiState<Nothing>()
 }

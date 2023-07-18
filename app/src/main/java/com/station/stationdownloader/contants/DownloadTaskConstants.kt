@@ -19,6 +19,7 @@ enum class DownloadTaskStatus:Serializable {
 }
 
 enum class DownloadUrlType:Serializable  {
+    NORMAL,
     THUNDER,
     MAGNET,
     TORRENT,
