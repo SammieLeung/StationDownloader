@@ -45,6 +45,7 @@ sealed class NewTaskConfigModel(
         _fileTree = fileTree
     )
 
+
     fun update(
         name: String = this._name,
         downloadPath: String = this._downloadPath,

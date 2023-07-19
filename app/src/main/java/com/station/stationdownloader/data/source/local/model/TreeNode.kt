@@ -61,6 +61,30 @@ sealed class TreeNode(
         fun toHumanReadingFileSize(): String {
             return TaskTools.toHumanReading(fileSize)
         }
+
+        override fun equals(other: Any?): Boolean {
+            if (this === other) return true
+            if (javaClass != other?.javaClass) return false
+
+            other as File
+
+            if (fileIndex != other.fileIndex) return false
+            if (fileName != other.fileName) return false
+            if (fileExt != other.fileExt) return false
+            if (fileSize != other.fileSize) return false
+
+            return true
+        }
+
+        override fun hashCode(): Int {
+            var result = fileIndex
+            result = 31 * result + fileName.hashCode()
+            result = 31 * result + fileExt.hashCode()
+            result = 31 * result + fileSize.hashCode()
+            return result
+        }
+
+
     }
 
     data class Directory(
@@ -79,6 +103,7 @@ sealed class TreeNode(
         _children = children,
         _deep = deep
     ) {
+
         /**
          * 创建文件树时调用
          */
@@ -175,6 +200,24 @@ sealed class TreeNode(
 
         fun toHumanReadingSelectSize(): String {
             return TaskTools.toHumanReading(totalCheckedFileSize)
+        }
+
+        override fun equals(other: Any?): Boolean {
+            if (this === other) return true
+            if (javaClass != other?.javaClass) return false
+
+            other as Directory
+
+            if (folderName != other.folderName) return false
+            if (children != other.children) return false
+
+            return true
+        }
+
+        override fun hashCode(): Int {
+            var result = folderName.hashCode()
+            result = 31 * result + children.hashCode()
+            return result
         }
 
         companion object {
@@ -303,13 +346,12 @@ public fun TreeNode.Directory.filterFile(fileType: FileType, isSelect: Boolean) 
 
 }
 
-public fun TreeNode.Directory.getSelectedFileIndexes():List<Int>{
-    val selectedList= mutableListOf<Int>()
+public fun TreeNode.Directory.getSelectedFileIndexes(): List<Int> {
+    val selectedList = mutableListOf<Int>()
     _children?.forEach {
-        if(it is TreeNode.File && it.isChecked){
+        if (it is TreeNode.File && it.isChecked) {
             selectedList.add(it.fileIndex)
-        }
-        else if(it is TreeNode.Directory){
+        } else if (it is TreeNode.Directory) {
             selectedList.addAll(it.getSelectedFileIndexes())
         }
     }

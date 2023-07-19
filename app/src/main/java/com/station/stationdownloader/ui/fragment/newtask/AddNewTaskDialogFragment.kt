@@ -3,7 +3,6 @@ package com.station.stationdownloader.ui.fragment.newtask
 import android.content.DialogInterface
 import android.content.Intent
 import android.os.Bundle
-import android.provider.Contacts.Intents.UI
 import android.util.Base64
 import android.view.View
 import android.widget.CheckBox
@@ -25,7 +24,6 @@ import com.station.stationdownloader.ui.viewmodel.UiAction
 import com.station.stationdownloader.utils.DLogger
 import com.station.stationtheme.spinner.StationSpinnerAdapter
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.map

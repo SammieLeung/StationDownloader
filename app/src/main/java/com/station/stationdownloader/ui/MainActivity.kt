@@ -1,6 +1,5 @@
 package com.station.stationdownloader.ui
 
-import android.app.Activity
 import android.content.Context
 import android.os.Bundle
 import android.view.View
@@ -13,15 +12,11 @@ import androidx.lifecycle.repeatOnLifecycle
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
 import com.orhanobut.logger.Logger
-import com.station.stationdownloader.DownloadEngine
-import com.station.stationdownloader.DownloadUrlType
-import com.station.stationdownloader.R
-import com.station.stationdownloader.data.source.IEngineRepository
+import com.station.stationdownloader.data.IResult
 import com.station.stationdownloader.databinding.ActivityMainBinding
 import com.station.stationdownloader.navgator.AppNavigator
 import com.station.stationdownloader.navgator.Destination
 import com.station.stationdownloader.ui.base.BaseActivity
-import com.station.stationdownloader.ui.contract.SelectFileActivityResultContract
 import com.station.stationdownloader.ui.fragment.AddUriDialogFragment
 import com.station.stationdownloader.ui.fragment.newtask.AddNewTaskDialogFragment
 import com.station.stationdownloader.ui.viewmodel.MainViewModel
@@ -45,20 +40,14 @@ class MainActivity : BaseActivity<ActivityMainBinding>(), DLogger {
 
     val vm: MainViewModel by viewModels<MainViewModel>()
     var toast: Toast? = null
-    private val mFilePickerActivityLauncher =
-        registerForActivityResult(SelectFileActivityResultContract()) {
-        }
 
-
-    @Inject
-    lateinit var mEngineRepo: IEngineRepository
 
     @Inject
     lateinit var navigator: AppNavigator
 
     init {
         lifecycleScope.launch {
-            repeatOnLifecycle(Lifecycle.State.CREATED) {
+            repeatOnLifecycle(Lifecycle.State.RESUMED) {
                 launch {
                     vm.mainUiState.map { it.isLoading }.distinctUntilChanged().collectLatest {
                         mBinding.isLoading = it
@@ -69,8 +58,7 @@ class MainActivity : BaseActivity<ActivityMainBinding>(), DLogger {
                         .map { it.toastState as ToastState.Toast }.distinctUntilChanged()
                         .collectLatest {
                             withContext(Dispatchers.Main) {
-                                Toast.makeText(applicationContext, it.msg, Toast.LENGTH_SHORT)
-                                    .show()
+                                showToast(applicationContext,it.msg)
                                 vm.accept(UiAction.ResetToast)
                             }
                         }
@@ -78,19 +66,30 @@ class MainActivity : BaseActivity<ActivityMainBinding>(), DLogger {
 
                 launch {
                     vm.newTaskState.filter { it is NewTaskState.PreparingData }
-                        .distinctUntilChanged()
-                        .collectLatest {
+                        .collect {
                             if (supportFragmentManager.findFragmentByTag(
                                     AddNewTaskDialogFragment::class.java.simpleName
                                 )?.isVisible == true
                             ) {
-                                return@collectLatest
+                                return@collect
                             }
-                            AddNewTaskDialogFragment().show(
+                            val dialog= AddNewTaskDialogFragment()
+                            Logger.d("dialog = $dialog")
+                           dialog.show(
                                 supportFragmentManager,
                                 AddNewTaskDialogFragment::class.java.simpleName
                             )
                         }
+                }
+
+                launch {
+                    vm.taskListState.collectLatest {
+                        if(it is IResult.Success){
+                            it.data.forEach {
+                                logger("$it")
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -105,10 +104,6 @@ class MainActivity : BaseActivity<ActivityMainBinding>(), DLogger {
     private fun ActivityMainBinding.bindState() {
         addUriBtn.setOnClickListener {
             AddUriDialogFragment().show(supportFragmentManager, "")
-        }
-
-        lifecycleScope.launch {
-
         }
 
     }

@@ -37,7 +37,7 @@ enum class FileType:Serializable{
     VIDEO,
     AUDIO,
     IMG,
-    OTHER
+    OTHER,
 }
 
 enum class ITaskState(val code: Int) {

@@ -1,7 +1,6 @@
 package com.station.stationdownloader.ui.viewmodel
 
 import android.app.Application
-import android.provider.Contacts.Intents.UI
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -13,20 +12,24 @@ import com.station.stationdownloader.data.source.IDownloadTaskRepository
 import com.station.stationdownloader.data.source.IEngineRepository
 import com.station.stationdownloader.data.source.ITorrentInfoRepository
 import com.station.stationdownloader.data.source.local.engine.NewTaskConfigModel
+import com.station.stationdownloader.data.source.local.engine.xl.XLEngine
 import com.station.stationdownloader.data.source.local.model.StationDownloadTask
 import com.station.stationdownloader.data.source.local.model.TreeNode
 import com.station.stationdownloader.data.source.local.model.filterFile
+import com.station.stationdownloader.data.source.local.room.entities.XLDownloadTaskEntity
 import com.station.stationdownloader.data.source.local.room.entities.asStationDownloadTask
 import com.station.stationdownloader.utils.DLogger
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -35,12 +38,10 @@ import javax.inject.Inject
 class MainViewModel @Inject constructor(
     val application: Application,
     val stateHandle: SavedStateHandle,
+    val taskRepo: IDownloadTaskRepository
 ) : ViewModel(), DLogger {
     @Inject
     lateinit var engineRepo: IEngineRepository
-
-    @Inject
-    lateinit var taskRepo: IDownloadTaskRepository
 
     @Inject
     lateinit var configRepo: IConfigurationRepository
@@ -58,6 +59,8 @@ class MainViewModel @Inject constructor(
     private val _newTaskState = MutableStateFlow<NewTaskState>(NewTaskState.INIT)
     val newTaskState: StateFlow<NewTaskState> = _newTaskState.asStateFlow()
 
+    val taskListState:StateFlow<IResult<List<XLDownloadTaskEntity>>>
+
     val accept: (UiAction) -> Unit
     val dialogAccept: (DialogAction) -> Unit
 
@@ -65,6 +68,11 @@ class MainViewModel @Inject constructor(
     init {
         accept = initAcceptAction()
         dialogAccept = initAddUriDialogAcceptAction()
+        taskListState = taskRepo.getTasksStream().stateIn(
+            viewModelScope,
+            SharingStarted.WhileSubscribed(5000),
+            IResult.Success(emptyList())
+        )
     }
 
     private fun initAcceptAction(): (UiAction) -> Unit {
@@ -90,7 +98,24 @@ class MainViewModel @Inject constructor(
                 _mainUiState.update {
                     it.copy(isLoading = false)
                 }
-                updateAddUriState(result)
+                if(result is IResult.Error){
+                    _addUriState.update {
+                        AddUriUiState.ERROR(result.exception.message.toString())
+                    }
+                    Logger.e(result.exception.message.toString())
+                    return@collect
+                }
+
+                _addUriState.update {
+                    AddUriUiState.SUCCESS
+                }
+
+                val newTaskModel= (result as IResult.Success).data
+                _newTaskState.update {
+                    NewTaskState.PreparingData(
+                        task = newTaskModel
+                    )
+                }
             }
         }
 
@@ -108,8 +133,14 @@ class MainViewModel @Inject constructor(
                     return@collect
                 }
 
-                engineRepo.startTask((saveTaskResult as IResult.Success).data.asStationDownloadTask())
+                val a=engineRepo.startTask((saveTaskResult as IResult.Success).data.asStationDownloadTask())
 
+                Logger.d("taskId=${(a as IResult.Success).data}")
+                delay(3000)
+
+//                val b=engineRepo.startTask((saveTaskResult as IResult.Success).data.asStationDownloadTask())
+//
+//                Logger.d("taskId2=${(b as IResult.Success).data}")
                 _newTaskState.update {
                     NewTaskState.SUCCESS
                 }
@@ -202,32 +233,6 @@ class MainViewModel @Inject constructor(
         }
     }
 
-    private fun updateAddUriState(result: IResult<NewTaskConfigModel>) {
-        when (result) {
-            is IResult.Error -> {
-                _addUriState.update {
-                    AddUriUiState.ERROR(result.exception.message.toString())
-                }
-                Logger.e(result.exception.message.toString())
-            }
-
-            is IResult.Success -> {
-                _addUriState.update {
-                    AddUriUiState.SUCCESS
-                }
-                updateNewTaskConfig(result.data)
-            }
-        }
-    }
-
-    private fun updateNewTaskConfig(data: NewTaskConfigModel) {
-        _newTaskState.update {
-            NewTaskState.PreparingData(
-                task = data
-            )
-        }
-    }
-
     override fun DLogger.tag(): String {
         return MainViewModel::class.java.simpleName
     }
@@ -252,6 +257,7 @@ data class MainUiState(
     val isLoading: Boolean = false,
     val toastState: ToastState = ToastState.INIT
 )
+
 
 sealed class ToastState {
     object INIT : ToastState()
