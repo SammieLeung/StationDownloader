@@ -1,6 +1,7 @@
 package com.station.stationdownloader.data.source.repository
 
 import com.station.stationdownloader.DownloadEngine
+import com.station.stationdownloader.DownloadTaskStatus
 import com.station.stationdownloader.DownloadUrlType
 import com.station.stationdownloader.data.IResult
 import com.station.stationdownloader.data.source.IDownloadTaskRepository
@@ -8,6 +9,7 @@ import com.station.stationdownloader.data.source.IEngineRepository
 import com.station.stationdownloader.data.source.local.engine.IEngine
 import com.station.stationdownloader.data.source.local.engine.NewTaskConfigModel
 import com.station.stationdownloader.data.source.local.model.StationDownloadTask
+import com.station.stationdownloader.data.source.local.model.asXLDownloadTaskEntity
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -53,12 +55,10 @@ class DefaultEngineRepository(
             val selectIndexes: IntArray = stationDownloadTask.selectIndexes.toIntArray()
             return@withContext when (stationDownloadTask.engine) {
                 DownloadEngine.XL -> {
-
-
-
                     val startTaskResult = xlEngine.startTask(
                         url, downloadPath, name, urlType, fileCount, selectIndexes
                     )
+                    downloadTaskRepo.updateTask(stationDownloadTask.copy(status = DownloadTaskStatus.DOWNLOADING).asXLDownloadTaskEntity())
                     startTaskResult
                 }
 

@@ -26,14 +26,18 @@ import com.station.stationdownloader.ui.fragment.AddUriDialogFragment
 import com.station.stationdownloader.ui.fragment.newtask.AddNewTaskDialogFragment
 import com.station.stationdownloader.ui.viewmodel.MainViewModel
 import com.station.stationdownloader.ui.viewmodel.NewTaskState
+import com.station.stationdownloader.ui.viewmodel.ToastState
+import com.station.stationdownloader.ui.viewmodel.UiAction
 import com.station.stationdownloader.utils.DLogger
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import javax.inject.Inject
 
 @AndroidEntryPoint
@@ -54,31 +58,40 @@ class MainActivity : BaseActivity<ActivityMainBinding>(), DLogger {
 
     init {
         lifecycleScope.launch {
-            repeatOnLifecycle(Lifecycle.State.RESUMED) {
+            repeatOnLifecycle(Lifecycle.State.CREATED) {
                 launch {
                     vm.mainUiState.map { it.isLoading }.distinctUntilChanged().collectLatest {
                         mBinding.isLoading = it
                     }
                 }
                 launch {
-                    vm.newTaskState.map { it is NewTaskState.PreparingData }.distinctUntilChanged()
+                    vm.mainUiState.filter { it.toastState is ToastState.Toast }
+                        .map { it.toastState as ToastState.Toast }.distinctUntilChanged()
                         .collectLatest {
-                            if (it) {
-                                if (supportFragmentManager.findFragmentByTag(
-                                        AddNewTaskDialogFragment::class.java.simpleName
-                                    )?.isVisible == true
-                                ) {
-                                    return@collectLatest
-                                }
-                                AddNewTaskDialogFragment().show(
-                                    supportFragmentManager,
-                                    AddNewTaskDialogFragment::class.java.simpleName
-                                )
+                            withContext(Dispatchers.Main) {
+                                Toast.makeText(applicationContext, it.msg, Toast.LENGTH_SHORT)
+                                    .show()
+                                vm.accept(UiAction.ResetToast)
                             }
                         }
-
                 }
 
+                launch {
+                    vm.newTaskState.filter { it is NewTaskState.PreparingData }
+                        .distinctUntilChanged()
+                        .collectLatest {
+                            if (supportFragmentManager.findFragmentByTag(
+                                    AddNewTaskDialogFragment::class.java.simpleName
+                                )?.isVisible == true
+                            ) {
+                                return@collectLatest
+                            }
+                            AddNewTaskDialogFragment().show(
+                                supportFragmentManager,
+                                AddNewTaskDialogFragment::class.java.simpleName
+                            )
+                        }
+                }
             }
         }
     }
@@ -120,24 +133,6 @@ class MainActivity : BaseActivity<ActivityMainBinding>(), DLogger {
         toast?.cancel()
         toast = Toast.makeText(context, message, Toast.LENGTH_SHORT)
         toast?.show()
-    }
-
-    fun testAria2UI() {
-
-        lifecycleScope.launch(Dispatchers.Default) {
-
-            mEngineRepo.init()
-            mEngineRepo.startTask(
-                url = "/sdcard/Station/test.torrent",
-                engine = DownloadEngine.ARIA2,
-                downloadPath = "/sdcard/Download",
-                name = "test",
-                urlType = DownloadUrlType.TORRENT,
-                fileCount = 1,
-                selectIndexes = IntArray(0)
-            )
-        }
-
     }
 
 

@@ -1,13 +1,16 @@
 package com.station.stationdownloader.data.source.local.model
 
+import androidx.work.Data
+import androidx.work.workDataOf
 import com.station.stationdownloader.DownloadEngine
 import com.station.stationdownloader.DownloadTaskStatus
 import com.station.stationdownloader.DownloadUrlType
+import com.station.stationdownloader.DownloadWorker
 import com.station.stationdownloader.data.source.local.room.entities.XLDownloadTaskEntity
 import java.io.Serializable
 
 data class StationDownloadTask(
-    val id:Long=0L,
+    val id: Long = 0L,
     val taskId: Long = 0L,
     val torrentId: Long = -1L,
     val url: String,
@@ -29,7 +32,7 @@ data class StationDownloadTask(
 
 fun StationDownloadTask.asXLDownloadTaskEntity(): XLDownloadTaskEntity {
     return XLDownloadTaskEntity(
-        id=0,
+        id = id,
         torrentId = torrentId,
         url = url,
         realUrl = realUrl,

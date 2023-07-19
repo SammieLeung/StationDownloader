@@ -1,6 +1,5 @@
 package com.station.stationdownloader
 
-import com.xunlei.downloadlib.XLTaskHelper
 import java.io.Serializable
 
 /**
@@ -13,7 +12,7 @@ import java.io.Serializable
  */
 enum class DownloadTaskStatus:Serializable {
     PENDING,//准备中
-    IN_PROGRESS,//下载中
+    DOWNLOADING,//下载中
     COMPLETED,//下载完成
     FAILED//下载失败
 }

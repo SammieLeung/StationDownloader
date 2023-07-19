@@ -7,6 +7,7 @@ import android.provider.Contacts.Intents.UI
 import android.util.Base64
 import android.view.View
 import android.widget.CheckBox
+import android.widget.Toast
 import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.lifecycleScope
 import com.station.stationdownloader.FileType
@@ -149,6 +150,8 @@ class AddNewTaskDialogFragment : BaseDialogFragment<DialogFragmentAddNewTaskBind
 
         lifecycleScope.launch {
             successStart.collect{
+
+                Toast.makeText(requireContext(),R.string.start_to_download,Toast.LENGTH_SHORT).show()
                 dismiss()
             }
         }

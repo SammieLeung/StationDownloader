@@ -1,29 +1,20 @@
 package com.station.stationdownloader.ui.viewmodel
 
 import android.app.Application
+import android.provider.Contacts.Intents.UI
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import androidx.work.Constraints
-import androidx.work.NetworkType
-import androidx.work.OneTimeWorkRequestBuilder
-import androidx.work.WorkManager
-import androidx.work.WorkRequest
 import com.orhanobut.logger.Logger
-import com.station.stationdownloader.DownloadWorker
 import com.station.stationdownloader.FileType
-import com.station.stationdownloader.contants.TaskExecuteError
 import com.station.stationdownloader.data.IResult
 import com.station.stationdownloader.data.source.IConfigurationRepository
 import com.station.stationdownloader.data.source.IDownloadTaskRepository
 import com.station.stationdownloader.data.source.IEngineRepository
 import com.station.stationdownloader.data.source.ITorrentInfoRepository
 import com.station.stationdownloader.data.source.local.engine.NewTaskConfigModel
-import com.station.stationdownloader.data.source.local.engine.asStationDownloadTask
-import com.station.stationdownloader.data.source.local.engine.asXLDownloadTaskEntity
 import com.station.stationdownloader.data.source.local.model.StationDownloadTask
 import com.station.stationdownloader.data.source.local.model.TreeNode
-import com.station.stationdownloader.data.source.local.model.asXLDownloadTaskEntity
 import com.station.stationdownloader.data.source.local.model.filterFile
 import com.station.stationdownloader.data.source.local.room.entities.asStationDownloadTask
 import com.station.stationdownloader.utils.DLogger
@@ -32,10 +23,10 @@ import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flow
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -80,7 +71,7 @@ class MainViewModel @Inject constructor(
         val actionStateFlow: MutableSharedFlow<UiAction> = MutableSharedFlow()
         val initTask = actionStateFlow.filterIsInstance<UiAction.InitTask>()
         val startTask = actionStateFlow.filterIsInstance<UiAction.StartDownloadTask>()
-
+        val resetToast = actionStateFlow.filterIsInstance<UiAction.ResetToast>()
         viewModelScope.launch {
             initTask.flatMapLatest {
                 flow {
@@ -104,52 +95,32 @@ class MainViewModel @Inject constructor(
         }
 
         viewModelScope.launch {
-            startTask.flatMapLatest {
-                flow {
-                    if (_newTaskState.value !is NewTaskState.PreparingData)
-                        return@flow
+            startTask.collect { it ->
+                if (_newTaskState.value !is NewTaskState.PreparingData)
+                    return@collect
 
-                    val result =
-                        taskRepo.saveTask((_newTaskState.value as NewTaskState.PreparingData).task)
-                    when (result) {
-                        is IResult.Error -> {
-                            emit(result)
-                        }
-
-                        is IResult.Success -> {
-
-                            val constraints = Constraints.Builder()
-                                .setRequiredNetworkType(NetworkType.CONNECTED)
-                                .setRequiresBatteryNotLow(true)
-                                .build()
-
-                            val downloadTaskWorker: WorkRequest =
-                                OneTimeWorkRequestBuilder<DownloadWorker>()
-                                    .setConstraints(constraints)
-                                    .build()
-
-                            WorkManager
-                                .getInstance(application)
-                                .enqueue(downloadTaskWorker)
-
-
-                            emit(engineRepo.startTask(result.data.asStationDownloadTask()))
-                        }
+                val saveTaskResult =
+                    taskRepo.saveTask((_newTaskState.value as NewTaskState.PreparingData).task)
+                if (saveTaskResult is IResult.Error) {
+                    _mainUiState.update {
+                        it.copy(toastState = ToastState.Toast(saveTaskResult.exception.message.toString()))
                     }
-
-
-                }
-            }.map {
-                when (it) {
-                    is IResult.Error -> it
-                    is IResult.Success -> {
-                    }
+                    return@collect
                 }
 
-            }.collect {
-                Logger.d("${it}")
+                engineRepo.startTask((saveTaskResult as IResult.Success).data.asStationDownloadTask())
+
                 _newTaskState.update {
                     NewTaskState.SUCCESS
+                }
+
+            }
+        }
+
+        viewModelScope.launch {
+            resetToast.collect {
+                _mainUiState.update {
+                    it.copy(toastState = ToastState.INIT)
                 }
             }
         }
@@ -264,6 +235,7 @@ class MainViewModel @Inject constructor(
 
 sealed class UiAction {
     data class InitTask(val url: String) : UiAction()
+    object ResetToast : UiAction()
     object StartDownloadTask : UiAction()
 }
 
@@ -278,7 +250,13 @@ sealed class DialogAction {
 
 data class MainUiState(
     val isLoading: Boolean = false,
+    val toastState: ToastState = ToastState.INIT
 )
+
+sealed class ToastState {
+    object INIT : ToastState()
+    data class Toast(val msg: String) : ToastState()
+}
 
 sealed class NewTaskState {
     object INIT : NewTaskState()

@@ -4,9 +4,12 @@ import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.Index
 import androidx.room.PrimaryKey
+import androidx.work.Data
+import androidx.work.workDataOf
 import com.station.stationdownloader.DownloadEngine
 import com.station.stationdownloader.DownloadTaskStatus
 import com.station.stationdownloader.DownloadUrlType
+import com.station.stationdownloader.DownloadWorker
 import com.station.stationdownloader.data.source.local.model.StationDownloadTask
 import org.jetbrains.annotations.NotNull
 
@@ -51,6 +54,14 @@ data class XLDownloadTaskEntity @JvmOverloads constructor(
     @ColumnInfo(name = "create_time")
     val createTime: Long = System.currentTimeMillis(),
 )
+
+fun XLDownloadTaskEntity.buildWorkInputData(): Data {
+    return workDataOf(
+        DownloadWorker.IN_URL to url,
+        DownloadWorker.IN_ENGINE to engine.name,
+        DownloadWorker.IN_DOWNLOAD_PATH to downloadPath
+    )
+}
 
 fun XLDownloadTaskEntity.asStationDownloadTask(): StationDownloadTask {
     return StationDownloadTask(

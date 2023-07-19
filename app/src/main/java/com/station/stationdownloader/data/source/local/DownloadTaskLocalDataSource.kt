@@ -1,7 +1,7 @@
 package com.station.stationdownloader.data.source.local
 
 import com.station.stationdownloader.DownloadEngine
-import com.station.stationdownloader.contants.SqlError
+import com.station.stationdownloader.contants.TaskExecuteError
 import com.station.stationdownloader.data.source.IDownloadTaskDataSource
 import com.station.stationdownloader.data.source.local.room.dao.XLDownloadTaskDao
 import com.station.stationdownloader.data.source.local.room.entities.XLDownloadTaskEntity
@@ -50,8 +50,8 @@ class DownloadTaskLocalDataSource internal constructor(
         val xlDownloadTaskEntity = downloadTaskDao.getTaskByUrl(url, downloadPath)
         return if (xlDownloadTaskEntity == null) {
             IResult.Error(
-                Exception(SqlError.TASK_NOT_FOUND.name),
-                SqlError.TASK_NOT_FOUND.ordinal
+                Exception(TaskExecuteError.TASK_NOT_FOUND.name),
+                TaskExecuteError.TASK_NOT_FOUND.ordinal
             )
         } else {
             IResult.Success(xlDownloadTaskEntity)

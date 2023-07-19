@@ -1,26 +1,20 @@
 package com.station.stationdownloader.data.source.repository
 
 import com.station.stationdownloader.DownloadEngine
-import com.station.stationdownloader.contants.SqlError
 import com.station.stationdownloader.contants.TaskExecuteError
-import com.station.stationdownloader.contants.UNKNOWN_ERROR
 import com.station.stationdownloader.data.IResult
 import com.station.stationdownloader.data.source.IDownloadTaskDataSource
 import com.station.stationdownloader.data.source.IDownloadTaskRepository
 import com.station.stationdownloader.data.source.local.engine.NewTaskConfigModel
 import com.station.stationdownloader.data.source.local.engine.asXLDownloadTaskEntity
-import com.station.stationdownloader.data.source.local.model.StationDownloadTask
 import com.station.stationdownloader.data.source.local.model.TreeNode
 import com.station.stationdownloader.data.source.local.model.getSelectedFileIndexes
 import com.station.stationdownloader.data.source.local.room.entities.XLDownloadTaskEntity
-import com.station.stationdownloader.data.source.local.room.entities.asStationDownloadTask
 import com.station.stationdownloader.data.succeeded
-import com.station.stationdownloader.di.IoDispatcher
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.withContext
-import java.lang.Error
 
 /**
  * author: Sam Leung
@@ -112,8 +106,8 @@ class DefaultDownloadTaskRepository(
             val sqlResult = updateTask(updatedTask)
             if (!sqlResult.succeeded) {
                 return@withContext IResult.Error(
-                    Exception(SqlError.UPDATE_TASK_CONFIG_FAILED.name),
-                    SqlError.UPDATE_TASK_CONFIG_FAILED.ordinal
+                    Exception(TaskExecuteError.UPDATE_TASK_CONFIG_FAILED.name),
+                    TaskExecuteError.UPDATE_TASK_CONFIG_FAILED.ordinal
                 )
             }
             return@withContext IResult.Success(

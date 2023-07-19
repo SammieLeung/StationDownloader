@@ -17,4 +17,6 @@
 
   <string name="title_select_device">选择下载的设备</string>
   <string name="title_select_download_path">选择下载目录</string>
+
+  <string name="start_to_download">开始下载</string>
 </resources>
