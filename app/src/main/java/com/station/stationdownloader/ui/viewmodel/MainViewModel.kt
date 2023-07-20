@@ -6,6 +6,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.orhanobut.logger.Logger
 import com.station.stationdownloader.FileType
+import com.station.stationdownloader.contants.TaskExecuteError
 import com.station.stationdownloader.data.IResult
 import com.station.stationdownloader.data.source.IConfigurationRepository
 import com.station.stationdownloader.data.source.IDownloadTaskRepository
@@ -19,6 +20,7 @@ import com.station.stationdownloader.data.source.local.model.filterFile
 import com.station.stationdownloader.data.source.local.room.entities.XLDownloadTaskEntity
 import com.station.stationdownloader.data.source.local.room.entities.asStationDownloadTask
 import com.station.stationdownloader.utils.DLogger
+import com.xunlei.downloadlib.XLTaskHelper
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -59,7 +61,7 @@ class MainViewModel @Inject constructor(
     private val _newTaskState = MutableStateFlow<NewTaskState>(NewTaskState.INIT)
     val newTaskState: StateFlow<NewTaskState> = _newTaskState.asStateFlow()
 
-    val taskListState:StateFlow<IResult<List<XLDownloadTaskEntity>>>
+    val taskListState: StateFlow<IResult<List<XLDownloadTaskEntity>>>
 
     val accept: (UiAction) -> Unit
     val dialogAccept: (DialogAction) -> Unit
@@ -98,7 +100,7 @@ class MainViewModel @Inject constructor(
                 _mainUiState.update {
                     it.copy(isLoading = false)
                 }
-                if(result is IResult.Error){
+                if (result is IResult.Error) {
                     _addUriState.update {
                         AddUriUiState.ERROR(result.exception.message.toString())
                     }
@@ -110,7 +112,7 @@ class MainViewModel @Inject constructor(
                     AddUriUiState.SUCCESS
                 }
 
-                val newTaskModel= (result as IResult.Success).data
+                val newTaskModel = (result as IResult.Success).data
                 _newTaskState.update {
                     NewTaskState.PreparingData(
                         task = newTaskModel
@@ -126,25 +128,23 @@ class MainViewModel @Inject constructor(
 
                 val saveTaskResult =
                     taskRepo.saveTask((_newTaskState.value as NewTaskState.PreparingData).task)
-                if (saveTaskResult is IResult.Error) {
+                if (saveTaskResult is IResult.Error && saveTaskResult.code != TaskExecuteError.REPEATING_TASK_NOTHING_CHANGE.ordinal) {
                     _mainUiState.update {
                         it.copy(toastState = ToastState.Toast(saveTaskResult.exception.message.toString()))
                     }
                     return@collect
                 }
 
-                val a=engineRepo.startTask((saveTaskResult as IResult.Success).data.asStationDownloadTask())
+                saveTaskResult as IResult.Success
 
-                Logger.d("taskId=${(a as IResult.Success).data}")
-                delay(3000)
+                val taskId =
+                    engineRepo.startTask(saveTaskResult.data.asStationDownloadTask())
 
-                val b=engineRepo.startTask((saveTaskResult as IResult.Success).data.asStationDownloadTask())
+                stateHandle[saveTaskResult.data.url] = taskId
 
-                Logger.d("taskId2=${(b as IResult.Success).data}")
                 _newTaskState.update {
                     NewTaskState.SUCCESS
                 }
-
             }
         }
 
@@ -232,6 +232,7 @@ class MainViewModel @Inject constructor(
             }
         }
     }
+
 
     override fun DLogger.tag(): String {
         return MainViewModel::class.java.simpleName

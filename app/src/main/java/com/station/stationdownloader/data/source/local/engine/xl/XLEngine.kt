@@ -128,7 +128,6 @@ class XLEngine internal constructor(
             }
 
             DownloadUrlType.TORRENT -> {
-                XLTaskHelper.init(context)
                 val taskId = XLTaskHelper.instance().addTorrentTask(
                     url, downloadPath, TaskTools.deSelectedIndexes(fileCount, selectIndexes)
                 )

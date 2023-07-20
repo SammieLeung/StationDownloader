@@ -35,7 +35,7 @@ class AddUriDialogFragment : BaseDialogFragment<DialogFragmentAddUriBinding>() {
         uiState: Flow<AddUriUiState<StationDownloadTask>>,
         accept: (UiAction) -> Unit,
     ) {
-        mBinding.inputView.setText("sdcard/Station/tvset2.torrent")
+        mBinding.inputView.setText("/storage/emulated/0/Station/tvset2.torrent")
         okBtn.setOnClickListener {
             done(accept)
         }

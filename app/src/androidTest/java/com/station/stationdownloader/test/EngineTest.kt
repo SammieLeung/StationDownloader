@@ -186,6 +186,15 @@ class EngineTest {
         }
         println("data $a")
     }
+
+    @Test
+    fun testXLEngine(){
+        XLTaskHelper.init(ApplicationProvider.getApplicationContext())
+       val id= XLTaskHelper.instance().addTorrentTask("/storage/emulated/0/Station/tvset2.torrent","/storage/emulated/0/Station/Test",
+            intArrayOf()
+        )
+        Logger.d("id=$id")
+    }
 }
 
 
