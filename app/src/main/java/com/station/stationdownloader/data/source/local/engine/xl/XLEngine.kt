@@ -248,7 +248,7 @@ class XLEngine internal constructor(
     ): IResult<NewTaskConfigModel> {
         val taskName = XLTaskHelper.instance().getFileName(realUrl)
         val downloadPath =
-            File(configurationDataSource.getDownloadPath(), taskName.substringAfterLast(".")).path
+            File(configurationDataSource.getDownloadPath(), taskName.substringBeforeLast(".")).path
         val normalTask = NewTaskConfigModel.NormalTask(
             originUrl = originUrl,
             url = realUrl,
@@ -324,10 +324,10 @@ class XLEngine internal constructor(
             Exception(TaskExecuteError.SUB_TORRENT_INFO_IS_NULL.name),
             TaskExecuteError.SUB_TORRENT_INFO_IS_NULL.ordinal
         )
-
         val taskName = torrentUrl.substringAfterLast(File.separatorChar)
+
         val downloadPath =
-            File(configurationDataSource.getDownloadPath(), taskName.substringAfterLast(".")).path
+            File(configurationDataSource.getDownloadPath(), taskName.substringBeforeLast(".")).path
         val fileCount = torrentInfo.mFileCount
         var torrentId = checkTorrentHash(torrentInfo.mInfoHash)
         if (torrentId == null)
