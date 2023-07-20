@@ -82,15 +82,6 @@ class MainActivity : BaseActivity<ActivityMainBinding>(), DLogger {
                         }
                 }
 
-                launch {
-                    vm.taskListState.collectLatest {
-                        if(it is IResult.Success){
-                            it.data.forEach {
-                                logger("$it")
-                            }
-                        }
-                    }
-                }
             }
         }
     }

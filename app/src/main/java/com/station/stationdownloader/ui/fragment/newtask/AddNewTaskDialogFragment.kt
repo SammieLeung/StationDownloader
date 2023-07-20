@@ -170,7 +170,7 @@ class AddNewTaskDialogFragment : BaseDialogFragment<DialogFragmentAddNewTaskBind
         checkBox: CheckBox, fileType: FileType, dialogAccept: (DialogAction) -> Unit
     ) {
         checkBox.setOnCheckedChangeListener { _, isChecked ->
-            dialogAccept(DialogAction.CheckState(fileType, isChecked))
+            dialogAccept(DialogAction.FilterGroupState(fileType, isChecked))
         }
     }
 

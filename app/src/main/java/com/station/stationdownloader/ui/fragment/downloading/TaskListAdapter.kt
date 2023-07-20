@@ -4,22 +4,40 @@ import android.view.ViewGroup
 import androidx.recyclerview.widget.RecyclerView
 import com.station.stationdownloader.utils.DLogger
 
-class TaskListAdapter() : RecyclerView.Adapter<TaskViewHolder>(), DLogger {
-
+class TaskListAdapter : RecyclerView.Adapter<TaskViewHolder>(), DLogger {
+    private var dataList: MutableList<TaskItem> = mutableListOf()
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): TaskViewHolder {
-        TODO("Not yet implemented")
+        return TaskViewHolder.create(parent)
     }
 
     override fun getItemCount(): Int {
-        TODO("Not yet implemented")
+        return dataList.size
     }
 
     override fun onBindViewHolder(holder: TaskViewHolder, position: Int) {
-        TODO("Not yet implemented")
+        holder.bind(taskItem = dataList[position])
     }
 
     override fun DLogger.tag(): String {
         return TaskListAdapter::class.java.simpleName
     }
+
+    fun fillData(newList: List<TaskItem>) {
+        dataList.clear()
+        dataList.addAll(newList)
+        notifyDataSetChanged()
+    }
+
+    fun updateProgress(item: TaskItem) {
+        for (idx in dataList.indices) {
+            val data = dataList[idx]
+            if (data.url == item.url) {
+                dataList[idx] = item
+                notifyItemChanged(idx)
+                break;
+            }
+        }
+    }
+
 }

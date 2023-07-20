@@ -1,6 +1,7 @@
 package com.station.stationdownloader.data.source.local.engine.xl
 
 import android.content.Context
+import com.orhanobut.logger.Logger
 import com.station.stationdownloader.DownloadUrlType
 import com.station.stationdownloader.ITaskState
 import com.station.stationdownloader.contants.ConfigureError
@@ -119,6 +120,7 @@ class XLEngine internal constructor(
             DownloadUrlType.NORMAL, DownloadUrlType.THUNDER, DownloadUrlType.HTTP, DownloadUrlType.ED2k, DownloadUrlType.DIRECT -> {
                 val taskId = XLTaskHelper.instance().addThunderTask(url, downloadPath, name)
                 if (taskId == 0L) {
+                    printCodeLine()
                     return@withContext IResult.Error(
                         Exception("${TaskExecuteError.START_TASK_FAILED.name}:Error Url is [${url}]"),
                         TaskExecuteError.START_TASK_FAILED.ordinal
@@ -128,11 +130,17 @@ class XLEngine internal constructor(
             }
 
             DownloadUrlType.TORRENT -> {
+
+                val deselectIndexes=TaskTools.deSelectedIndexes(fileCount, selectIndexes)
                 val taskId = XLTaskHelper.instance().addTorrentTask(
-                    url, downloadPath, TaskTools.deSelectedIndexes(fileCount, selectIndexes)
+                    url, downloadPath, deselectIndexes
                 )
 
+                logger("$url")
+                logger("$downloadPath")
+                logger("$deselectIndexes")
                 if (taskId == -1L) {
+                    printCodeLine()
                     return@withContext IResult.Error(
                         Exception("${TaskExecuteError.START_TASK_FAILED.name}:Error Url is [${url}]"),
                         TaskExecuteError.START_TASK_FAILED.ordinal
@@ -363,6 +371,7 @@ class XLEngine internal constructor(
 
         val taskId = XLTaskHelper.instance().addThunderTask(url, savePathFile.path, null)
         if (taskId == 0L) {
+            printCodeLine()
             return@withContext IResult.Error(
                 Exception("${TaskExecuteError.START_TASK_FAILED.name}:Error Url is [${url}]"),
                 TaskExecuteError.START_TASK_FAILED.ordinal

@@ -13,25 +13,21 @@ import com.station.stationdownloader.data.source.IDownloadTaskRepository
 import com.station.stationdownloader.data.source.IEngineRepository
 import com.station.stationdownloader.data.source.ITorrentInfoRepository
 import com.station.stationdownloader.data.source.local.engine.NewTaskConfigModel
-import com.station.stationdownloader.data.source.local.engine.xl.XLEngine
 import com.station.stationdownloader.data.source.local.model.StationDownloadTask
 import com.station.stationdownloader.data.source.local.model.TreeNode
 import com.station.stationdownloader.data.source.local.model.filterFile
-import com.station.stationdownloader.data.source.local.room.entities.XLDownloadTaskEntity
 import com.station.stationdownloader.data.source.local.room.entities.asStationDownloadTask
 import com.station.stationdownloader.utils.DLogger
-import com.xunlei.downloadlib.XLTaskHelper
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flow
-import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -61,7 +57,8 @@ class MainViewModel @Inject constructor(
     private val _newTaskState = MutableStateFlow<NewTaskState>(NewTaskState.INIT)
     val newTaskState: StateFlow<NewTaskState> = _newTaskState.asStateFlow()
 
-    val taskListState: StateFlow<IResult<List<XLDownloadTaskEntity>>>
+    private val _taskIdMap = MutableStateFlow(mapOf<String, Long>())
+    val taskIdMap = _taskIdMap.asStateFlow()
 
     val accept: (UiAction) -> Unit
     val dialogAccept: (DialogAction) -> Unit
@@ -70,11 +67,6 @@ class MainViewModel @Inject constructor(
     init {
         accept = initAcceptAction()
         dialogAccept = initAddUriDialogAcceptAction()
-        taskListState = taskRepo.getTasksStream().stateIn(
-            viewModelScope,
-            SharingStarted.WhileSubscribed(5000),
-            IResult.Success(emptyList())
-        )
     }
 
     private fun initAcceptAction(): (UiAction) -> Unit {
@@ -82,8 +74,64 @@ class MainViewModel @Inject constructor(
         val initTask = actionStateFlow.filterIsInstance<UiAction.InitTask>()
         val startTask = actionStateFlow.filterIsInstance<UiAction.StartDownloadTask>()
         val resetToast = actionStateFlow.filterIsInstance<UiAction.ResetToast>()
+
+        handleInitTaskAction(initTask)
+        handleStartTaskAction(startTask)
+        handleResetToast(resetToast)
+
+
+        return { action ->
+            viewModelScope.launch {
+                actionStateFlow.emit(action)
+            }
+        }
+    }
+
+    private fun handleStartTaskAction(startTaskFlow: Flow<UiAction.StartDownloadTask>) =
         viewModelScope.launch {
-            initTask.flatMapLatest {
+            startTaskFlow.collect { it ->
+                if (_newTaskState.value !is NewTaskState.PreparingData)
+                    return@collect
+
+                val saveTaskResult =
+                    taskRepo.saveTask((_newTaskState.value as NewTaskState.PreparingData).task)
+                if (saveTaskResult is IResult.Error) {
+                    _mainUiState.update {
+                        it.copy(toastState = ToastState.Toast(saveTaskResult.exception.message.toString()))
+                    }
+                    return@collect
+                }
+
+
+                saveTaskResult as IResult.Success
+
+                val taskIdResult =
+                    engineRepo.startTask(saveTaskResult.data.asStationDownloadTask())
+                if (taskIdResult is IResult.Error) {
+                    _mainUiState.update {
+                        it.copy(toastState = ToastState.Toast(taskIdResult.exception.message.toString()))
+                    }
+                    return@collect
+                }
+
+
+                val taskId = (taskIdResult as IResult.Success).data
+
+                val currentMap = _taskIdMap.value.toMutableMap()
+                currentMap[saveTaskResult.data.url] = taskId
+                _taskIdMap.update {
+                    currentMap.toMap()
+                }
+
+                _newTaskState.update {
+                    NewTaskState.SUCCESS
+                }
+            }
+        }
+
+    private fun handleInitTaskAction(initTaskFlow: Flow<UiAction.InitTask>) =
+        viewModelScope.launch {
+            initTaskFlow.flatMapLatest {
                 flow {
                     Logger.d("initTask flow")
 
@@ -121,35 +169,9 @@ class MainViewModel @Inject constructor(
             }
         }
 
+    private fun handleResetToast(resetToastFlow: Flow<UiAction.ResetToast>) =
         viewModelScope.launch {
-            startTask.collect { it ->
-                if (_newTaskState.value !is NewTaskState.PreparingData)
-                    return@collect
-
-                val saveTaskResult =
-                    taskRepo.saveTask((_newTaskState.value as NewTaskState.PreparingData).task)
-                if (saveTaskResult is IResult.Error && saveTaskResult.code != TaskExecuteError.REPEATING_TASK_NOTHING_CHANGE.ordinal) {
-                    _mainUiState.update {
-                        it.copy(toastState = ToastState.Toast(saveTaskResult.exception.message.toString()))
-                    }
-                    return@collect
-                }
-
-                saveTaskResult as IResult.Success
-
-                val taskId =
-                    engineRepo.startTask(saveTaskResult.data.asStationDownloadTask())
-
-                stateHandle[saveTaskResult.data.url] = taskId
-
-                _newTaskState.update {
-                    NewTaskState.SUCCESS
-                }
-            }
-        }
-
-        viewModelScope.launch {
-            resetToast.collect {
+            resetToastFlow.collect {
                 _mainUiState.update {
                     it.copy(toastState = ToastState.INIT)
                 }
@@ -157,37 +179,47 @@ class MainViewModel @Inject constructor(
         }
 
 
-        return { action ->
-            viewModelScope.launch {
-                actionStateFlow.emit(action)
-            }
-        }
-    }
-
     private fun initAddUriDialogAcceptAction(): (DialogAction) -> Unit {
         val actionStateFlow: MutableSharedFlow<DialogAction> = MutableSharedFlow()
         val initAddUriState =
             actionStateFlow.filterIsInstance<DialogAction.ResetAddUriDialogState>()
         val initTaskSettingState =
             actionStateFlow.filterIsInstance<DialogAction.ResetTaskSettingDialogState>()
-        val initCheckStateFlow = actionStateFlow.filterIsInstance<DialogAction.CheckState>()
+        val filterStateFlow = actionStateFlow.filterIsInstance<DialogAction.FilterGroupState>()
 
-        val setDownloadPath = actionStateFlow.filterIsInstance<DialogAction.SetDownloadPath>()
+        val setDownloadPathFlow = actionStateFlow.filterIsInstance<DialogAction.SetDownloadPath>()
 
+        handleInitAddUriState(initAddUriState)
+        handleInitTaskSettingState(initTaskSettingState)
+        handleFilterState(filterStateFlow)
+        handleSetDownloadPathFlow(setDownloadPathFlow)
+
+
+        return { dialogAction ->
+            viewModelScope.launch {
+                actionStateFlow.emit(dialogAction)
+            }
+        }
+    }
+
+
+    private fun handleInitAddUriState(initAddUriStateFlow: Flow<DialogAction.ResetAddUriDialogState>) =
         viewModelScope.launch {
-            initAddUriState.collect {
+            initAddUriStateFlow.collect {
                 _addUriState.value = AddUriUiState.INIT
             }
         }
 
+    private fun handleInitTaskSettingState(initTaskSettingStateFlow: Flow<DialogAction.ResetTaskSettingDialogState>) =
         viewModelScope.launch {
-            initTaskSettingState.collect {
+            initTaskSettingStateFlow.collect {
                 _newTaskState.value = NewTaskState.INIT
             }
         }
 
+    private fun handleFilterState(filterStateFlow: Flow<DialogAction.FilterGroupState>) =
         viewModelScope.launch {
-            initCheckStateFlow.collect { checkState ->
+            filterStateFlow.collect { checkState ->
                 logger("actionCheckStateFlow collect")
                 checkState.fileType
                 _newTaskState.update {
@@ -206,14 +238,12 @@ class MainViewModel @Inject constructor(
                         it
                     }
                 }
-
-
             }
         }
 
-
+    private fun handleSetDownloadPathFlow(setDownloadPathFlow: Flow<DialogAction.SetDownloadPath>) =
         viewModelScope.launch {
-            setDownloadPath.collect { setDownloadPath ->
+            setDownloadPathFlow.collect { setDownloadPath ->
                 if (_newTaskState.value is NewTaskState.PreparingData) {
                     _newTaskState.update {
                         (it as NewTaskState.PreparingData).copy(
@@ -225,14 +255,6 @@ class MainViewModel @Inject constructor(
                 }
             }
         }
-
-        return { dialogAction ->
-            viewModelScope.launch {
-                actionStateFlow.emit(dialogAction)
-            }
-        }
-    }
-
 
     override fun DLogger.tag(): String {
         return MainViewModel::class.java.simpleName
@@ -249,14 +271,14 @@ sealed class DialogAction {
     object ResetAddUriDialogState : DialogAction()
     object ResetTaskSettingDialogState : DialogAction()
 
-    data class CheckState(val fileType: FileType, val isSelect: Boolean) : DialogAction()
+    data class FilterGroupState(val fileType: FileType, val isSelect: Boolean) : DialogAction()
     data class SetDownloadPath(val downloadPath: String) : DialogAction()
 
 }
 
 data class MainUiState(
     val isLoading: Boolean = false,
-    val toastState: ToastState = ToastState.INIT
+    val toastState: ToastState = ToastState.INIT,
 )
 
 

@@ -4,7 +4,7 @@
     xmlns:tools="http://schemas.android.com/tools">
 
     <data>
-        <import type="com.station.stationdownloader.ui.fragment.downloading.TaskItem"/>
+        <import type="com.station.stationdownloader.ui.fragment.downloading.TaskItem" />
         <variable
             name="taskItem"
             type="TaskItem" />
@@ -13,10 +13,10 @@
     <androidx.constraintlayout.widget.ConstraintLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:background="@drawable/task_item_bg"
         android:layout_marginLeft="30dp"
         android:layout_marginRight="30dp"
         android:layout_marginBottom="15dp"
+        android:background="@drawable/task_item_bg"
         android:paddingStart="15dp"
         android:paddingEnd="15dp">
 
@@ -38,26 +38,30 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_marginStart="11dp"
-            android:layout_marginEnd="16dp"
+            android:layout_marginEnd="12dp"
+            android:max="100"
+            android:progress="@{taskItem.progress}"
             app:layout_constraintEnd_toStartOf="@id/startTaskBtn"
             app:layout_constraintStart_toEndOf="@id/fileIcon"
             app:layout_constraintTop_toBottomOf="@id/taskName" />
 
-        <ImageButton
+        <ImageView
+            android:background="@android:color/transparent"
             android:id="@+id/startTaskBtn"
-            android:layout_width="68dp"
-            android:layout_height="68dp"
+            android:layout_width="30dp"
+            android:layout_height="30dp"
+            app:imageResource="@{taskItem.statuBtn}"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintTop_toTopOf="parent" />
 
 
         <TextView
-            android:text="@{taskItem.taskName}"
-            android:textFontWeight="400"
             android:id="@+id/taskName"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:text="@{taskItem.taskName}"
+            android:textFontWeight="400"
             android:textSize="@dimen/t2"
             app:layout_constraintStart_toStartOf="@id/taskProcess"
             app:layout_constraintTop_toTopOf="@id/fileIcon"
@@ -72,10 +76,10 @@
             app:layout_constraintTop_toBottomOf="@id/taskProcess">
 
             <TextView
-                android:text=""
                 android:id="@+id/downloadSize"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
+                android:text="@{taskItem.sizeInfo}"
                 android:textSize="12sp"
                 tools:text="20MB/6.7GB" />
 
@@ -86,10 +90,10 @@
                 android:layout_height="match_parent" />
 
             <TextView
-
                 android:id="@+id/downloadPath"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
+                android:text="@{taskItem.downloadPath}"
                 android:textSize="12sp"
                 tools:text="内置存储/Station/Movies" />
 
@@ -100,15 +104,16 @@
                 android:layout_height="11dp" />
 
             <TextView
-
                 android:id="@+id/engine"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
+                android:text="@{taskItem.engine}"
                 android:textSize="12sp"
-                tools:text="20MB/6.7GB" />
+                tools:text="默认下载" />
         </LinearLayout>
 
         <TextView
+            android:text="@{taskItem.speed}"
             android:id="@+id/textView"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
