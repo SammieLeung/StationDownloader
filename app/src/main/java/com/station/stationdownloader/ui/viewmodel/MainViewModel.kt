@@ -138,9 +138,9 @@ class MainViewModel @Inject constructor(
                 Logger.d("taskId=${(a as IResult.Success).data}")
                 delay(3000)
 
-//                val b=engineRepo.startTask((saveTaskResult as IResult.Success).data.asStationDownloadTask())
-//
-//                Logger.d("taskId2=${(b as IResult.Success).data}")
+                val b=engineRepo.startTask((saveTaskResult as IResult.Success).data.asStationDownloadTask())
+
+                Logger.d("taskId2=${(b as IResult.Success).data}")
                 _newTaskState.update {
                     NewTaskState.SUCCESS
                 }

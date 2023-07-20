@@ -128,10 +128,12 @@ class XLEngine internal constructor(
             }
 
             DownloadUrlType.TORRENT -> {
+                XLTaskHelper.init(context)
                 val taskId = XLTaskHelper.instance().addTorrentTask(
                     url, downloadPath, TaskTools.deSelectedIndexes(fileCount, selectIndexes)
                 )
-                if (taskId == 0L) {
+
+                if (taskId == -1L) {
                     return@withContext IResult.Error(
                         Exception("${TaskExecuteError.START_TASK_FAILED.name}:Error Url is [${url}]"),
                         TaskExecuteError.START_TASK_FAILED.ordinal

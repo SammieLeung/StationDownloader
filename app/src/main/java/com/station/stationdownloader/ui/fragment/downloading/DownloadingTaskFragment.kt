@@ -4,7 +4,6 @@ import android.os.Bundle
 import android.view.View
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.lifecycleScope
-import com.orhanobut.logger.Logger
 import com.station.stationdownloader.DownloadTaskStatus
 import com.station.stationdownloader.data.source.local.room.entities.XLDownloadTaskEntity
 import com.station.stationdownloader.databinding.FragmentDownloadtaskBinding
@@ -16,12 +15,12 @@ import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 
 class DownloadingTaskFragment : BaseFragment<FragmentDownloadtaskBinding>() {
-    val fvm by viewModels<DownloadTaskManageViewModel>()
+    val vm by viewModels<DownloadTaskManageViewModel>()
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         mBinding.bindState(
-            fvm.downloadingTaskList
+            vm.downloadingTaskList
         )
     }
 

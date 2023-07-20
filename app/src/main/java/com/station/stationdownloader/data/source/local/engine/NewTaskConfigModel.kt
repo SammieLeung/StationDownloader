@@ -97,7 +97,7 @@ fun NewTaskConfigModel.asStationDownloadTask(): StationDownloadTask {
             val fileSize = root.totalCheckedFileSize
             val selectIndexes = root.getSelectedFileIndexes()
             StationDownloadTask(
-                torrentId=this.torrentId,
+                torrentId = this.torrentId,
                 url = this.torrentPath,
                 realUrl = this.torrentPath,
                 name = this.taskName,
@@ -117,9 +117,10 @@ fun NewTaskConfigModel.asXLDownloadTaskEntity(): XLDownloadTaskEntity {
         is NewTaskConfigModel.NormalTask -> {
             val root = this._fileTree as TreeNode.Directory
             val fileSize = root.totalCheckedFileSize
+            val fileCount = root.totalFileCount
             val selectIndexes = root.getSelectedFileIndexes()
             XLDownloadTaskEntity(
-                id =0L,
+                id = 0L,
                 url = this.originUrl,
                 realUrl = this.url,
                 name = this.taskName,
@@ -127,7 +128,8 @@ fun NewTaskConfigModel.asXLDownloadTaskEntity(): XLDownloadTaskEntity {
                 engine = this.engine,
                 totalSize = fileSize,
                 downloadPath = this.downloadPath,
-                selectIndexes = selectIndexes
+                selectIndexes = selectIndexes,
+                fileCount = fileCount
             )
 
         }
@@ -135,10 +137,11 @@ fun NewTaskConfigModel.asXLDownloadTaskEntity(): XLDownloadTaskEntity {
         is NewTaskConfigModel.TorrentTask -> {
             val root = this._fileTree as TreeNode.Directory
             val fileSize = root.totalCheckedFileSize
+            val fileCount = root.totalFileCount
             val selectIndexes = root.getSelectedFileIndexes()
             XLDownloadTaskEntity(
                 id = 0L,
-                torrentId=this.torrentId,
+                torrentId = this.torrentId,
                 url = this.torrentPath,
                 realUrl = this.torrentPath,
                 name = this.taskName,
@@ -147,6 +150,7 @@ fun NewTaskConfigModel.asXLDownloadTaskEntity(): XLDownloadTaskEntity {
                 totalSize = fileSize,
                 downloadPath = this.downloadPath,
                 selectIndexes = selectIndexes,
+                fileCount = fileCount
             )
 
         }

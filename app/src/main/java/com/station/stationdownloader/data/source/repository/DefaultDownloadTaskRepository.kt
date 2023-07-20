@@ -75,8 +75,11 @@ class DefaultDownloadTaskRepository(
                 is NewTaskConfigModel.NormalTask -> newTask.originUrl
                 is NewTaskConfigModel.TorrentTask -> newTask.torrentPath
             }
+
+            val rootDir=newTask._fileTree as TreeNode.Directory
             val newSelectIndexes =
-                (newTask._fileTree as TreeNode.Directory).getSelectedFileIndexes()
+                rootDir.getSelectedFileIndexes()
+
 
             val existsTask = getTaskByUrl(originUrl)
             if (existsTask == null) {
