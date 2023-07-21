@@ -106,6 +106,7 @@ class DownloadTaskManageViewModel @Inject constructor(
             taskIdMap.collectLatest {
                 it.forEach { url, taskId ->
                     val job = CoroutineScope(Dispatchers.IO).launch {
+                        Logger.d("getStatus() $this")
                         while (isActive) {
                             val taskInfo = XLTaskHelper.instance().getTaskInfo(taskId)
                             val taskItem = taskItemList.value.filter {

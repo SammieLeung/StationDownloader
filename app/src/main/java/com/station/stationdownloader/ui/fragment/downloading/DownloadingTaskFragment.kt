@@ -51,9 +51,9 @@ class DownloadingTaskFragment : BaseFragment<FragmentDownloadtaskBinding>(), DLo
         }
 
         lifecycleScope.launch {
-            vm.status.collect{
-                if(it is StatusState.Status)
-                taskListAdapter.updateProgress(it.taskItem)
+            vm.status.collect {
+                if (it is StatusState.Status)
+                    taskListAdapter.updateProgress(it.taskItem)
             }
         }
 

@@ -15,6 +15,8 @@ interface IEngineRepository {
        stationDownloadTask: StationDownloadTask
     ): IResult<Long>
 
+    suspend fun stopTask()
+    suspend fun restartTask(stationDownloadTask:StationDownloadTask):IResult<Long>
     suspend fun configure(key: String, values: Array<String>): IResult<Unit>
 
 }

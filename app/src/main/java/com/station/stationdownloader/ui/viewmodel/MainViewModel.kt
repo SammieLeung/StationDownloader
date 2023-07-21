@@ -6,6 +6,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.orhanobut.logger.Logger
 import com.station.stationdownloader.FileType
+import com.station.stationdownloader.TaskService
 import com.station.stationdownloader.contants.TaskExecuteError
 import com.station.stationdownloader.data.IResult
 import com.station.stationdownloader.data.source.IConfigurationRepository
@@ -113,6 +114,8 @@ class MainViewModel @Inject constructor(
                     }
                     return@collect
                 }
+
+                TaskService.watchTask(application,"",2)
 
 
                 val taskId = (taskIdResult as IResult.Success).data

@@ -71,6 +71,14 @@ class DefaultEngineRepository(
             }
         }
 
+    override suspend fun stopTask() {
+        TODO("Not yet implemented")
+    }
+
+    override suspend fun restartTask(stationDownloadTask: StationDownloadTask): IResult<Long> {
+        TODO("Not yet implemented")
+    }
+
 
     override suspend fun configure(key: String, values: Array<String>): IResult<Unit> {
         val xlConfigResult = xlEngine.configure(key, values)
