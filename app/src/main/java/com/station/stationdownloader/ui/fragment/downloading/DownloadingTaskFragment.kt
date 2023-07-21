@@ -22,7 +22,7 @@ class DownloadingTaskFragment : BaseFragment<FragmentDownloadtaskBinding>(), DLo
     private val pVm by activityViewModels<MainViewModel>()
     private val vm by viewModels<DownloadTaskManageViewModel>()
     private val taskListAdapter by lazy {
-        TaskListAdapter()
+        TaskListAdapter(vm.accept)
     }
 
 
@@ -37,6 +37,7 @@ class DownloadingTaskFragment : BaseFragment<FragmentDownloadtaskBinding>(), DLo
     }
 
     private fun FragmentDownloadtaskBinding.bindState(
+
         taskItemListFlow: Flow<List<TaskItem>>,
         accept: Any?
     ) {

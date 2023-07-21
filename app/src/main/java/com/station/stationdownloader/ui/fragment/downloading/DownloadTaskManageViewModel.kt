@@ -137,6 +137,8 @@ sealed class StatusState {
 sealed class UiAction {
     object UpdateProgress : UiAction()
     object StopUpdateProgress : UiAction()
+    data class StartTask(val url:String):UiAction()
+    data class StopTask(val taskId:Long):UiAction()
 }
 
 data class TaskItem(
@@ -144,7 +146,7 @@ data class TaskItem(
     val url: String,
     val taskName: String,
     val statuBtn: Int,
-    val progress: Int,
+    val progress: Int=50,
     val sizeInfo: String,
     val speed: String,
     val downloadPath: String,
@@ -173,7 +175,7 @@ fun StationDownloadTask.asTaskItem(): TaskItem {
                 R.drawable.ic_start
             }
         },
-        progress = if (this.downloadSize <= 0L || this.totalSize <= 0L) 0 else round(this.downloadSize.toDouble() * 100 / this.totalSize.toDouble()).toInt(),
+        progress = if (this.downloadSize <= 0L || this.totalSize <= 0L) 50 else round(this.downloadSize.toDouble() * 100 / this.totalSize.toDouble()).toInt(),
         sizeInfo = "${this.downloadSize.toHumanReading()}/${this.totalSize.toHumanReading()}",
         speed = TaskTools.toHumanReading(0L),
         downloadPath = this.downloadPath,

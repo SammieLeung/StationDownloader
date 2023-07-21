@@ -4,11 +4,11 @@ import android.view.ViewGroup
 import androidx.recyclerview.widget.RecyclerView
 import com.station.stationdownloader.utils.DLogger
 
-class TaskListAdapter : RecyclerView.Adapter<TaskViewHolder>(), DLogger {
+class TaskListAdapter(val accept:(UiAction)->Unit) : RecyclerView.Adapter<TaskViewHolder>(), DLogger {
     private var dataList: MutableList<TaskItem> = mutableListOf()
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): TaskViewHolder {
-        return TaskViewHolder.create(parent)
+        return TaskViewHolder.create(parent,accept)
     }
 
     override fun getItemCount(): Int {
