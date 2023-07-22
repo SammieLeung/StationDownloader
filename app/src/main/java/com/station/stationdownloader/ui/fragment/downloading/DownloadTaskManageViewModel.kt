@@ -4,20 +4,15 @@ import android.app.Application
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.orhanobut.logger.Logger
 import com.station.stationdownloader.DownloadTaskStatus
 import com.station.stationdownloader.R
+import com.station.stationdownloader.TaskStatus
 import com.station.stationdownloader.data.IResult
 import com.station.stationdownloader.data.source.IDownloadTaskRepository
 import com.station.stationdownloader.data.source.local.model.StationDownloadTask
 import com.station.stationdownloader.data.source.local.room.entities.asStationDownloadTask
-import com.station.stationdownloader.ui.fragment.newtask.toHumanReading
 import com.station.stationdownloader.utils.TaskTools
-import com.xunlei.downloadlib.XLTaskHelper
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -25,17 +20,12 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collectLatest
-import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
-import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
-import java.util.TimerTask
 import javax.inject.Inject
-import kotlin.math.round
 
 @HiltViewModel
 class DownloadTaskManageViewModel @Inject constructor(
@@ -62,8 +52,8 @@ class DownloadTaskManageViewModel @Inject constructor(
         emptyList()
     )
 
-    val _status: MutableStateFlow<StatusState> = MutableStateFlow(StatusState.Init)
-    val status = _status.asStateFlow()
+    val _statusState: MutableStateFlow<StatusState> = MutableStateFlow(StatusState.Init)
+    val statusState = _statusState.asStateFlow()
 
 
     val downloadingTasks = unCompletedTaskList.map {
@@ -101,32 +91,49 @@ class DownloadTaskManageViewModel @Inject constructor(
             }
         }
 
-    fun setTaskIdFlow(taskIdMap: StateFlow<Map<String, Long>>) {
+    fun setTaskStatus(taskStatus: StateFlow<Map<String, TaskStatus>>) {
         viewModelScope.launch {
-            taskIdMap.collectLatest {
-                it.forEach { url, taskId ->
-                    val job = CoroutineScope(Dispatchers.IO).launch {
-                        Logger.d("getStatus() $this")
-                        while (isActive) {
-                            val taskInfo = XLTaskHelper.instance().getTaskInfo(taskId)
-                            val taskItem = taskItemList.value.filter {
-                                it.url == url
-                            }?.first()
+            taskStatus.collectLatest {
+                it.forEach { url, taskStatus ->
+                    val taskItem = taskItemList.value.filter {
+                        it.url == url
+                    }?.first()
 
-                            if (taskItem != null) {
-                                _status.update {
-                                    StatusState.Status(taskItem.copy(taskId = taskId,
-                                        speed = taskInfo.mDownloadSpeed.toHumanReading()+"/s"
-                                    ))
-                                }
-                            }
-                            delay(1000)
+                    taskItem?.apply {
+                        _statusState.update {
+                            StatusState.Status(
+                                taskItem.copy(
+                                    taskId = taskStatus.taskId,
+                                    speed = formatSpeed(taskStatus.speed),
+                                    sizeInfo = formatSizeInfo(
+                                        taskStatus.downloadSize,
+                                        taskStatus.totalSize
+                                    ),
+                                    progress = formatProgress(
+                                        taskStatus.downloadSize,
+                                        taskStatus.totalSize
+                                    )
+                                )
+                            )
                         }
                     }
                 }
             }
         }
     }
+
+    private fun formatProgress(downloadSize: Long, totalSize: Long): Int {
+        return TaskTools.formatProgress(downloadSize, totalSize)
+    }
+
+    private fun formatSizeInfo(downloadSize: Long, totalSize: Long): String {
+        return TaskTools.formatSizeInfo(downloadSize, totalSize)
+    }
+
+    private fun formatSpeed(speed: Long): String {
+        return TaskTools.formatSpeed(speed)
+    }
+
 }
 
 sealed class StatusState {
@@ -138,8 +145,8 @@ sealed class StatusState {
 sealed class UiAction {
     object UpdateProgress : UiAction()
     object StopUpdateProgress : UiAction()
-    data class StartTask(val url:String):UiAction()
-    data class StopTask(val taskId:Long):UiAction()
+    data class StartTask(val url: String) : UiAction()
+    data class StopTask(val taskId: Long) : UiAction()
 }
 
 data class TaskItem(
@@ -147,7 +154,7 @@ data class TaskItem(
     val url: String,
     val taskName: String,
     val statuBtn: Int,
-    val progress: Int=50,
+    val progress: Int = 50,
     val sizeInfo: String,
     val speed: String,
     val downloadPath: String,
@@ -165,7 +172,7 @@ fun StationDownloadTask.asTaskItem(): TaskItem {
             }
 
             DownloadTaskStatus.DOWNLOADING -> {
-                R.drawable.ic_stop
+                R.drawable.ic_start
             }
 
             DownloadTaskStatus.COMPLETED -> {
@@ -176,10 +183,11 @@ fun StationDownloadTask.asTaskItem(): TaskItem {
                 R.drawable.ic_start
             }
         },
-        progress = if (this.downloadSize <= 0L || this.totalSize <= 0L) 50 else round(this.downloadSize.toDouble() * 100 / this.totalSize.toDouble()).toInt(),
-        sizeInfo = "${this.downloadSize.toHumanReading()}/${this.totalSize.toHumanReading()}",
-        speed = TaskTools.toHumanReading(0L),
-        downloadPath = this.downloadPath,
+        progress = TaskTools.formatProgress(downloadSize, totalSize),
+        sizeInfo = TaskTools.formatSizeInfo(downloadSize, totalSize),
+        speed = "",
+        downloadPath = "",
         engine = this.engine.name
     )
 }
+

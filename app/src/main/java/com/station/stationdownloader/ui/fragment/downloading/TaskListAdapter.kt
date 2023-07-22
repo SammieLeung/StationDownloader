@@ -16,6 +16,8 @@ class TaskListAdapter(val accept:(UiAction)->Unit) : RecyclerView.Adapter<TaskVi
     }
 
     override fun onBindViewHolder(holder: TaskViewHolder, position: Int) {
+        val taskItem=dataList[position]
+        logger("onBindViewHodler ${taskItem.speed}")
         holder.bind(taskItem = dataList[position])
     }
 

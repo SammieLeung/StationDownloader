@@ -35,7 +35,7 @@ class AddUriDialogFragment : BaseDialogFragment<DialogFragmentAddUriBinding>() {
         uiState: Flow<AddUriUiState<StationDownloadTask>>,
         accept: (UiAction) -> Unit,
     ) {
-        mBinding.inputView.setText("/storage/emulated/0/Station/tvset2.torrent")
+        mBinding.inputView.setText("magnet:?xt=urn:btih:4edffd1faa7ca7422384147945a840ebfb5aa8b5&dn=Asteroid.City.2023.Retail.SWESUB.1080p.WEB.DDP5.1.Atmos.H.264-SiGGiZ")
         okBtn.setOnClickListener {
             done(accept)
         }

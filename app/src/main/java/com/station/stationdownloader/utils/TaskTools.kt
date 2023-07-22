@@ -1,11 +1,13 @@
 package com.station.stationdownloader.utils
 
 import com.station.stationdownloader.DownloadUrlType
+import com.station.stationdownloader.ui.fragment.newtask.toHumanReading
 import com.station.stationkitkt.MimeTypeHelper
 import java.io.File
 import java.io.UnsupportedEncodingException
 import java.net.URLDecoder
 import java.util.Base64
+import kotlin.math.round
 
 const val MAGNET_PROTOCOL = "magnet:?xt=urn:btih:"
 const val HTTP_PROTOCOL = "http://"
@@ -177,6 +179,19 @@ object TaskTools {
         if (byte >= 1.KB)
             return "${String.format("%.2f", byte.asKB)}KB"
         return "${String.format("%.2f", byte.asByte)}B"
+    }
+
+
+    fun formatProgress(downloadSize: Long, totalSize: Long): Int {
+        return if (downloadSize <= 0L || totalSize <= 0L) 0 else round(downloadSize.toDouble() * 100 / totalSize.toDouble()).toInt()
+    }
+
+    fun formatSizeInfo(downloadSize: Long, totalSize: Long): String {
+        return "${downloadSize.toHumanReading()}/${totalSize.toHumanReading()}"
+    }
+
+    fun formatSpeed(speed: Long): String {
+        return "${toHumanReading(speed)}/S"
     }
 
 }
