@@ -44,5 +44,7 @@
         <service
             android:name=".DownloaderService"
             android:exported="true" />
+        <service android:name=".TaskService"
+            android:exported="true"/>
     </application>
 </manifest>

@@ -18,27 +18,27 @@
     </data>
 
     <RelativeLayout
-        android:gravity="center"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
+        android:gravity="center"
         android:theme="@style/AppTheme.Dialog">
 
         <RelativeLayout
-            android:background="@drawable/station_dialog_background"
             android:layout_width="750dp"
             android:layout_height="wrap_content"
+            android:background="@drawable/station_dialog_background"
             android:paddingHorizontal="45dp"
             android:paddingTop="30dp"
             android:paddingBottom="45dp">
 
             <TextView
-                android:textSize="24sp"
-                android:textFontWeight="500"
                 android:id="@+id/titleView"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="15dp"
-                android:text="@{taskName}" />
+                android:text="@{taskName}"
+                android:textFontWeight="500"
+                android:textSize="24sp" />
 
             <androidx.recyclerview.widget.RecyclerView
                 android:id="@+id/taskFileList"
@@ -50,85 +50,112 @@
                 app:layoutManager="LinearLayoutManager" />
 
 
-                <LinearLayout
-                    android:layout_below="@id/taskFileList"
-                    android:theme="@style/AppTheme.CheckBox"
-                    android:id="@+id/filterSets"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content">
-
-                    <CheckBox
-                        style="@style/VideoTypeCheckBoxStyle"
-                        android:id="@+id/videoCBox"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="@string/filter_video" />
-
-                    <CheckBox
-                        style="@style/VideoTypeCheckBoxStyle"
-                        android:layout_marginStart="22dp"
-                        android:id="@+id/audioCBox"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="@string/filter_audio" />
-
-                    <CheckBox
-                        style="@style/VideoTypeCheckBoxStyle"
-                        android:layout_marginStart="22dp"
-                        android:id="@+id/pictureCBox"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="@string/filter_image" />
-
-                    <CheckBox
-                        style="@style/VideoTypeCheckBoxStyle"
-                        android:layout_marginStart="22dp"
-                        android:id="@+id/otherCBox"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="@string/filter_other" />
-                </LinearLayout>
-
-                <Spinner
-                    android:layout_below="@id/filterSets"
-                    android:id="@+id/engineSpinner"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content" />
-
-
             <LinearLayout
+                android:id="@+id/filterSets"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_below="@id/taskFileList"
+                android:layout_marginTop="15dp"
+                android:theme="@style/AppTheme.CheckBox">
+
+                <CheckBox
+                    android:id="@+id/videoCBox"
+                    style="@style/VideoTypeCheckBoxStyle"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/filter_video" />
+
+                <CheckBox
+                    android:id="@+id/audioCBox"
+                    style="@style/VideoTypeCheckBoxStyle"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="22dp"
+                    android:text="@string/filter_audio" />
+
+                <CheckBox
+                    android:id="@+id/pictureCBox"
+                    style="@style/VideoTypeCheckBoxStyle"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="22dp"
+                    android:text="@string/filter_image" />
+
+                <CheckBox
+                    android:id="@+id/otherCBox"
+                    style="@style/VideoTypeCheckBoxStyle"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="22dp"
+                    android:text="@string/filter_other" />
+            </LinearLayout>
+
+            <Spinner
+                android:id="@+id/engineSpinner"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_below="@id/filterSets"
+                android:layout_marginTop="23dp"
+                android:backgroundTint="@color/add_new_task_common_bg_tint" />
+
+
+            <RelativeLayout
                 android:id="@+id/downloadPathGroup"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_below="@id/filterSets"
+                android:layout_below="@id/engineSpinner"
+                android:layout_alignBottom="@id/filePickerBtn"
                 android:layout_alignParentStart="true"
-                android:layout_toStartOf="@id/filePickerBtn">
+                android:layout_marginTop="23dp"
+                android:layout_toStartOf="@id/filePickerBtn"
+                android:background="@drawable/download_path_textview_bg">
 
                 <TextView
                     android:id="@+id/downloadPathView"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="@{downloadPath}" />
+                    android:layout_alignParentStart="true"
+                    android:layout_centerVertical="true"
+                    android:layout_marginVertical="5dp"
+                    android:layout_toStartOf="@id/downloadSpaceView"
+                    android:autoSizeMaxTextSize="23sp"
+                    android:autoSizeMinTextSize="16sp"
+                    android:autoSizeTextType="uniform"
+                    android:maxLines="3"
+                    android:paddingHorizontal="15dp"
+                    android:text="@{downloadPath}"
+                    android:textFontWeight="300" />
 
                 <TextView
+                    android:textSize="16sp"
                     android:id="@+id/downloadSpaceView"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="@{downloadSpace}" />
-            </LinearLayout>
+                    android:layout_alignParentEnd="true"
+                    android:layout_centerVertical="true"
+                    android:paddingHorizontal="15dp"
+                    android:text="@{downloadSpace}"
+                    android:textColor="#CCCCCC" />
+
+            </RelativeLayout>
 
             <Button
                 android:id="@+id/filePickerBtn"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_below="@id/filterGroup"
-                android:layout_alignParentEnd="true" />
+                android:layout_width="87dp"
+                android:layout_height="57dp"
+                android:layout_below="@id/engineSpinner"
+                android:layout_alignParentEnd="true"
+                android:layout_marginLeft="23dp"
+                android:layout_marginTop="23dp"
+                android:backgroundTint="@color/add_new_task_common_bg_tint" />
+
 
             <LinearLayout
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_below="@id/filePickerBtn"
-                android:layout_centerHorizontal="true">
+                android:layout_centerHorizontal="true"
+                android:layout_marginTop="30dp">
 
                 <Button
                     android:id="@+id/downloadBtn"

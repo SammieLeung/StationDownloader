@@ -3,7 +3,7 @@
 
     <item>
         <shape>
-            <solid android:color="@color/add_new_task_second_color" />
+            <solid android:color="@color/add_new_task_second_color"/>
             <corners android:radius="@dimen/station_default_radius"/>
         </shape>
     </item>

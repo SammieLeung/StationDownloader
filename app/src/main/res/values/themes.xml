@@ -1,9 +1,12 @@
 <resources xmlns:app="http://schemas.android.com/apk/res-auto" xmlns:tools="http://schemas.android.com/tools">
     <!-- Base application theme. -->
     <style name="AppTheme" parent="StationTheme">
+        <item name="android:textFontWeight">300</item>
     </style>
 
     <style name="AppTheme.Dialog" parent="StationTheme.Dialog">
+        <item name="android:textFontWeight">300</item>
+
     </style>
 
     <style name="AppTheme.CheckBox" parent="AppTheme">

@@ -95,6 +95,7 @@ class AddNewTaskDialogFragment : BaseDialogFragment<DialogFragmentAddNewTaskBind
         accept: (UiAction) -> Unit,
         dialogAccept: (DialogAction) -> Unit
     ) {
+        downloadPathView.isSelected=true
         cancelBtn.setOnClickListener {
             dismiss()
         }
@@ -125,6 +126,7 @@ class AddNewTaskDialogFragment : BaseDialogFragment<DialogFragmentAddNewTaskBind
                 val task = it.task
                 taskName = task._name
                 downloadPath = task._downloadPath
+                downloadSpace = "可用:1000.00GB/1050.00GB"
                 engineSpinner.setSelection(task._downloadEngine.ordinal)
                 taskFileListAdapter.fillData(task._fileTree as TreeNode.Directory)
             }

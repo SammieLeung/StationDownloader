@@ -115,10 +115,14 @@ class MainViewModel @Inject constructor(
                     return@collect
                 }
 
-                TaskService.watchTask(application,"",2)
+                TaskService.watchTask(
+                    application,
+                    saveTaskResult.data.url,
+                    (taskIdResult as IResult.Success).data
+                )
 
 
-                val taskId = (taskIdResult as IResult.Success).data
+                val taskId = taskIdResult.data
 
                 val currentMap = _taskIdMap.value.toMutableMap()
                 currentMap[saveTaskResult.data.url] = taskId
