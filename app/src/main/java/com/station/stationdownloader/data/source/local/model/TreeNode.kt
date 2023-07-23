@@ -174,7 +174,6 @@ sealed class TreeNode(
                 FolderCheckState.ALL -> autoSelect(false)
 
                 FolderCheckState.PART -> autoSelect(true)
-                //FIXME 这里已被选的文件会再次计算
                 FolderCheckState.NONE -> autoSelect(true)
             }
         }

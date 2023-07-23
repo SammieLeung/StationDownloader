@@ -12,12 +12,17 @@ interface IEngineRepository {
     suspend fun unInit(): IResult<Unit>
     suspend fun initUrl(url: String): IResult<NewTaskConfigModel>
     suspend fun startTask(
-       stationDownloadTask: StationDownloadTask
+        stationDownloadTask: StationDownloadTask
     ): IResult<Long>
 
-    suspend fun stopTask()
-    suspend fun restartTask(stationDownloadTask:StationDownloadTask):IResult<Long>
+    suspend fun stopTask(currentTaskId: Long, stationDownloadTask: StationDownloadTask)
+    suspend fun restartTask(
+        currentTaskId: Long,
+        stationDownloadTask: StationDownloadTask
+    ): IResult<Long>
+
     suspend fun configure(key: String, values: Array<String>): IResult<Unit>
+
 
 }
 

@@ -46,7 +46,7 @@ class DefaultEngineRepository(
     }
 
     override suspend fun startTask(stationDownloadTask: StationDownloadTask): IResult<Long> =
-        withContext(Dispatchers.IO) {
+        withContext(Dispatchers.Default) {
             val url: String = stationDownloadTask.realUrl
             val downloadPath: String = stationDownloadTask.downloadPath
             val name: String = stationDownloadTask.name
@@ -58,7 +58,10 @@ class DefaultEngineRepository(
                     val startTaskResult = xlEngine.startTask(
                         url, downloadPath, name, urlType, fileCount, selectIndexes
                     )
-                    downloadTaskRepo.updateTask(stationDownloadTask.copy(status = DownloadTaskStatus.DOWNLOADING).asXLDownloadTaskEntity())
+                    downloadTaskRepo.updateTask(
+                        stationDownloadTask.copy(status = DownloadTaskStatus.DOWNLOADING)
+                            .asXLDownloadTaskEntity()
+                    )
                     startTaskResult
                 }
 
@@ -71,12 +74,31 @@ class DefaultEngineRepository(
             }
         }
 
-    override suspend fun stopTask() {
-        TODO("Not yet implemented")
+    override suspend fun stopTask(currentTaskId:Long,stationDownloadTask: StationDownloadTask) {
+        xlEngine.stopTask(currentTaskId)
+        downloadTaskRepo.updateTask(
+            stationDownloadTask.copy(status = DownloadTaskStatus.PAUSE).asXLDownloadTaskEntity()
+        )
     }
 
-    override suspend fun restartTask(stationDownloadTask: StationDownloadTask): IResult<Long> {
-        TODO("Not yet implemented")
+    override suspend fun restartTask(currentTaskId:Long,stationDownloadTask: StationDownloadTask): IResult<Long> {
+        xlEngine.stopTask(currentTaskId)
+        downloadTaskRepo.updateTask(
+            stationDownloadTask.copy(status = DownloadTaskStatus.DOWNLOADING)
+                .asXLDownloadTaskEntity()
+        )
+
+        val result = xlEngine.startTask(
+            stationDownloadTask.url,
+            stationDownloadTask.downloadPath,
+            stationDownloadTask.name,
+            stationDownloadTask.urlType,
+            stationDownloadTask.fileCount,
+            stationDownloadTask.selectIndexes.toIntArray()
+        )
+
+        return result
+
     }
 
 

@@ -16,6 +16,7 @@ import com.station.stationdownloader.databinding.FragmentDownloadtaskBinding
 import com.station.stationdownloader.navgator.Destination
 import com.station.stationdownloader.ui.base.BaseFragment
 import com.station.stationdownloader.ui.viewmodel.MainViewModel
+import com.station.stationdownloader.ui.viewmodel.NewTaskState
 import com.station.stationdownloader.utils.DLogger
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.flow.Flow
@@ -29,6 +30,7 @@ class DownloadingTaskFragment : BaseFragment<FragmentDownloadtaskBinding>(), DLo
     private val taskListAdapter by lazy {
         TaskListAdapter(vm.accept)
     }
+
     private val serviceConnection: ServiceConnection = object : ServiceConnection {
         override fun onServiceConnected(name: ComponentName?, service: IBinder?) {
             Logger.w("onServiceConnected")
@@ -46,24 +48,32 @@ class DownloadingTaskFragment : BaseFragment<FragmentDownloadtaskBinding>(), DLo
         super.onViewCreated(view, savedInstanceState)
         Logger.d("onViewCreated")
         mBinding.bindState(
-            vm.taskItemList,
+            pVm.newTaskState,
+            vm.taskList,
             vm.accept,
-            vm.statusState
+            vm.statusState,
         )
     }
 
     private fun FragmentDownloadtaskBinding.bindState(
-
+        newTaskState: StateFlow<NewTaskState>,
         taskItemListFlow: Flow<List<TaskItem>>,
-        accept: Any?,
+        accept: (UiAction) -> Unit,
         status: StateFlow<StatusState>
     ) {
         taskListView.adapter = taskListAdapter
-//        taskListView.itemAnimator?.changeDuration = 0
+        taskListView.itemAnimator=null
+        lifecycleScope.launch {
+            newTaskState.collect{
+                if(it is NewTaskState.SUCCESS){
+                    accept(UiAction.getTaskList)
+                }
+            }
+        }
 
         lifecycleScope.launch {
             taskItemListFlow.collect {
-                //TODO 需要修复不停触发fillData的问题
+                logger("fillData= ${it}")
                 taskListAdapter.fillData(it)
             }
         }
@@ -71,8 +81,9 @@ class DownloadingTaskFragment : BaseFragment<FragmentDownloadtaskBinding>(), DLo
         lifecycleScope.launch {
             status.collect {
                 if (it is StatusState.Status){
+                    logger("newStatus= ${it.taskItem.sizeInfo} ${it.taskItem.speed}")
                     taskListAdapter.updateProgress(it.taskItem)
-                    logger("speed= ${it.taskItem.speed}")
+
                 }
             }
         }
@@ -81,7 +92,10 @@ class DownloadingTaskFragment : BaseFragment<FragmentDownloadtaskBinding>(), DLo
 
     override fun onResume() {
         super.onResume()
+        logger("onResume")
+        vm.accept(UiAction.getTaskList)
         vm.accept(UiAction.UpdateProgress)
+
         bindService()
     }
 

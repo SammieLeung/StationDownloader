@@ -45,6 +45,8 @@ class MainActivity : BaseActivity<ActivityMainBinding>(), DLogger {
     @Inject
     lateinit var navigator: AppNavigator
 
+    val tabViewList: MutableList<View> = mutableListOf()
+
     init {
         lifecycleScope.launch {
             repeatOnLifecycle(Lifecycle.State.RESUMED) {
@@ -58,7 +60,7 @@ class MainActivity : BaseActivity<ActivityMainBinding>(), DLogger {
                         .map { it.toastState as ToastState.Toast }.distinctUntilChanged()
                         .collectLatest {
                             withContext(Dispatchers.Main) {
-                                showToast(applicationContext,it.msg)
+                                showToast(applicationContext, it.msg)
                                 vm.accept(UiAction.ResetToast)
                             }
                         }
@@ -73,9 +75,9 @@ class MainActivity : BaseActivity<ActivityMainBinding>(), DLogger {
                             ) {
                                 return@collect
                             }
-                            val dialog= AddNewTaskDialogFragment()
+                            val dialog = AddNewTaskDialogFragment()
                             Logger.d("dialog = $dialog")
-                           dialog.show(
+                            dialog.show(
                                 supportFragmentManager,
                                 AddNewTaskDialogFragment::class.java.simpleName
                             )
@@ -101,6 +103,14 @@ class MainActivity : BaseActivity<ActivityMainBinding>(), DLogger {
 
     private fun initTabLayout() {
         navigator.navigateTo(Destination.DOWNLOADING)
+        tabViewList.clear()
+        tabViewList.addAll(
+            listOf(
+                mBinding.downloadedTaskItem,
+                mBinding.downloadingTaskItem,
+                mBinding.settingItem
+            )
+        )
         initTabAction(mBinding.downloadedTaskItem, Destination.DOWNLOADED)
         initTabAction(mBinding.downloadingTaskItem, Destination.DOWNLOADING)
         initTabAction(mBinding.settingItem, Destination.SETTINGS)
@@ -108,6 +118,9 @@ class MainActivity : BaseActivity<ActivityMainBinding>(), DLogger {
 
     private fun initTabAction(view: View, destination: Destination) {
         view.setOnClickListener {
+            view->
+            tabViewList.forEach { it.isSelected=false }
+            view.isSelected=true
             navigator.navigateTo(destination)
         }
         view.onFocusChangeListener =

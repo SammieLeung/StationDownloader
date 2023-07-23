@@ -25,7 +25,6 @@ data class StationDownloadTask(
     val selectIndexes: List<Int> = emptyList(),
     //FIXME @Deprecate
     val fileList: List<String> = emptyList(),
-    //FIXME @Deprecate
     val fileCount: Int = 0,
     val createTime: Long = System.currentTimeMillis()
 ) : Serializable

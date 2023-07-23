@@ -72,9 +72,10 @@ class Aria2Engine internal constructor(
         return IResult.Success(1)
     }
 
-    override suspend fun stopTask(task: StationDownloadTask) {
+    override suspend fun stopTask(taskId: Long) {
         TODO("Not yet implemented")
     }
+
 
     override suspend fun configure(key: String, values: Array<String>): IResult<Unit> {
         TODO("Not yet implemented")

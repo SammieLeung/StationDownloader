@@ -24,7 +24,7 @@ interface IEngine {
         fileCount:Int,
         selectIndexes:IntArray
     ):IResult<Long>
-    suspend fun stopTask(task: StationDownloadTask)
+    suspend fun stopTask(taskId:Long)
     suspend fun configure(key: String, values: Array<String>): IResult<Unit>
 
 

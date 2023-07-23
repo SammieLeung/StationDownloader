@@ -13,6 +13,7 @@ import java.io.Serializable
 enum class DownloadTaskStatus:Serializable {
     PENDING,//准备中
     DOWNLOADING,//下载中
+    PAUSE,
     COMPLETED,//下载完成
     FAILED//下载失败
 }

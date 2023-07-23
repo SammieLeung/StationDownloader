@@ -130,15 +130,13 @@ class XLEngine internal constructor(
             }
 
             DownloadUrlType.TORRENT -> {
-
-                val deselectIndexes=TaskTools.deSelectedIndexes(fileCount, selectIndexes)
+                val deselectIndexes = TaskTools.deSelectedIndexes(fileCount, selectIndexes)
                 val taskId = XLTaskHelper.instance().addTorrentTask(
                     url, downloadPath, deselectIndexes
                 )
 
                 logger("$url")
                 logger("$downloadPath")
-                logger("$deselectIndexes")
                 if (taskId == -1L) {
                     printCodeLine()
                     return@withContext IResult.Error(
@@ -158,8 +156,8 @@ class XLEngine internal constructor(
         }
     }
 
-    override suspend fun stopTask(task: StationDownloadTask) {
-        if (task.taskId != 0L) XLTaskHelper.instance().stopTask(task.taskId)
+    override suspend fun stopTask(taskId: Long) {
+        XLTaskHelper.instance().stopTask(taskId)
     }
 
     override suspend fun configure(key: String, values: Array<String>): IResult<Unit> {

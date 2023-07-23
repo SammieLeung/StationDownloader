@@ -280,7 +280,6 @@ sealed class DialogAction {
 
     data class FilterGroupState(val fileType: FileType, val isSelect: Boolean) : DialogAction()
     data class SetDownloadPath(val downloadPath: String) : DialogAction()
-
 }
 
 data class MainUiState(
