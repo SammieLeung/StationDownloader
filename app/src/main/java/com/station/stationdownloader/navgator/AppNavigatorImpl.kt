@@ -2,7 +2,7 @@ package com.station.stationdownloader.navgator
 
 import androidx.fragment.app.FragmentActivity
 import com.station.stationdownloader.R
-import com.station.stationdownloader.ui.fragment.DownloadedTaskFragment
+import com.station.stationdownloader.ui.fragment.donetask.DownloadedTaskFragment
 import com.station.stationdownloader.ui.fragment.downloading.DownloadingTaskFragment
 import com.station.stationdownloader.ui.fragment.SettingsFragment
 import javax.inject.Inject

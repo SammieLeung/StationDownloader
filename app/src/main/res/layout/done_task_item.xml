@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <data>
+
+        <import type="com.station.stationdownloader.ui.fragment.donetask.DoneTaskItem" />
+
+        <variable
+            name="taskItem"
+            type="DoneTaskItem" />
+    </data>
+
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginLeft="30dp"
+        android:layout_marginRight="30dp"
+        android:layout_marginBottom="15dp"
+        android:background="@drawable/task_item_bg"
+        android:paddingStart="15dp"
+        android:paddingEnd="15dp">
+
+        <ImageView
+            android:id="@+id/fileIcon"
+            android:layout_width="68dp"
+            android:layout_height="68dp"
+            android:layout_marginTop="25dp"
+            android:layout_marginBottom="25dp"
+            android:src="@mipmap/ic_video"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
+
+        <TextView
+            android:id="@+id/taskName"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@{taskItem.taskName}"
+            android:textFontWeight="400"
+            android:textSize="@dimen/t2"
+            android:layout_marginStart="11dp"
+            app:layout_constraintStart_toEndOf="@id/fileIcon"
+            app:layout_constraintTop_toTopOf="@id/fileIcon"
+            tools:text="下载文件.mp4" />
+
+        <LinearLayout
+            android:id="@+id/msgInfo"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="14dp"
+            android:orientation="horizontal"
+            app:layout_constraintStart_toStartOf="@id/taskName"
+            app:layout_constraintBottom_toBottomOf="@id/fileIcon">
+
+            <TextView
+                android:id="@+id/downloadSize"
+                style="@style/TaskItemSmallText"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@{taskItem.sizeInfo}"
+                android:textSize="12sp"
+                tools:text="20MB/6.7GB" />
+
+            <View
+                android:id="@+id/divider_1"
+                style="@style/Divider.Vertical"
+                android:layout_width="1dp"
+                android:layout_height="match_parent" />
+
+            <TextView
+                android:id="@+id/downloadPath"
+                style="@style/TaskItemSmallText"
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"
+                android:text="@{taskItem.downloadPath}"
+                android:textSize="12sp"
+                tools:text="内置存储/Station/Movies" />
+
+            <View
+                android:id="@+id/divider_2"
+                style="@style/Divider.Vertical"
+                android:layout_width="1dp"
+                android:layout_height="11dp" />
+
+            <TextView
+                android:id="@+id/engine"
+                style="@style/TaskItemSmallText"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@{taskItem.engine}"
+                android:textSize="12sp"
+                tools:text="默认下载" />
+        </LinearLayout>
+
+
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+</layout>

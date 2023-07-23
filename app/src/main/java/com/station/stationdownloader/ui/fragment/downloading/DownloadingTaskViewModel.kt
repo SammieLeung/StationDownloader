@@ -4,7 +4,6 @@ import android.app.Application
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.orhanobut.logger.Logger
 import com.station.stationdownloader.DownloadTaskStatus
 import com.station.stationdownloader.ITaskState
 import com.station.stationdownloader.R
@@ -18,7 +17,6 @@ import com.station.stationdownloader.data.source.local.room.entities.asStationDo
 import com.station.stationdownloader.utils.DLogger
 import com.station.stationdownloader.utils.TaskTools
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -29,11 +27,10 @@ import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import javax.inject.Inject
 
 @HiltViewModel
-class DownloadTaskManageViewModel @Inject constructor(
+class DownloadingTaskViewModel @Inject constructor(
     val application: Application,
     val stateHandle: SavedStateHandle,
     val taskRepo: IDownloadTaskRepository,
@@ -72,7 +69,9 @@ class DownloadTaskManageViewModel @Inject constructor(
     private fun handleGetTaskList(getTaskList: Flow<UiAction.getTaskList>) = viewModelScope.launch {
         getTaskList.collect {
             _taskList.update {
-                taskRepo.getTasks().map {
+                taskRepo.getTasks().filter {
+                    it.status!=DownloadTaskStatus.COMPLETED
+                }.map {
                     it.asStationDownloadTask().asTaskItem()
                 }
             }
@@ -203,7 +202,28 @@ class DownloadTaskManageViewModel @Inject constructor(
     }
 
     override fun DLogger.tag(): String {
-        return DownloadTaskManageViewModel::class.java.simpleName
+        return DownloadingTaskViewModel::class.java.simpleName
+    }
+
+    fun StationDownloadTask.asTaskItem(): TaskItem {
+        return TaskItem(
+            url = this.url,
+            taskName = this.name,
+            statuBtn = when (this.status) {
+                DownloadTaskStatus.DOWNLOADING -> {
+                    R.drawable.ic_stop
+                }
+
+                else -> {
+                    R.drawable.ic_start
+                }
+            },
+            progress = TaskTools.formatProgress(downloadSize, totalSize),
+            sizeInfo = TaskTools.formatSizeInfo(downloadSize, totalSize),
+            speed = "",
+            downloadPath = this.downloadPath,
+            engine = this.engine.name
+        )
     }
 
 }
@@ -234,24 +254,5 @@ data class TaskItem(
 )
 
 
-fun StationDownloadTask.asTaskItem(): TaskItem {
-    return TaskItem(
-        url = this.url,
-        taskName = this.name,
-        statuBtn = when (this.status) {
-            DownloadTaskStatus.DOWNLOADING -> {
-                R.drawable.ic_stop
-            }
 
-            else -> {
-                R.drawable.ic_start
-            }
-        },
-        progress = TaskTools.formatProgress(downloadSize, totalSize),
-        sizeInfo = TaskTools.formatSizeInfo(downloadSize, totalSize),
-        speed = "",
-        downloadPath = this.downloadPath,
-        engine = this.engine.name
-    )
-}
 

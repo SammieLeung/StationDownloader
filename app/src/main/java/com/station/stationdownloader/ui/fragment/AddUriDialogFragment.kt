@@ -2,6 +2,7 @@ package com.station.stationdownloader.ui.fragment
 
 import android.content.DialogInterface
 import android.os.Bundle
+import android.util.Base64
 import android.view.View
 import android.widget.Toast
 import androidx.fragment.app.activityViewModels
@@ -10,6 +11,8 @@ import com.orhanobut.logger.Logger
 import com.station.stationdownloader.data.source.local.model.StationDownloadTask
 import com.station.stationdownloader.databinding.DialogFragmentAddUriBinding
 import com.station.stationdownloader.ui.base.BaseDialogFragment
+import com.station.stationdownloader.ui.contract.SelectFileActivityResultContract
+import com.station.stationdownloader.ui.contract.SelectType
 import com.station.stationdownloader.ui.viewmodel.AddUriUiState
 import com.station.stationdownloader.ui.viewmodel.DialogAction
 import com.station.stationdownloader.ui.viewmodel.MainViewModel
@@ -23,6 +26,18 @@ import kotlinx.coroutines.withContext
 @AndroidEntryPoint
 class AddUriDialogFragment : BaseDialogFragment<DialogFragmentAddUriBinding>() {
     val vm: MainViewModel by activityViewModels<MainViewModel>()
+    private val stationPickerContract = SelectFileActivityResultContract(
+        selectType = SelectType.SELECT_TYPE_FILE, showConfirmDialog = true
+    )
+    private val openStationPicker = registerForActivityResult(stationPickerContract) {
+        if (it != null) {
+            val base64Id: String = it.pathSegments[1] //dir id
+            val decodeData = String(Base64.decode(base64Id, Base64.DEFAULT))
+            mBinding.inputView.setText(decodeData)
+        }
+
+    }
+
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         mBinding.bindState(
@@ -35,12 +50,15 @@ class AddUriDialogFragment : BaseDialogFragment<DialogFragmentAddUriBinding>() {
         uiState: Flow<AddUriUiState<StationDownloadTask>>,
         accept: (UiAction) -> Unit,
     ) {
-        mBinding.inputView.setText("magnet:?xt=urn:btih:4edffd1faa7ca7422384147945a840ebfb5aa8b5&dn=Asteroid.City.2023.Retail.SWESUB.1080p.WEB.DDP5.1.Atmos.H.264-SiGGiZ")
+        inputView.setText("magnet:?xt=urn:btih:4edffd1faa7ca7422384147945a840ebfb5aa8b5&dn=Asteroid.City.2023.Retail.SWESUB.1080p.WEB.DDP5.1.Atmos.H.264-SiGGiZ")
         okBtn.setOnClickListener {
             done(accept)
         }
         cancelBtn.setOnClickListener {
             dismiss()
+        }
+        selectTorrentBtn.setOnClickListener {
+            openStationPicker.launch(null)
         }
 
         lifecycleScope.launch {

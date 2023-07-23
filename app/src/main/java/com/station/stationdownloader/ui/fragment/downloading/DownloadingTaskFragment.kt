@@ -26,7 +26,7 @@ import kotlinx.coroutines.launch
 @AndroidEntryPoint
 class DownloadingTaskFragment : BaseFragment<FragmentDownloadtaskBinding>(), DLogger {
     private val pVm by activityViewModels<MainViewModel>()
-    private val vm by viewModels<DownloadTaskManageViewModel>()
+    private val vm by viewModels<DownloadingTaskViewModel>()
     private val taskListAdapter by lazy {
         TaskListAdapter(vm.accept)
     }

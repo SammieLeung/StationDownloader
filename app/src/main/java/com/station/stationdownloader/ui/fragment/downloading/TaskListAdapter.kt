@@ -16,7 +16,6 @@ class TaskListAdapter(val accept:(UiAction)->Unit) : RecyclerView.Adapter<TaskVi
     }
 
     override fun onBindViewHolder(holder: TaskViewHolder, position: Int) {
-        val taskItem=dataList[position]
         holder.bind(taskItem = dataList[position])
     }
 
