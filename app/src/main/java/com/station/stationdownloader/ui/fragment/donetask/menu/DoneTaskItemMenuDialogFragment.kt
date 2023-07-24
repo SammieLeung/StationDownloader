@@ -4,7 +4,8 @@ import android.content.DialogInterface
 import android.os.Bundle
 import com.station.stationdownloader.databinding.DialogDoneTaskItemMenuBinding
 import com.station.stationdownloader.ui.base.BaseDialogFragment
-import com.station.stationdownloader.ui.fragment.downloading.DownloadingTaskFragment
+import com.station.stationdownloader.ui.fragment.donetask.DownloadedTaskFragment
+import com.station.stationdownloader.ui.fragment.donetask.UiAction
 import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint
@@ -13,11 +14,13 @@ class DoneTaskItemMenuDialogFragment : BaseDialogFragment<DialogDoneTaskItemMenu
         arguments?.getString(EXTRA_URL) ?: ""
     }
 
+    private val vm by lazy {
+        (requireParentFragment() as DownloadedTaskFragment).getViewModel()
+    }
+
     override fun onDismiss(dialog: DialogInterface) {
         super.onDismiss(dialog)
-        if(requireParentFragment() is DownloadingTaskFragment){
-            (requireParentFragment() as DownloadingTaskFragment).hideTaskItemMenu()
-        }
+        vm.accept(UiAction.HideTaskMenu)
     }
 
     companion object {

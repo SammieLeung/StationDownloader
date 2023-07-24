@@ -35,8 +35,9 @@ class DownloadingTaskViewModel @Inject constructor(
     val taskRepo: IDownloadTaskRepository,
     val enginRepo: IEngineRepository
 ) : ViewModel(), DLogger {
-    private val _taskList = MutableStateFlow<List<TaskItem>>(emptyList())
-    val taskList = _taskList.asStateFlow()
+    private val _taskItemList = MutableStateFlow<List<TaskItem>>(emptyList())
+    val taskItemList = _taskItemList.asStateFlow()
+
     private val _statusState: MutableStateFlow<StatusState> = MutableStateFlow(StatusState.Init)
     val statusState = _statusState.asStateFlow()
 
@@ -72,7 +73,7 @@ class DownloadingTaskViewModel @Inject constructor(
 
     private fun handleGetTaskList(getTaskList: Flow<UiAction.getTaskList>) = viewModelScope.launch {
         getTaskList.collect {
-            _taskList.update {
+            _taskItemList.update {
                 taskRepo.getTasks().filter {
                     it.status != DownloadTaskStatus.COMPLETED
                 }.map {
@@ -87,7 +88,7 @@ class DownloadingTaskViewModel @Inject constructor(
             val xlDownloadTaskEntity = taskRepo.getTaskByUrl(action.url)
             xlDownloadTaskEntity?.let {
                 _statusState.update {
-                    val taskItem = _taskList.value.find { it.url == action.url }
+                    val taskItem = _taskItemList.value.find { it.url == action.url }
                     taskItem?.let { item ->
                         StatusState.Status(
                             item.copy(
@@ -99,7 +100,7 @@ class DownloadingTaskViewModel @Inject constructor(
                 val taskIdResult = enginRepo.startTask(it.asStationDownloadTask())
                 if (taskIdResult is IResult.Error) {
                     _statusState.update {
-                        val taskItem = _taskList.value.find { it.url == action.url }
+                        val taskItem = _taskItemList.value.find { it.url == action.url }
                         taskItem?.let { item ->
                             StatusState.Status(
                                 item.copy(
@@ -111,8 +112,6 @@ class DownloadingTaskViewModel @Inject constructor(
                     return@collect
                 }
 
-
-
                 taskIdResult as IResult.Success
                 TaskService.watchTask(application, it.url, taskIdResult.data)
             }
@@ -123,7 +122,7 @@ class DownloadingTaskViewModel @Inject constructor(
         stopTask.collect { action ->
             TaskService.cancelWatchTask(application, action.url)
             _statusState.update {
-                val taskItem = _taskList.value.find { it.url == action.url }
+                val taskItem = _taskItemList.value.find { it.url == action.url }
                 taskItem?.let { item ->
                     StatusState.Status(
                         item.copy(
@@ -138,14 +137,13 @@ class DownloadingTaskViewModel @Inject constructor(
                 enginRepo.stopTask(action.taskId, entity.asStationDownloadTask())
             }
         }
-
-
     }
 
     private fun handleTaskMenu(showTaskMenu: Flow<UiAction.ShowTaskMenu>) = viewModelScope.launch {
         showTaskMenu.collect { action ->
+            val taskItem=_taskItemList.value.find { it.url==action.url }
             _taskMenuState.update {
-                TaskMenuState.Show(action.url)
+                TaskMenuState.Show(action.url,taskItem?.statuBtn==R.drawable.ic_stop)
             }
         }
     }
@@ -164,7 +162,7 @@ class DownloadingTaskViewModel @Inject constructor(
         viewModelScope.launch {
             taskStatus.collectLatest {
                 it.forEach { url, taskStatus ->
-                    val taskItem = _taskList.value.find {
+                    val taskItem = _taskItemList.value.find {
                         it.url == url
                     }
 
@@ -244,7 +242,7 @@ class DownloadingTaskViewModel @Inject constructor(
 }
 
 sealed class TaskMenuState {
-    data class Show(val url: String) : TaskMenuState()
+    data class Show(val url: String,val isTaskRunning:Boolean) : TaskMenuState()
     object Hide : TaskMenuState()
 }
 

@@ -6,7 +6,6 @@ import androidx.lifecycle.viewModelScope
 import com.station.stationdownloader.data.source.IDownloadTaskRepository
 import com.station.stationdownloader.data.source.local.model.StationDownloadTask
 import com.station.stationdownloader.data.source.local.room.entities.asStationDownloadTask
-import com.station.stationdownloader.ui.fragment.downloading.TaskMenuState
 import com.station.stationdownloader.utils.DLogger
 import com.station.stationdownloader.utils.TaskTools
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -94,6 +93,10 @@ class DownloadedTaskViewModel @Inject constructor(
             engine = this.engine.name
         )
     }
+}
+sealed class TaskMenuState {
+    data class Show(val url: String) : TaskMenuState()
+    object Hide : TaskMenuState()
 }
 
 sealed class UiAction {

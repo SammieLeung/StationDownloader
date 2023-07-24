@@ -15,6 +15,7 @@ import com.station.stationdownloader.TaskService
 import com.station.stationdownloader.databinding.FragmentDownloadtaskBinding
 import com.station.stationdownloader.ui.base.BaseFragment
 import com.station.stationdownloader.ui.fragment.downloading.menu.DoneTaskItemMenuDialogFragment
+import com.station.stationdownloader.ui.fragment.downloading.menu.TaskItemMenuDialogFragment
 import com.station.stationdownloader.ui.viewmodel.MainViewModel
 import com.station.stationdownloader.ui.viewmodel.NewTaskState
 import com.station.stationdownloader.utils.DLogger
@@ -48,7 +49,7 @@ class DownloadingTaskFragment : BaseFragment<FragmentDownloadtaskBinding>(), DLo
         Logger.d("onViewCreated")
         mBinding.bindState(
             pVm.newTaskState,
-            vm.taskList,
+            vm.taskItemList,
             vm.statusState,
             vm.taskMenuState,
             vm.accept,
@@ -72,8 +73,9 @@ class DownloadingTaskFragment : BaseFragment<FragmentDownloadtaskBinding>(), DLo
         return DownloadingTaskFragment::class.java.simpleName
     }
 
-    fun hideTaskItemMenu() {
-        vm.accept(UiAction.HideTaskMenu)
+
+    fun getViewModel(): DownloadingTaskViewModel {
+        return vm
     }
 
     private fun FragmentDownloadtaskBinding.bindState(
@@ -112,7 +114,7 @@ class DownloadingTaskFragment : BaseFragment<FragmentDownloadtaskBinding>(), DLo
         lifecycleScope.launch {
             menuState.collect {
                 if (it is TaskMenuState.Show) {
-                    val dialog = DoneTaskItemMenuDialogFragment.newInstance(it.url)
+                    val dialog = TaskItemMenuDialogFragment.newInstance(it.url,it.isTaskRunning)
                     dialog.show(childFragmentManager, "TaskItemMenuDialogFragment")
                 }
             }

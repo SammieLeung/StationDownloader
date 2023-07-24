@@ -6,13 +6,15 @@ import androidx.fragment.app.viewModels
 import androidx.lifecycle.lifecycleScope
 import com.station.stationdownloader.databinding.FragmentDownloadtaskBinding
 import com.station.stationdownloader.ui.base.BaseFragment
+import com.station.stationdownloader.ui.fragment.downloading.menu.DoneTaskItemMenuDialogFragment
 import com.station.stationdownloader.utils.DLogger
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 
 @AndroidEntryPoint
-class DownloadedTaskFragment : BaseFragment<FragmentDownloadtaskBinding>(),DLogger {
+class DownloadedTaskFragment : BaseFragment<FragmentDownloadtaskBinding>(), DLogger {
 
     private val vm by viewModels<DownloadedTaskViewModel>()
     private val taskListAdapter by lazy {
@@ -22,9 +24,11 @@ class DownloadedTaskFragment : BaseFragment<FragmentDownloadtaskBinding>(),DLogg
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         mBinding.bindState(
-            vm.taskList
+            vm.taskList,
+            vm.taskMenuState
         )
     }
+
     override fun onResume() {
         super.onResume()
         logger("onResume")
@@ -35,9 +39,12 @@ class DownloadedTaskFragment : BaseFragment<FragmentDownloadtaskBinding>(),DLogg
         return DownloadedTaskFragment::class.java.simpleName
     }
 
-    fun FragmentDownloadtaskBinding.bindState(taskItemListFlow: SharedFlow<List<DoneTaskItem>>) {
+    fun FragmentDownloadtaskBinding.bindState(
+        taskItemListFlow: SharedFlow<List<DoneTaskItem>>,
+        taskMenuState: StateFlow<TaskMenuState>
+    ) {
         taskListView.adapter = taskListAdapter
-        taskListView.itemAnimator=null
+        taskListView.itemAnimator = null
 
         lifecycleScope.launch {
             taskItemListFlow.collect {
@@ -45,11 +52,19 @@ class DownloadedTaskFragment : BaseFragment<FragmentDownloadtaskBinding>(),DLogg
                 taskListAdapter.fillData(it)
             }
         }
+
+        lifecycleScope.launch {
+            taskMenuState.collect {
+                if (it is TaskMenuState.Show) {
+                    val dialog = DoneTaskItemMenuDialogFragment.newInstance(it.url)
+                    dialog.show(childFragmentManager, "DoneTaskItemMenuDialogFragment")
+                }
+            }
+        }
     }
 
-    fun hideTaskItemMenu() {
-        vm.accept(UiAction.HideTaskMenu)
+    fun getViewModel(): DownloadedTaskViewModel {
+        return vm
     }
-
 
 }

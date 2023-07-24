@@ -2,7 +2,10 @@
 <layout xmlns:android="http://schemas.android.com/apk/res/android">
 
     <data>
-
+        <import type="android.view.View"/>
+        <variable
+            name="isTaskRunning"
+            type="boolean" />
     </data>
 
     <RelativeLayout
@@ -38,11 +41,13 @@
                 android:orientation="vertical">
 
                 <Button
+                    android:visibility="@{isTaskRunning ? View.GONE : View.VISIBLE}"
                     android:id="@+id/startTaskBtn"
                     style="@style/TaskMenuDialogMenuButtonStyle"
                     android:text="@string/menu_resume_task" />
 
                 <Button
+                    android:visibility="@{isTaskRunning ? View.VISIBLE : View.GONE}"
                     android:id="@+id/stopTaskBtn"
                     style="@style/TaskMenuDialogMenuButtonStyle"
                     android:text="@string/menu_pause_task" />
