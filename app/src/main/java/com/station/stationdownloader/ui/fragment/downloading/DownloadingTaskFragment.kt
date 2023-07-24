@@ -13,13 +13,12 @@ import androidx.lifecycle.lifecycleScope
 import com.orhanobut.logger.Logger
 import com.station.stationdownloader.TaskService
 import com.station.stationdownloader.databinding.FragmentDownloadtaskBinding
-import com.station.stationdownloader.navgator.Destination
 import com.station.stationdownloader.ui.base.BaseFragment
+import com.station.stationdownloader.ui.fragment.downloading.menu.TaskItemMenuDialogFragment
 import com.station.stationdownloader.ui.viewmodel.MainViewModel
 import com.station.stationdownloader.ui.viewmodel.NewTaskState
 import com.station.stationdownloader.utils.DLogger
 import dagger.hilt.android.AndroidEntryPoint
-import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 
@@ -50,22 +49,45 @@ class DownloadingTaskFragment : BaseFragment<FragmentDownloadtaskBinding>(), DLo
         mBinding.bindState(
             pVm.newTaskState,
             vm.taskList,
-            vm.accept,
             vm.statusState,
+            vm.taskMenuState,
+            vm.accept,
         )
+    }
+
+    override fun onResume() {
+        super.onResume()
+        logger("onResume")
+        vm.accept(UiAction.getTaskList)
+        bindService()
+    }
+
+
+    override fun onPause() {
+        super.onPause()
+        unbindService()
+    }
+
+    override fun DLogger.tag(): String {
+        return DownloadingTaskFragment::class.java.simpleName
+    }
+
+    fun hideTaskItemMenu() {
+        vm.accept(UiAction.HideTaskMenu)
     }
 
     private fun FragmentDownloadtaskBinding.bindState(
         newTaskState: StateFlow<NewTaskState>,
-        taskItemListFlow: Flow<List<TaskItem>>,
+        taskItemListFlow: StateFlow<List<TaskItem>>,
+        status: StateFlow<StatusState>,
+        menuState: StateFlow<TaskMenuState>,
         accept: (UiAction) -> Unit,
-        status: StateFlow<StatusState>
     ) {
         taskListView.adapter = taskListAdapter
-        taskListView.itemAnimator=null
+        taskListView.itemAnimator = null
         lifecycleScope.launch {
-            newTaskState.collect{
-                if(it is NewTaskState.SUCCESS){
+            newTaskState.collect {
+                if (it is NewTaskState.SUCCESS) {
                     accept(UiAction.getTaskList)
                 }
             }
@@ -80,29 +102,22 @@ class DownloadingTaskFragment : BaseFragment<FragmentDownloadtaskBinding>(), DLo
 
         lifecycleScope.launch {
             status.collect {
-                if (it is StatusState.Status){
+                if (it is StatusState.Status) {
                     logger("newStatus= ${it.taskItem.sizeInfo} ${it.taskItem.speed}")
                     taskListAdapter.updateProgress(it.taskItem)
-
                 }
             }
         }
 
-    }
+        lifecycleScope.launch {
+            menuState.collect {
+                if (it is TaskMenuState.Show) {
+                    val dialog = TaskItemMenuDialogFragment.newInstance(it.url)
+                    dialog.show(childFragmentManager, "TaskItemMenuDialogFragment")
+                }
+            }
+        }
 
-    override fun onResume() {
-        super.onResume()
-        logger("onResume")
-        vm.accept(UiAction.getTaskList)
-        vm.accept(UiAction.UpdateProgress)
-
-        bindService()
-    }
-
-
-    override fun onPause() {
-        super.onPause()
-        unbindService()
     }
 
 
@@ -117,18 +132,5 @@ class DownloadingTaskFragment : BaseFragment<FragmentDownloadtaskBinding>(), DLo
         requireContext().unbindService(serviceConnection)
     }
 
-
-    companion object {
-        fun newInstance(destination: Destination): DownloadingTaskFragment {
-            val args = Bundle()
-            val fragment = DownloadingTaskFragment()
-            fragment.arguments = args
-            args.putInt("destination", destination.ordinal)
-            return fragment
-        }
-    }
-
-    override fun DLogger.tag(): String {
-        return DownloadingTaskFragment::class.java.simpleName
-    }
 }
+

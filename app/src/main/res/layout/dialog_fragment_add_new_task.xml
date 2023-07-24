@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <layout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto">
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools">
 
     <data>
 
@@ -96,7 +97,7 @@
                 android:layout_height="wrap_content"
                 android:layout_below="@id/filterSets"
                 android:layout_marginTop="23dp"
-                android:backgroundTint="@color/add_new_task_common_bg_tint" />
+                android:backgroundTint="@color/app_theme_common_button_background_tint" />
 
 
             <RelativeLayout
@@ -127,7 +128,6 @@
                     android:textFontWeight="300" />
 
                 <TextView
-                    android:textSize="16sp"
                     android:id="@+id/downloadSpaceView"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
@@ -135,11 +135,12 @@
                     android:layout_centerVertical="true"
                     android:paddingHorizontal="15dp"
                     android:text="@{downloadSpace}"
-                    android:textColor="#CCCCCC" />
+                    android:textColor="#CCCCCC"
+                    android:textSize="16sp" />
 
             </RelativeLayout>
 
-            <Button
+            <ImageButton
                 android:id="@+id/filePickerBtn"
                 android:layout_width="87dp"
                 android:layout_height="57dp"
@@ -147,7 +148,10 @@
                 android:layout_alignParentEnd="true"
                 android:layout_marginLeft="23dp"
                 android:layout_marginTop="23dp"
-                android:backgroundTint="@color/add_new_task_common_bg_tint" />
+                android:backgroundTint="@color/app_theme_common_button_background_tint"
+                android:src="@drawable/ic_open_folder"
+                android:tint="#FFFFFF"
+                app:tint="@android:color/white" />
 
 
             <LinearLayout

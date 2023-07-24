@@ -21,6 +21,10 @@ class TaskViewHolder(val binding: TaskItemBinding, val accept: (UiAction) -> Uni
             }
 
         }
+        binding.root.setOnLongClickListener {
+            accept(UiAction.ShowTaskMenu(taskItem.url))
+            true
+        }
         if (this.absoluteAdapterPosition == 0) {
             binding.root.updateLayoutParams<RecyclerView.LayoutParams> {
                 this.topMargin = 50.dp

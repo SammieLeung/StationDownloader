@@ -8,6 +8,7 @@ import android.widget.Toast
 import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.lifecycleScope
 import com.orhanobut.logger.Logger
+import com.station.stationdownloader.R
 import com.station.stationdownloader.data.source.local.model.StationDownloadTask
 import com.station.stationdownloader.databinding.DialogFragmentAddUriBinding
 import com.station.stationdownloader.ui.base.BaseDialogFragment
@@ -31,9 +32,13 @@ class AddUriDialogFragment : BaseDialogFragment<DialogFragmentAddUriBinding>() {
     )
     private val openStationPicker = registerForActivityResult(stationPickerContract) {
         if (it != null) {
-            val base64Id: String = it.pathSegments[1] //dir id
-            val decodeData = String(Base64.decode(base64Id, Base64.DEFAULT))
-            mBinding.inputView.setText(decodeData)
+            if (vm.assertTorrentFile(it.toString())) {
+                mBinding.inputView.setText(it.toString())
+            } else {
+                mBinding.inputView.text = null
+                Toast.makeText(context, R.string.assert_torrent_file, Toast.LENGTH_SHORT).show()
+            }
+
         }
 
     }
@@ -84,7 +89,8 @@ class AddUriDialogFragment : BaseDialogFragment<DialogFragmentAddUriBinding>() {
     }
 
     private fun done(accept: (UiAction) -> Unit) {
-        accept(UiAction.InitTask(mBinding.inputView.text.toString()))
+        if (mBinding.inputView.text.toString().isNotEmpty())
+            accept(UiAction.InitTask(mBinding.inputView.text.toString()))
     }
 
 

@@ -14,11 +14,14 @@ import com.station.stationdownloader.data.source.IDownloadTaskRepository
 import com.station.stationdownloader.data.source.IEngineRepository
 import com.station.stationdownloader.data.source.ITorrentInfoRepository
 import com.station.stationdownloader.data.source.local.engine.NewTaskConfigModel
+import com.station.stationdownloader.data.source.local.engine.xl.XLEngine
 import com.station.stationdownloader.data.source.local.model.StationDownloadTask
 import com.station.stationdownloader.data.source.local.model.TreeNode
 import com.station.stationdownloader.data.source.local.model.filterFile
 import com.station.stationdownloader.data.source.local.room.entities.asStationDownloadTask
 import com.station.stationdownloader.utils.DLogger
+import com.station.stationdownloader.utils.XLEngineTools
+import com.xunlei.downloadlib.XLTaskHelper
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -68,6 +71,11 @@ class MainViewModel @Inject constructor(
     init {
         accept = initAcceptAction()
         dialogAccept = initAddUriDialogAcceptAction()
+    }
+
+
+    fun assertTorrentFile(path:String):Boolean{
+      return  XLEngineTools.assertTorrentFile(path)
     }
 
     private fun initAcceptAction(): (UiAction) -> Unit {

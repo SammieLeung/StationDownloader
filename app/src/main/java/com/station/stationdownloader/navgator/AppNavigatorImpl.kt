@@ -22,11 +22,9 @@ class AppNavigatorImpl @Inject constructor(
             Destination.DOWNLOADED -> {
                 DownloadedTaskFragment()
             }
-
             Destination.SETTINGS -> {
                 SettingsFragment()
             }
-
         }
 
         activity.supportFragmentManager.beginTransaction()

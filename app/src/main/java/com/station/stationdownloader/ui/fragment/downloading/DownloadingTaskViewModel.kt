@@ -21,7 +21,6 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.filterIsInstance
@@ -37,9 +36,12 @@ class DownloadingTaskViewModel @Inject constructor(
     val enginRepo: IEngineRepository
 ) : ViewModel(), DLogger {
     private val _taskList = MutableStateFlow<List<TaskItem>>(emptyList())
-    val taskList = _taskList.asSharedFlow()
+    val taskList = _taskList.asStateFlow()
     private val _statusState: MutableStateFlow<StatusState> = MutableStateFlow(StatusState.Init)
     val statusState = _statusState.asStateFlow()
+
+    private val _taskMenuState = MutableStateFlow<TaskMenuState>(TaskMenuState.Hide)
+    val taskMenuState = _taskMenuState.asStateFlow()
 
     val accept: (UiAction) -> Unit
 
@@ -50,14 +52,16 @@ class DownloadingTaskViewModel @Inject constructor(
     private fun initAction(): (UiAction) -> Unit {
         val actionStateFlow: MutableSharedFlow<UiAction> = MutableSharedFlow()
         val getTaskList = actionStateFlow.filterIsInstance<UiAction.getTaskList>()
-        val updateProgress = actionStateFlow.filterIsInstance<UiAction.UpdateProgress>()
         val startTask = actionStateFlow.filterIsInstance<UiAction.StartTask>()
         val stopTask = actionStateFlow.filterIsInstance<UiAction.StopTask>()
+        val showTaskMenu = actionStateFlow.filterIsInstance<UiAction.ShowTaskMenu>()
+        val hideTaskMenu = actionStateFlow.filterIsInstance<UiAction.HideTaskMenu>()
 
         handleGetTaskList(getTaskList)
-        handleUpdateProgressFlow(updateProgress)
         handleStartTask(startTask)
         handleStopTask(stopTask)
+        handleTaskMenu(showTaskMenu)
+        handleHideTaskMenu(hideTaskMenu)
 
         return { action ->
             viewModelScope.launch {
@@ -70,7 +74,7 @@ class DownloadingTaskViewModel @Inject constructor(
         getTaskList.collect {
             _taskList.update {
                 taskRepo.getTasks().filter {
-                    it.status!=DownloadTaskStatus.COMPLETED
+                    it.status != DownloadTaskStatus.COMPLETED
                 }.map {
                     it.asStationDownloadTask().asTaskItem()
                 }
@@ -138,12 +142,23 @@ class DownloadingTaskViewModel @Inject constructor(
 
     }
 
-    private fun handleUpdateProgressFlow(updateProgress: Flow<UiAction.UpdateProgress>) =
-        viewModelScope.launch {
-            updateProgress.collect {
-
+    private fun handleTaskMenu(showTaskMenu: Flow<UiAction.ShowTaskMenu>) = viewModelScope.launch {
+        showTaskMenu.collect { action ->
+            _taskMenuState.update {
+                TaskMenuState.Show(action.url)
             }
         }
+    }
+
+    private fun handleHideTaskMenu(hideTaskMenu: Flow<UiAction.HideTaskMenu>) =
+        viewModelScope.launch {
+            hideTaskMenu.collect {
+                _taskMenuState.update {
+                    TaskMenuState.Hide
+                }
+            }
+        }
+
 
     fun setTaskStatus(taskStatus: StateFlow<Map<String, TaskStatus>>) {
         viewModelScope.launch {
@@ -228,6 +243,11 @@ class DownloadingTaskViewModel @Inject constructor(
 
 }
 
+sealed class TaskMenuState {
+    data class Show(val url: String) : TaskMenuState()
+    object Hide : TaskMenuState()
+}
+
 sealed class StatusState {
     data class Status(val taskItem: TaskItem) : StatusState()
     object Init : StatusState()
@@ -236,7 +256,8 @@ sealed class StatusState {
 
 sealed class UiAction {
     object getTaskList : UiAction()
-    object UpdateProgress : UiAction()
+    data class ShowTaskMenu(val url: String, val isHide: Boolean = false) : UiAction()
+    object HideTaskMenu : UiAction()
     data class StartTask(val url: String) : UiAction()
     data class StopTask(val url: String, val taskId: Long) : UiAction()
 }
