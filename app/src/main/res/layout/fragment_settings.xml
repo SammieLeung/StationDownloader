@@ -1,17 +1,45 @@
 <?xml version="1.0" encoding="utf-8"?>
-<layout xmlns:android="http://schemas.android.com/apk/res/android">
+<layout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
 
     <data>
 
     </data>
 
     <RelativeLayout
+        android:theme="@style/AppTheme.Setting.Style"
+        android:paddingHorizontal="30dp"
         android:layout_width="match_parent"
         android:layout_height="match_parent">
 
         <TextView
-            android:text="设置"
+            android:id="@+id/commonSettingTitle"
+            android:textFontWeight="400"
+            android:textSize="23sp"
+            android:textColor="@color/main_text_color"
+            android:layout_marginTop="51dp"
+            android:text="@string/common_setting"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content" />
+        
+        <TextView
+            android:layout_marginTop="52dp"
+            android:textSize="18sp"
+            android:layout_alignParentEnd="true"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="V3.0.0"
+            />
+
+        <LinearLayout
+            android:layout_marginTop="15dp"
+            android:layout_below="@id/commonSettingTitle"
+            android:background="@drawable/setting_content_background"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content">
+
+            <include layout="@layout/setting_item"
+                app:title="@{@string/common_setting_download_path}"/>
+        </LinearLayout>
     </RelativeLayout>
 </layout>

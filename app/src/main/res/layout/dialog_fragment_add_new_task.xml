@@ -151,7 +151,8 @@
                 android:backgroundTint="@color/app_theme_common_button_background_tint"
                 android:src="@drawable/ic_open_folder"
                 android:tint="#FFFFFF"
-                app:tint="@android:color/white" />
+                app:tint="@android:color/white"
+                tools:ignore="UseAppTint" />
 
 
             <LinearLayout

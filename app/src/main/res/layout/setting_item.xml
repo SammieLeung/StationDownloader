@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <data>
+
+        <variable
+            name="title"
+            type="String" />
+
+        <variable
+            name="configText"
+            type="String" />
+
+        <variable
+            name="appendText"
+            type="String" />
+
+    </data>
+
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
+
+        <TextView
+            android:layout_marginLeft="16dp"
+            android:id="@+id/titleView"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignParentStart="true"
+            android:layout_centerVertical="true"
+            android:text="@{title}"
+            android:textSize="21sp" />
+
+        <TextView
+            android:drawableTint="@color/setting_text_color_tint"
+            android:drawablePadding="15dp"
+            android:drawableEnd="@drawable/ic_enter"
+            android:layout_marginEnd="16dp"
+            android:id="@+id/configView"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignParentEnd="true"
+            android:layout_centerVertical="true"
+            android:lines="1"
+            android:text="@{configText}"
+            android:textSize="18sp" />
+
+        <TextView
+            android:layout_marginStart="100dp"
+            android:layout_marginRight="15dp"
+            android:id="@+id/appendTextView"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_centerVertical="true"
+            android:layout_toStartOf="@id/configView"
+            android:layout_toEndOf="@id/titleView"
+            android:lines="1"
+            android:text="@{appendText}"
+            android:textSize="23sp" />
+    </RelativeLayout>
+</layout>
