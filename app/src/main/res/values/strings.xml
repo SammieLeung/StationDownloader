@@ -26,5 +26,6 @@
   <string name="menu_resume_task">继续下载</string>
   <string name="menu_pause_task">暂停下载</string>
   <string name="menu_delete_task">删除任务</string>
+  <string name="menu_play_done_task">打开任务</string>
 
 </resources>

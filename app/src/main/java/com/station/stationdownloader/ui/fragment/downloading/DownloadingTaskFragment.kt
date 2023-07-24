@@ -14,7 +14,7 @@ import com.orhanobut.logger.Logger
 import com.station.stationdownloader.TaskService
 import com.station.stationdownloader.databinding.FragmentDownloadtaskBinding
 import com.station.stationdownloader.ui.base.BaseFragment
-import com.station.stationdownloader.ui.fragment.downloading.menu.TaskItemMenuDialogFragment
+import com.station.stationdownloader.ui.fragment.downloading.menu.DoneTaskItemMenuDialogFragment
 import com.station.stationdownloader.ui.viewmodel.MainViewModel
 import com.station.stationdownloader.ui.viewmodel.NewTaskState
 import com.station.stationdownloader.utils.DLogger
@@ -112,7 +112,7 @@ class DownloadingTaskFragment : BaseFragment<FragmentDownloadtaskBinding>(), DLo
         lifecycleScope.launch {
             menuState.collect {
                 if (it is TaskMenuState.Show) {
-                    val dialog = TaskItemMenuDialogFragment.newInstance(it.url)
+                    val dialog = DoneTaskItemMenuDialogFragment.newInstance(it.url)
                     dialog.show(childFragmentManager, "TaskItemMenuDialogFragment")
                 }
             }

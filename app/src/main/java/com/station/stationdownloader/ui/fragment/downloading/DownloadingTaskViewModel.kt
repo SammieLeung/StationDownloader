@@ -256,7 +256,7 @@ sealed class StatusState {
 
 sealed class UiAction {
     object getTaskList : UiAction()
-    data class ShowTaskMenu(val url: String, val isHide: Boolean = false) : UiAction()
+    data class ShowTaskMenu(val url: String) : UiAction()
     object HideTaskMenu : UiAction()
     data class StartTask(val url: String) : UiAction()
     data class StopTask(val url: String, val taskId: Long) : UiAction()

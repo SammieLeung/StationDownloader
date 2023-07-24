@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.station.stationdownloader.data.source.IDownloadTaskRepository
 import com.station.stationdownloader.data.source.local.model.StationDownloadTask
 import com.station.stationdownloader.data.source.local.room.entities.asStationDownloadTask
+import com.station.stationdownloader.ui.fragment.downloading.TaskMenuState
 import com.station.stationdownloader.utils.DLogger
 import com.station.stationdownloader.utils.TaskTools
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -13,6 +14,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -27,6 +29,9 @@ class DownloadedTaskViewModel @Inject constructor(
     private val _taskList = MutableStateFlow<List<DoneTaskItem>>(emptyList())
     val taskList = _taskList.asSharedFlow()
 
+    private val _taskMenuState = MutableStateFlow<TaskMenuState>(TaskMenuState.Hide)
+    val taskMenuState = _taskMenuState.asStateFlow()
+
     val accept: (UiAction) -> Unit
 
     init {
@@ -36,9 +41,12 @@ class DownloadedTaskViewModel @Inject constructor(
     private fun initAction(): (UiAction) -> Unit {
         val actionStateFlow: MutableSharedFlow<UiAction> = MutableSharedFlow()
         val getTaskList = actionStateFlow.filterIsInstance<UiAction.getTaskList>()
+        val showTaskMenuFlow= actionStateFlow.filterIsInstance<UiAction.ShowTaskMenu>()
+        val hideTaskMenuFlow = actionStateFlow.filterIsInstance<UiAction.HideTaskMenu>()
 
         handleGetTaskList(getTaskList)
-
+        handleShowTaskMenu(showTaskMenuFlow)
+        handleHideTaskMenu(hideTaskMenuFlow)
         return { action ->
             viewModelScope.launch {
                 actionStateFlow.emit(action)
@@ -55,6 +63,23 @@ class DownloadedTaskViewModel @Inject constructor(
             }
         }
     }
+    private fun handleShowTaskMenu(showTaskMenu: Flow<UiAction.ShowTaskMenu>) = viewModelScope.launch {
+        showTaskMenu.collect { action ->
+            _taskMenuState.update {
+                TaskMenuState.Show(action.url)
+            }
+        }
+    }
+
+    private fun handleHideTaskMenu(hideTaskMenu: Flow<UiAction.HideTaskMenu>) =
+        viewModelScope.launch {
+            hideTaskMenu.collect {
+                _taskMenuState.update {
+                    TaskMenuState.Hide
+                }
+            }
+        }
+
     override fun DLogger.tag(): String {
         return DownloadedTaskViewModel::class.java.simpleName
     }
@@ -73,6 +98,8 @@ class DownloadedTaskViewModel @Inject constructor(
 
 sealed class UiAction {
     object getTaskList : UiAction()
+    data class ShowTaskMenu(val url: String) :UiAction()
+    object HideTaskMenu :UiAction()
 }
 
 data class DoneTaskItem(

@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layout xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <data>
+
+    </data>
+
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:theme="@style/AppTheme.Dialog">
+
+        <RelativeLayout
+            android:layout_width="525dp"
+            android:layout_height="wrap_content"
+            android:layout_centerInParent="true"
+            android:background="@drawable/station_dialog_background">
+
+            <TextView
+                android:id="@+id/titleView"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="25dp"
+                android:gravity="center"
+                android:text="@string/title_task_item_menu"
+                android:textFontWeight="800"
+                android:textSize="24sp" />
+
+            <LinearLayout
+                android:id="@+id/menuList"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_below="@id/titleView"
+                android:layout_centerHorizontal="true"
+                android:layout_marginTop="21dp"
+                android:layout_marginBottom="31dp"
+                android:gravity="center"
+                android:orientation="vertical">
+
+
+                <Button
+                    android:id="@+id/playTaskBtn"
+                    style="@style/TaskMenuDialogMenuButtonStyle"
+                    android:text="@string/menu_play_done_task" />
+
+                <Button
+                    android:id="@+id/deleteTaskBtn"
+                    style="@style/TaskMenuDialogMenuButtonStyle"
+                    android:text="@string/menu_delete_task" />
+
+            </LinearLayout>
+        </RelativeLayout>
+    </RelativeLayout>
+</layout>

@@ -2,13 +2,13 @@ package com.station.stationdownloader.ui.fragment.downloading.menu
 
 import android.content.DialogInterface
 import android.os.Bundle
-import com.station.stationdownloader.databinding.DialogTaskItemMenuBinding
+import com.station.stationdownloader.databinding.DialogDoneTaskItemMenuBinding
 import com.station.stationdownloader.ui.base.BaseDialogFragment
 import com.station.stationdownloader.ui.fragment.downloading.DownloadingTaskFragment
 import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint
-class TaskItemMenuDialogFragment : BaseDialogFragment<DialogTaskItemMenuBinding>() {
+class DoneTaskItemMenuDialogFragment : BaseDialogFragment<DialogDoneTaskItemMenuBinding>() {
     private val url: String by lazy {
         arguments?.getString(EXTRA_URL) ?: ""
     }

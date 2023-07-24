@@ -31,6 +31,10 @@ class DownloadedTaskFragment : BaseFragment<FragmentDownloadtaskBinding>(),DLogg
         vm.accept(UiAction.getTaskList)
     }
 
+    override fun DLogger.tag(): String {
+        return DownloadedTaskFragment::class.java.simpleName
+    }
+
     fun FragmentDownloadtaskBinding.bindState(taskItemListFlow: SharedFlow<List<DoneTaskItem>>) {
         taskListView.adapter = taskListAdapter
         taskListView.itemAnimator=null
@@ -43,7 +47,9 @@ class DownloadedTaskFragment : BaseFragment<FragmentDownloadtaskBinding>(),DLogg
         }
     }
 
-    override fun DLogger.tag(): String {
-      return DownloadedTaskFragment::class.java.simpleName
+    fun hideTaskItemMenu() {
+        vm.accept(UiAction.HideTaskMenu)
     }
+
+
 }
