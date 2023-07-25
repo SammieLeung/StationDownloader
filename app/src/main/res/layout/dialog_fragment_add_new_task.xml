@@ -91,6 +91,19 @@
                     android:text="@string/filter_other" />
             </LinearLayout>
 
+            <TextView
+                android:textFontWeight="300"
+                android:textSize="@dimen/t2"
+                android:textColor="#FF646477"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_below="@id/taskFileList"
+                android:layout_alignParentEnd="true"
+                android:layout_marginTop="15dp"
+                android:layout_toEndOf="@id/filterSets"
+                android:gravity="end|center_vertical"
+                android:text="已选3100个文件 共5100GB"/>
+
             <Spinner
                 android:id="@+id/engineSpinner"
                 android:layout_width="match_parent"
@@ -122,6 +135,7 @@
                     android:autoSizeMaxTextSize="23sp"
                     android:autoSizeMinTextSize="16sp"
                     android:autoSizeTextType="uniform"
+                    android:gravity="center"
                     android:maxLines="3"
                     android:paddingHorizontal="15dp"
                     android:text="@{downloadPath}"
