@@ -21,6 +21,7 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -41,9 +42,11 @@ class TaskService : Service(), DLogger {
     private val taskStatusFlow: MutableStateFlow<Map<String, TaskStatus>> =
         MutableStateFlow(emptyMap())
 
+    private var startTaskJobMap = mutableMapOf<String, Job>()
+    private var stopTaskJobMap = mutableMapOf<String, Job>()
+
     override fun onCreate() {
         super.onCreate()
-        printCodeLine()
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -59,11 +62,23 @@ class TaskService : Service(), DLogger {
                 ACTION_CANCEL_WATCH_TASK -> {
                     val url = intent.getStringExtra("url") ?: return START_NOT_STICKY
                     taskStatusFlow.update {
-                        val map=it.toMutableMap()
+                        val map = it.toMutableMap()
                         map.remove(url)
                         map.toMap()
                     }
                     tasks.remove(url)?.apply { cancel() }
+                }
+
+                ACTION_START_TASK -> {
+                    val url = intent.getStringExtra("url") ?: return START_NOT_STICKY
+                    cancelJob(url)
+                    startTaskJobMap[url] = startTask(url)
+                }
+
+                ACTION_STOP_TASK -> {
+                    val url = intent.getStringExtra("url") ?: return START_NOT_STICKY
+                    cancelJob(url)
+                    stopTaskJobMap[url] = stopTask(url)
                 }
 
                 else -> {
@@ -82,8 +97,44 @@ class TaskService : Service(), DLogger {
 
     override fun onDestroy() {
         super.onDestroy()
+        logger("onDestory")
         tasks.values.forEach { it.cancel() }
         serviceScope.cancel()
+    }
+
+    private fun startTask(url: String) = serviceScope.launch {
+        try {
+            val xlEntity = taskRepo.getTaskByUrl(url)
+            xlEntity ?: return@launch
+            val taskIdResult = engineRepo.startTask(xlEntity.asStationDownloadTask())
+            if (taskIdResult is IResult.Error)
+                return@launch
+            val taskId = (taskIdResult as IResult.Success).data
+            logger(" taskId{$taskId}")
+            tasks[url]?.apply { cancel() }
+            tasks[url] = createWatchTask(taskId, url)
+        } catch (e: Exception) {
+            Logger.e(e.message.toString())
+        }
+
+
+    }
+
+    private fun stopTask(url: String) = serviceScope.launch(Dispatchers.IO) {
+        try{
+            tasks.remove(url)?.apply { cancel() }
+            val entity = taskRepo.getTaskByUrl(url) ?: return@launch
+            val taskId = taskStatusFlow.value[url]?.taskId ?: return@launch
+            engineRepo.stopTask(taskId, entity.asStationDownloadTask())
+        }catch (e:Exception){
+            Logger.e(e.message.toString())
+        }
+
+    }
+
+    private fun cancelJob(url: String) {
+        startTaskJobMap[url]?.cancel()
+        stopTaskJobMap[url]?.cancel()
     }
 
     private fun createWatchTask(taskId: Long, url: String): Job {
@@ -114,7 +165,6 @@ class TaskService : Service(), DLogger {
     private suspend fun speedTest(
         taskId: Long, url: String, failedCount: Int = 0, delayTestTime: Int = 30
     ) {
-
         val task: XLDownloadTaskEntity = taskRepo.getTaskByUrl(url) ?: return
         var delayCount = delayTestTime
         var nullCount = 0
@@ -137,16 +187,8 @@ class TaskService : Service(), DLogger {
                 break
             }
             nullCount = 0
-
-            if (delayCount > 0) {
-                delayCount--
-            } else {
-                startSpeedTest = true
-            }
-
             val speed = taskInfo.mDownloadSpeed
             val status = taskInfo.mTaskStatus
-
             updateTaskStatus(
                 url, TaskStatus(
                     taskId = taskId,
@@ -157,6 +199,11 @@ class TaskService : Service(), DLogger {
                     status = status
                 )
             )
+            if (delayCount > 0) {
+                delayCount--
+            } else {
+                startSpeedTest = true
+            }
 
             withContext(Dispatchers.IO) {
                 val taskStatus = when (status) {
@@ -222,7 +269,7 @@ class TaskService : Service(), DLogger {
     }
 
     fun getStatusFlow(): StateFlow<Map<String, TaskStatus>> {
-        return taskStatusFlow
+        return taskStatusFlow.asStateFlow()
     }
 
     fun stopWatchStatus(url: String) {
@@ -258,6 +305,9 @@ class TaskService : Service(), DLogger {
         private const val ACTION_WATCH_TASK = "action.watch.task"
         private const val ACTION_CANCEL_WATCH_TASK = "action.cancel.watch.task"
 
+        private const val ACTION_START_TASK = "action.start.task"
+        private const val ACTION_STOP_TASK = "action.stop.task"
+
 
         @JvmStatic
         fun watchTask(context: Context, url: String, taskId: Long = -1) {
@@ -271,6 +321,22 @@ class TaskService : Service(), DLogger {
         fun cancelWatchTask(context: Context, url: String) {
             val intent =
                 Intent(context, TaskService::class.java).setAction(ACTION_CANCEL_WATCH_TASK)
+            intent.putExtra("url", url)
+            context.startService(intent)
+        }
+
+        @JvmStatic
+        fun startTask(context: Context, url: String) {
+            val intent =
+                Intent(context, TaskService::class.java).setAction(ACTION_START_TASK)
+            intent.putExtra("url", url)
+            context.startService(intent)
+        }
+
+        @JvmStatic
+        fun stopTask(context: Context, url: String) {
+            val intent =
+                Intent(context, TaskService::class.java).setAction(ACTION_STOP_TASK)
             intent.putExtra("url", url)
             context.startService(intent)
         }

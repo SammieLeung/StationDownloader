@@ -16,7 +16,9 @@ import com.station.stationdownloader.data.source.local.model.StationDownloadTask
 import com.station.stationdownloader.data.source.local.room.entities.asStationDownloadTask
 import com.station.stationdownloader.utils.DLogger
 import com.station.stationdownloader.utils.TaskTools
+import com.xunlei.downloadlib.XLTaskHelper
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -26,6 +28,7 @@ import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import javax.inject.Inject
 
 @HiltViewModel
@@ -85,65 +88,121 @@ class DownloadingTaskViewModel @Inject constructor(
 
     private fun handleStartTask(startTask: Flow<UiAction.StartTask>) = viewModelScope.launch {
         startTask.collect { action ->
-            val xlDownloadTaskEntity = taskRepo.getTaskByUrl(action.url)
-            xlDownloadTaskEntity?.let {
+            withContext(Dispatchers.Default) {
+                val taskItem =
+                    _taskItemList.value.find { it.url == action.url } ?: return@withContext
                 _statusState.update {
-                    val taskItem = _taskItemList.value.find { it.url == action.url }
-                    taskItem?.let { item ->
-                        StatusState.Status(
-                            item.copy(
-                                statuBtn = formatStatusBtn(ITaskState.RUNNING.ordinal)
-                            )
-                        )
-                    } ?: StatusState.Init
+                    StatusState.Status(
+                        taskItem = taskItem.copy(
+                            statuBtn = formatStatusBtn(ITaskState.RUNNING.code)
+                        ),
+                        taskStatus = ITaskState.UNKNOWN.code
+                    )
                 }
-                val taskIdResult = enginRepo.startTask(it.asStationDownloadTask())
-                if (taskIdResult is IResult.Error) {
-                    _statusState.update {
-                        val taskItem = _taskItemList.value.find { it.url == action.url }
-                        taskItem?.let { item ->
-                            StatusState.Status(
-                                item.copy(
-                                    statuBtn = formatStatusBtn(ITaskState.STOP.ordinal)
-                                )
-                            )
-                        } ?: StatusState.Init
-                    }
-                    return@collect
-                }
-
-                taskIdResult as IResult.Success
-                TaskService.watchTask(application, it.url, taskIdResult.data)
+                TaskService.startTask(application, action.url)
             }
         }
     }
+
+//    private fun handleStartTask(startTask: Flow<UiAction.StartTask>) = viewModelScope.launch {
+//        startTask.collect { action ->
+//            withContext(Dispatchers.Default) {
+//                logger("$this startTask")
+//                TaskService.cancelWatchTask(application, action.url)
+//                val xlDownloadTaskEntity = taskRepo.getTaskByUrl(action.url)
+//                xlDownloadTaskEntity?.let {
+//                    val taskItem = _taskItemList.value.find { it.url == action.url }
+//                    _statusState.update {
+//                        taskItem?.let { item ->
+//                            StatusState.Status(
+//                                taskItem = item.copy(
+//                                    statuBtn = formatStatusBtn(ITaskState.RUNNING.code)
+//                                ),
+//                                taskStatus = ITaskState.UNKNOWN.code
+//                            )
+//                        } ?: StatusState.Init
+//                    }
+//                    logger("$this enginRepo.startTask")
+//                    val taskIdResult = enginRepo.startTask(it.asStationDownloadTask())
+//                    if (taskIdResult is IResult.Error) {
+//                        _statusState.update {
+//                            taskItem?.let { item ->
+//                                StatusState.Status(
+//                                    taskItem = item.copy(
+//                                        statuBtn = formatStatusBtn(ITaskState.STOP.code)
+//                                    ),
+//                                    taskStatus = ITaskState.UNKNOWN.code
+//                                )
+//                            } ?: StatusState.Init
+//                        }
+//                        return@let
+//                    }
+//
+//                    taskIdResult as IResult.Success
+//                    _statusState.update {
+//                        val taskInfo = XLTaskHelper.instance().getTaskInfo(taskIdResult.data)
+//                        taskItem?.let { item ->
+//                            StatusState.Status(
+//                                taskItem = item.copy(statuBtn = formatStatusBtn(taskInfo.mTaskStatus)),
+//                                taskStatus = taskInfo.mTaskStatus
+//                            )
+//                        } ?: StatusState.Init
+//                    }
+//                    TaskService.watchTask(application, it.url, taskIdResult.data)
+//                }
+//            }
+//        }
+//    }
+
 
     private fun handleStopTask(stopTask: Flow<UiAction.StopTask>) = viewModelScope.launch {
         stopTask.collect { action ->
-            TaskService.cancelWatchTask(application, action.url)
-            _statusState.update {
-                val taskItem = _taskItemList.value.find { it.url == action.url }
-                taskItem?.let { item ->
+            withContext(Dispatchers.Default) {
+                logger("$this handleStopTask")
+                val taskItem =
+                    _taskItemList.value.find { it.url == action.url } ?: return@withContext
+                _statusState.update {
                     StatusState.Status(
-                        item.copy(
-                            statuBtn = formatStatusBtn(ITaskState.STOP.ordinal),
-                            speed = ""
-                        )
+                        taskItem = taskItem.copy(
+                            statuBtn = formatStatusBtn(ITaskState.STOP.code)
+                        ),
+                        taskStatus = ITaskState.UNKNOWN.code
                     )
-                } ?: StatusState.Init
-            }
-            val entity = taskRepo.getTaskByUrl(action.url)
-            entity?.let {
-                enginRepo.stopTask(action.taskId, entity.asStationDownloadTask())
+                }
+                TaskService.stopTask(application, action.url)
             }
         }
     }
 
+//    private fun handleStopTask(stopTask: Flow<UiAction.StopTask>) = viewModelScope.launch {
+//        stopTask.collect { action ->
+//            logger("$this handleStopTask")
+//
+//            TaskService.cancelWatchTask(application, action.url)
+//            _statusState.update {
+//                val taskItem = _taskItemList.value.find { it.url == action.url }
+//                taskItem?.let { item ->
+//                    StatusState.Status(
+//                        taskItem = item.copy(
+//                            statuBtn = formatStatusBtn(ITaskState.STOP.code),
+//                            speed = ""
+//                        ), taskStatus = ITaskState.STOP.code
+//                    )
+//                } ?: StatusState.Init
+//            }
+//            val entity = taskRepo.getTaskByUrl(action.url)
+//            entity?.let {
+//                enginRepo.stopTask(action.taskId, entity.asStationDownloadTask())
+//
+//            }
+//        }
+//    }
+
     private fun handleTaskMenu(showTaskMenu: Flow<UiAction.ShowTaskMenu>) = viewModelScope.launch {
         showTaskMenu.collect { action ->
-            val taskItem=_taskItemList.value.find { it.url==action.url }
+            val taskItem = _taskItemList.value.find { it.url == action.url }
             _taskMenuState.update {
-                TaskMenuState.Show(action.url,taskItem?.statuBtn==R.drawable.ic_stop)
+                TaskMenuState.Show(action.url, taskItem?.statuBtn == R.drawable.ic_stop)
             }
         }
     }
@@ -169,7 +228,7 @@ class DownloadingTaskViewModel @Inject constructor(
                     taskItem?.apply {
                         _statusState.update {
                             StatusState.Status(
-                                taskItem.copy(
+                                taskItem = taskItem.copy(
                                     taskId = taskStatus.taskId,
                                     speed = formatSpeed(taskStatus.speed),
                                     sizeInfo = formatSizeInfo(
@@ -181,7 +240,8 @@ class DownloadingTaskViewModel @Inject constructor(
                                         taskStatus.totalSize
                                     ),
                                     statuBtn = formatStatusBtn(taskStatus.status)
-                                )
+                                ),
+                                taskStatus = taskStatus.status
                             )
                         }
                     }
@@ -242,12 +302,12 @@ class DownloadingTaskViewModel @Inject constructor(
 }
 
 sealed class TaskMenuState {
-    data class Show(val url: String,val isTaskRunning:Boolean) : TaskMenuState()
+    data class Show(val url: String, val isTaskRunning: Boolean) : TaskMenuState()
     object Hide : TaskMenuState()
 }
 
 sealed class StatusState {
-    data class Status(val taskItem: TaskItem) : StatusState()
+    data class Status(val taskItem: TaskItem, val taskStatus: Int) : StatusState()
     object Init : StatusState()
 }
 

@@ -105,7 +105,6 @@ class DownloadingTaskFragment : BaseFragment<FragmentDownloadtaskBinding>(), DLo
         lifecycleScope.launch {
             status.collect {
                 if (it is StatusState.Status) {
-                    logger("newStatus= ${it.taskItem.sizeInfo} ${it.taskItem.speed}")
                     taskListAdapter.updateProgress(it.taskItem)
                 }
             }

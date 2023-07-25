@@ -18,10 +18,15 @@
 
     </data>
 
-    <RelativeLayout
+    <FrameLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent">
 
+        <RelativeLayout
+            android:background="@drawable/station_button_background"
+            android:backgroundTint="@color/setting_item_bg_tint"
+            android:layout_width="match_parent"
+            android:layout_height="66dp">
         <TextView
             android:layout_marginLeft="16dp"
             android:id="@+id/titleView"
@@ -58,5 +63,6 @@
             android:lines="1"
             android:text="@{appendText}"
             android:textSize="23sp" />
-    </RelativeLayout>
+        </RelativeLayout>
+    </FrameLayout>
 </layout>

@@ -28,10 +28,13 @@
             android:layout_alignParentEnd="true"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="V3.0.0"
+            android:text="V0.0.1_alpha"
             />
 
         <LinearLayout
+            android:paddingHorizontal="23dp"
+            android:paddingVertical="15dp"
+            android:orientation="vertical"
             android:layout_marginTop="15dp"
             android:layout_below="@id/commonSettingTitle"
             android:background="@drawable/setting_content_background"
@@ -40,6 +43,10 @@
 
             <include layout="@layout/setting_item"
                 app:title="@{@string/common_setting_download_path}"/>
+            <include layout="@layout/setting_item"
+                app:title="@{@string/common_setting_simultaneous_download_tasks}"/>
+            <include layout="@layout/setting_item"
+                app:title="@{@string/common_setting_download_speed_limit}"/>
         </LinearLayout>
     </RelativeLayout>
 </layout>
