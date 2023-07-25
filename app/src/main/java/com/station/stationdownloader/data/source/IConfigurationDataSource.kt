@@ -3,16 +3,12 @@ package com.station.stationdownloader.data.source
 import com.station.stationdownloader.DownloadEngine
 
 interface IConfigurationDataSource {
-    fun getDownloadSpeedLimit():Long
-    fun setDownloadSpeedLimit(downloadSpeedLimit:Long)
-    fun getUploadSpeedLimit():Long
-    fun setUploadSpeedLimit(uploadSpeedLimit:Long)
-    fun getSpeedLimit():Long
-    fun setSpeedLimit(speedLimit:Long)
-    fun getDownloadPath():String
-    fun setDownloadPath(path:String)
-    fun getMaxThread():Int
-    fun setMaxThread(count:Int)
-    fun setDefaultEngine(engine: DownloadEngine)
-    fun getDefaultEngine(): DownloadEngine
+    suspend fun getSpeedLimit(): Long
+    suspend fun setSpeedLimit(speedLimit: Long): Boolean
+    suspend fun getDownloadPath(): String
+    suspend fun setDownloadPath(path: String): Boolean
+    suspend fun getMaxThread(): Int
+    suspend fun setMaxThread(count: Int): Boolean
+    suspend fun setDefaultEngine(engine: DownloadEngine): Boolean
+    suspend fun getDefaultEngine(): DownloadEngine
 }

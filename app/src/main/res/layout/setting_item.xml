@@ -9,11 +9,11 @@
             type="String" />
 
         <variable
-            name="configText"
+            name="content"
             type="String" />
 
         <variable
-            name="appendText"
+            name="extraContent"
             type="String" />
 
     </data>
@@ -23,6 +23,7 @@
         android:layout_height="match_parent">
 
         <RelativeLayout
+            android:duplicateParentState="true"
             android:background="@drawable/station_button_background"
             android:backgroundTint="@color/setting_item_bg_tint"
             android:layout_width="match_parent"
@@ -48,7 +49,7 @@
             android:layout_alignParentEnd="true"
             android:layout_centerVertical="true"
             android:lines="1"
-            android:text="@{configText}"
+            android:text="@{content}"
             android:textSize="18sp" />
 
         <TextView
@@ -61,7 +62,7 @@
             android:layout_toStartOf="@id/configView"
             android:layout_toEndOf="@id/titleView"
             android:lines="1"
-            android:text="@{appendText}"
+            android:text="@{extraContent}"
             android:textSize="23sp" />
         </RelativeLayout>
     </FrameLayout>

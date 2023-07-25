@@ -77,8 +77,8 @@ class Aria2Engine internal constructor(
     }
 
 
-    override suspend fun configure(key: String, values: Array<String>): IResult<Unit> {
-        TODO("Not yet implemented")
+    override suspend fun configure(key: String, values: String): IResult<Unit> {
+        return IResult.Success(Unit)
     }
 
 

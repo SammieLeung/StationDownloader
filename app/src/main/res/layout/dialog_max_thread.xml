@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layout xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <data>
+
+    </data>
+
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:theme="@style/AppTheme.Dialog">
+
+        <RelativeLayout
+            android:layout_width="525dp"
+            android:layout_height="wrap_content"
+            android:layout_centerInParent="true"
+            android:background="@drawable/station_dialog_background">
+
+            <TextView
+                android:id="@+id/titleView"
+                style="@style/DialogTitleStyle"
+                android:text="@string/common_setting_max_thread" />
+
+            <Spinner
+                android:id="@+id/maxThreadSpinner"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_below="@id/titleView"
+                android:layout_marginHorizontal="48dp"
+                android:layout_marginTop="23dp" />
+
+            <RelativeLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_below="@id/maxThreadSpinner"
+                android:layout_alignStart="@id/maxThreadSpinner"
+                android:layout_alignEnd="@id/maxThreadSpinner"
+                android:layout_marginTop="45dp"
+                android:layout_marginBottom="57dp">
+
+                <Button
+                    android:id="@+id/okBtn"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/ok_btn" />
+
+                <Button
+                    android:layout_alignParentEnd="true"
+                    android:id="@+id/cancelBtn"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/cancel_btn" />
+            </RelativeLayout>
+
+        </RelativeLayout>
+    </RelativeLayout>
+</layout>

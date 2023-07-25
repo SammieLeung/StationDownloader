@@ -102,9 +102,9 @@ class DefaultEngineRepository(
     }
 
 
-    override suspend fun configure(key: String, values: Array<String>): IResult<Unit> {
-        val xlConfigResult = xlEngine.configure(key, values)
-        val aria2ConfigResult = aria2Engine.configure(key, values)
+    override suspend fun configure(key: String, value: String): IResult<Unit> {
+        val xlConfigResult = xlEngine.configure(key, value)
+        val aria2ConfigResult = aria2Engine.configure(key, value)
 
         if (xlConfigResult is IResult.Error) return xlConfigResult.copy(exception = Exception("[xl] ${xlConfigResult.exception.message}"))
 

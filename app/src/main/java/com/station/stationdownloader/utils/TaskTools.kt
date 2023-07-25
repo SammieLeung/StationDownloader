@@ -181,6 +181,17 @@ object TaskTools {
         return "${String.format("%.2f", byte.asByte)}B"
     }
 
+    fun toRoundHumanReading(byte: Long): String {
+        if (byte >= 1.TB)
+            return "${byte.asTB}TB"
+        if (byte >= 1.GB)
+            return "${byte.asGB}GB"
+        if (byte >= 1.MB)
+            return "${byte.asMB}MB"
+        if (byte >= 1.KB)
+            return "${byte.asKB}KB"
+        return "${byte.asByte}B"
+    }
 
     fun formatProgress(downloadSize: Long, totalSize: Long): Int {
         return if (downloadSize <= 0L || totalSize <= 0L) 0 else round(downloadSize.toDouble() * 100 / totalSize.toDouble()).toInt()
@@ -192,6 +203,10 @@ object TaskTools {
 
     fun formatSpeed(speed: Long): String {
         return "${toHumanReading(speed)}/S"
+    }
+
+    fun formatRoundSpeed(speed: Long):String{
+        return "${toRoundHumanReading(speed)}/S"
     }
 
 }

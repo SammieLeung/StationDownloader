@@ -1,20 +1,15 @@
 package com.station.stationdownloader.test
 
-import android.util.Log
 import androidx.annotation.WorkerThread
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.orhanobut.logger.AndroidLogAdapter
 import com.orhanobut.logger.Logger
-import com.station.stationdownloader.data.source.local.model.TreeNode
 import com.station.stationdownloader.utils.TaskTools
 import com.station.stationdownloader.utils.TaskTools.toHumanReading
 import com.station.stationdownloader.utils.asMB
-import com.xunlei.downloadlib.XLTaskHelper
-import com.xunlei.downloadlib.parameter.TorrentInfo
 import dagger.hilt.android.testing.HiltAndroidRule
 import dagger.hilt.android.testing.HiltAndroidTest
-import okhttp3.internal.concurrent.Task
 import okhttp3.internal.notifyAll
 import org.json.JSONObject
 import org.junit.Assert.*
@@ -22,7 +17,6 @@ import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
-import java.io.File
 
 /**
  * Instrumented test, which will execute on an Android device.

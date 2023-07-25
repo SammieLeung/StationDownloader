@@ -121,12 +121,12 @@ class TaskService : Service(), DLogger {
     }
 
     private fun stopTask(url: String) = serviceScope.launch(Dispatchers.IO) {
-        try{
+        try {
             tasks.remove(url)?.apply { cancel() }
             val entity = taskRepo.getTaskByUrl(url) ?: return@launch
             val taskId = taskStatusFlow.value[url]?.taskId ?: return@launch
             engineRepo.stopTask(taskId, entity.asStationDownloadTask())
-        }catch (e:Exception){
+        } catch (e: Exception) {
             Logger.e(e.message.toString())
         }
 
@@ -205,21 +205,19 @@ class TaskService : Service(), DLogger {
                 startSpeedTest = true
             }
 
-            withContext(Dispatchers.IO) {
-                val taskStatus = when (status) {
-                    ITaskState.RUNNING.code -> DownloadTaskStatus.DOWNLOADING
-                    ITaskState.STOP.code -> DownloadTaskStatus.PAUSE
-                    ITaskState.DONE.code -> DownloadTaskStatus.COMPLETED
-                    else -> DownloadTaskStatus.FAILED
-                }
-                taskRepo.updateTask(
-                    task.copy(
-                        downloadSize = taskInfo.mDownloadSize,
-                        totalSize = taskInfo.mFileSize,
-                        status = taskStatus
-                    )
-                )
+            val taskStatus = when (status) {
+                ITaskState.RUNNING.code -> DownloadTaskStatus.DOWNLOADING
+                ITaskState.STOP.code -> DownloadTaskStatus.PAUSE
+                ITaskState.DONE.code -> DownloadTaskStatus.COMPLETED
+                else -> DownloadTaskStatus.FAILED
             }
+            taskRepo.updateTask(
+                task.copy(
+                    downloadSize = taskInfo.mDownloadSize,
+                    totalSize = taskInfo.mFileSize,
+                    status = taskStatus
+                )
+            )
 
             if (speed <= 0) {
                 if (startSpeedTest) noSpeedCount++

@@ -25,7 +25,7 @@ interface IEngine {
         selectIndexes:IntArray
     ):IResult<Long>
     suspend fun stopTask(taskId:Long)
-    suspend fun configure(key: String, values: Array<String>): IResult<Unit>
+    suspend fun configure(key: String, values: String): IResult<Unit>
 
 
 }

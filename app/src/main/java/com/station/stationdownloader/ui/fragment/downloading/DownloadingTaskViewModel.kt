@@ -30,6 +30,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import javax.inject.Inject
+import kotlin.math.log
 
 @HiltViewModel
 class DownloadingTaskViewModel @Inject constructor(
@@ -223,27 +224,28 @@ class DownloadingTaskViewModel @Inject constructor(
                 it.forEach { url, taskStatus ->
                     val taskItem = _taskItemList.value.find {
                         it.url == url
-                    }
+                    } ?: return@forEach
 
-                    taskItem?.apply {
-                        _statusState.update {
-                            StatusState.Status(
-                                taskItem = taskItem.copy(
-                                    taskId = taskStatus.taskId,
-                                    speed = formatSpeed(taskStatus.speed),
-                                    sizeInfo = formatSizeInfo(
-                                        taskStatus.downloadSize,
-                                        taskStatus.totalSize
-                                    ),
-                                    progress = formatProgress(
-                                        taskStatus.downloadSize,
-                                        taskStatus.totalSize
-                                    ),
-                                    statuBtn = formatStatusBtn(taskStatus.status)
+                    if(taskStatus.status==ITaskState.DONE.code){
+                        accept(UiAction.getTaskList)
+                    }
+                    _statusState.update {
+                        StatusState.Status(
+                            taskItem = taskItem.copy(
+                                taskId = taskStatus.taskId,
+                                speed = formatSpeed(taskStatus.speed),
+                                sizeInfo = formatSizeInfo(
+                                    taskStatus.downloadSize,
+                                    taskStatus.totalSize
                                 ),
-                                taskStatus = taskStatus.status
-                            )
-                        }
+                                progress = formatProgress(
+                                    taskStatus.downloadSize,
+                                    taskStatus.totalSize
+                                ),
+                                statuBtn = formatStatusBtn(taskStatus.status)
+                            ),
+                            taskStatus = taskStatus.status
+                        )
                     }
                 }
             }

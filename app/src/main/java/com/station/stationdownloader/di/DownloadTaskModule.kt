@@ -50,11 +50,9 @@ object ConfigurationModule {
     @Provides
     @Singleton
     fun provideConfigurationRepo(
-        @XLEngineAnnotation xlEngine: IEngine,
-        @Aria2EngineAnnotation aria2Engine: IEngine,
         @LocalConfigurationDataSource localDataSource: IConfigurationDataSource
     ): IConfigurationRepository {
-        return DefaultConfigurationRepository(xlEngine, aria2Engine, localDataSource)
+        return DefaultConfigurationRepository(localDataSource)
     }
 
     @Provides
@@ -62,8 +60,9 @@ object ConfigurationModule {
     @LocalConfigurationDataSource
     fun provideLocalConfigurationDataSource(
         defaultMMKV: MMKV,
+        @IoDispatcher ioDispatcher: CoroutineDispatcher
     ): IConfigurationDataSource {
-        return ConfigurationLocalDataSource(defaultMMKV)
+        return ConfigurationLocalDataSource(defaultMMKV,ioDispatcher)
     }
 }
 

@@ -4,49 +4,69 @@
 
     <data>
 
+        <import type="java.util.List" />
+
+        <import type="com.station.stationdownloader.ui.fragment.setting.SettingItemState" />
+
+        <variable
+            name="itemStateList"
+            type="List&lt;SettingItemState>" />
     </data>
 
     <RelativeLayout
-        android:theme="@style/AppTheme.Setting.Style"
-        android:paddingHorizontal="30dp"
         android:layout_width="match_parent"
-        android:layout_height="match_parent">
+        android:layout_height="match_parent"
+        android:paddingHorizontal="30dp"
+        android:theme="@style/AppTheme.Setting.Style">
 
         <TextView
             android:id="@+id/commonSettingTitle"
-            android:textFontWeight="400"
-            android:textSize="23sp"
-            android:textColor="@color/main_text_color"
-            android:layout_marginTop="51dp"
-            android:text="@string/common_setting"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content" />
-        
-        <TextView
-            android:layout_marginTop="52dp"
-            android:textSize="18sp"
-            android:layout_alignParentEnd="true"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:layout_marginTop="51dp"
+            android:text="@string/common_setting"
+            android:textColor="@color/main_text_color"
+            android:textFontWeight="400"
+            android:textSize="23sp" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignParentEnd="true"
+            android:layout_marginTop="52dp"
             android:text="V0.0.1_alpha"
-            />
+            android:textSize="18sp" />
 
         <LinearLayout
-            android:paddingHorizontal="23dp"
-            android:paddingVertical="15dp"
-            android:orientation="vertical"
-            android:layout_marginTop="15dp"
-            android:layout_below="@id/commonSettingTitle"
-            android:background="@drawable/setting_content_background"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content">
+            android:layout_height="wrap_content"
+            android:layout_below="@id/commonSettingTitle"
+            android:layout_marginTop="15dp"
+            android:background="@drawable/setting_content_background"
+            android:orientation="vertical"
+            android:paddingHorizontal="23dp"
+            android:paddingVertical="15dp">
 
-            <include layout="@layout/setting_item"
-                app:title="@{@string/common_setting_download_path}"/>
-            <include layout="@layout/setting_item"
-                app:title="@{@string/common_setting_simultaneous_download_tasks}"/>
-            <include layout="@layout/setting_item"
-                app:title="@{@string/common_setting_download_speed_limit}"/>
+            <include
+                android:id="@+id/common_setting_download_path"
+                layout="@layout/setting_item"
+                app:content="@{itemStateList.get(0).content}"
+                app:extraContent="@{itemStateList.get(0).extraContent}"
+                app:title="@{itemStateList.get(0).title}" />
+
+            <include
+                android:id="@+id/common_setting_simultaneous_download_tasks"
+                layout="@layout/setting_item"
+                app:content="@{itemStateList.get(1).content}"
+                app:extraContent="@{itemStateList.get(1).extraContent}"
+                app:title="@{itemStateList.get(1).title}" />
+
+            <include
+                android:id="@+id/common_setting_download_speed_limit"
+                layout="@layout/setting_item"
+                app:content="@{itemStateList.get(2).content}"
+                app:extraContent="@{itemStateList.get(2).extraContent}"
+                app:title="@{itemStateList.get(2).title}" />
         </LinearLayout>
     </RelativeLayout>
 </layout>

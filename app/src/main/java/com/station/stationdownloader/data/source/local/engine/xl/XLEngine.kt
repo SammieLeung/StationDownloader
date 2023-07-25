@@ -1,25 +1,24 @@
 package com.station.stationdownloader.data.source.local.engine.xl
 
 import android.content.Context
-import com.orhanobut.logger.Logger
+import com.station.stationdownloader.DownloadEngine
 import com.station.stationdownloader.DownloadUrlType
 import com.station.stationdownloader.ITaskState
 import com.station.stationdownloader.contants.ConfigureError
-import com.station.stationdownloader.contants.DOWNLOAD_SPEED_LIMIT
+import com.station.stationdownloader.contants.DOWNLOAD_ENGINE
+import com.station.stationdownloader.contants.DOWNLOAD_PATH
 import com.station.stationdownloader.contants.GET_MAGNET_TASK_INFO_DELAY
 import com.station.stationdownloader.contants.MAGNET_TASK_TIMEOUT
+import com.station.stationdownloader.contants.MAX_THREAD
 import com.station.stationdownloader.contants.SPEED_LIMIT
 import com.station.stationdownloader.contants.TaskExecuteError
-import com.station.stationdownloader.contants.UPLOAD_SPEED_LIMIT
 import com.station.stationdownloader.contants.tryDownloadDirectoryPath
 import com.station.stationdownloader.data.IResult
 import com.station.stationdownloader.data.source.IConfigurationDataSource
 import com.station.stationdownloader.data.source.ITorrentInfoRepository
 import com.station.stationdownloader.data.source.local.engine.IEngine
 import com.station.stationdownloader.data.source.local.engine.NewTaskConfigModel
-import com.station.stationdownloader.data.source.local.model.StationDownloadTask
 import com.station.stationdownloader.data.source.local.model.TreeNode
-import com.station.stationdownloader.data.source.local.room.entities.TorrentInfoEntity
 import com.station.stationdownloader.data.source.remote.FileContentHeader
 import com.station.stationdownloader.data.source.remote.FileSizeApiService
 import com.station.stationdownloader.utils.DLogger
@@ -160,19 +159,23 @@ class XLEngine internal constructor(
         XLTaskHelper.instance().stopTask(taskId)
     }
 
-    override suspend fun configure(key: String, values: Array<String>): IResult<Unit> {
+    override suspend fun configure(key: String, value: String): IResult<Unit> {
         when (key) {
-            UPLOAD_SPEED_LIMIT, DOWNLOAD_SPEED_LIMIT, SPEED_LIMIT -> {
-                if (values.size == 2) {
-                    val upSpeedLimit: Long = values[0] as Long
-                    val downloadSpeedLimit: Long = values[1] as Long
-                    XLDownloadManager.getInstance().setSpeedLimit(upSpeedLimit, downloadSpeedLimit)
-                    return IResult.Success(Unit)
-                }
-                return IResult.Error(
-                    Exception(ConfigureError.INSUFFICIENT_NUMBER_OF_PARAMETERS.name),
-                    ConfigureError.INSUFFICIENT_NUMBER_OF_PARAMETERS.ordinal
-                )
+            SPEED_LIMIT -> {
+                XLDownloadManager.getInstance().setSpeedLimit(value.toLong(), value.toLong())
+                configurationDataSource.setSpeedLimit(value.toLong())
+            }
+
+            MAX_THREAD -> {
+                configurationDataSource.setMaxThread(value.toInt())
+            }
+
+            DOWNLOAD_ENGINE -> {
+                configurationDataSource.setDefaultEngine(DownloadEngine.valueOf(value))
+            }
+
+            DOWNLOAD_PATH -> {
+                configurationDataSource.setDownloadPath(value)
             }
 
             else -> return IResult.Error(
@@ -180,7 +183,7 @@ class XLEngine internal constructor(
                 ConfigureError.NOT_SUPPORT_CONFIGURATION.ordinal
             )
         }
-
+        return IResult.Success(Unit)
     }
 
     private suspend fun autoDownloadTorrent(

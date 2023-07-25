@@ -2,7 +2,9 @@
 <layout xmlns:android="http://schemas.android.com/apk/res/android">
 
     <data>
-        <import type="android.view.View"/>
+
+        <import type="android.view.View" />
+
         <variable
             name="isTaskRunning"
             type="boolean" />
@@ -21,13 +23,8 @@
 
             <TextView
                 android:id="@+id/titleView"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="25dp"
-                android:gravity="center"
-                android:text="@string/title_task_item_menu"
-                android:textFontWeight="800"
-                android:textSize="24sp" />
+                style="@style/DialogTitleStyle"
+                android:text="@string/title_task_item_menu" />
 
             <LinearLayout
                 android:id="@+id/menuList"
@@ -41,16 +38,16 @@
                 android:orientation="vertical">
 
                 <Button
-                    android:visibility="@{isTaskRunning ? View.GONE : View.VISIBLE}"
                     android:id="@+id/startTaskBtn"
                     style="@style/TaskMenuDialogMenuButtonStyle"
-                    android:text="@string/menu_resume_task" />
+                    android:text="@string/menu_resume_task"
+                    android:visibility="@{isTaskRunning ? View.GONE : View.VISIBLE}" />
 
                 <Button
-                    android:visibility="@{isTaskRunning ? View.VISIBLE : View.GONE}"
                     android:id="@+id/stopTaskBtn"
                     style="@style/TaskMenuDialogMenuButtonStyle"
-                    android:text="@string/menu_pause_task" />
+                    android:text="@string/menu_pause_task"
+                    android:visibility="@{isTaskRunning ? View.VISIBLE : View.GONE}" />
 
                 <Button
                     android:id="@+id/deleteTaskBtn"
