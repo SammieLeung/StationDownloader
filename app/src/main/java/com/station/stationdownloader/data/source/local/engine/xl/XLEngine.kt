@@ -195,10 +195,19 @@ class XLEngine internal constructor(
                 magnetUrl, downloadPath, torrentFileName
             )
 
-            if (taskId <= 0) return IResult.Error(
-                Exception(TaskExecuteError.ADD_MAGNET_TASK_ERROR.name),
-                TaskExecuteError.ADD_MAGNET_TASK_ERROR.ordinal
-            )
+            if (taskId <= 0) {
+                val torrentFile = File(downloadPath, torrentFileName)
+                return if (torrentFile.isFile && torrentFile.exists()) {
+                    initTorrentUrl(torrentFile.path)
+                } else {
+                    IResult.Error(
+                        Exception(TaskExecuteError.ADD_MAGNET_TASK_ERROR.name),
+                        TaskExecuteError.ADD_MAGNET_TASK_ERROR.ordinal
+                    )
+                }
+            }
+
+
 
             return withTimeout(MAGNET_TASK_TIMEOUT) {
                 while (XLTaskHelper.instance()
@@ -325,10 +334,10 @@ class XLEngine internal constructor(
             Exception(TaskExecuteError.SUB_TORRENT_INFO_IS_NULL.name),
             TaskExecuteError.SUB_TORRENT_INFO_IS_NULL.ordinal
         )
-        val taskName = torrentUrl.substringAfterLast(File.separatorChar)
+        val taskName = torrentUrl.substringAfterLast(File.separatorChar).substringBeforeLast(".")
 
         val downloadPath =
-            File(configurationDataSource.getDownloadPath(), taskName.substringBeforeLast(".")).path
+            File(configurationDataSource.getDownloadPath()).path
         val fileCount = torrentInfo.mFileCount
         var torrentId = checkTorrentHash(torrentInfo.mInfoHash)
         if (torrentId == null)

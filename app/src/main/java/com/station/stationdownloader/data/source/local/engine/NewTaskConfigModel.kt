@@ -6,6 +6,7 @@ import com.station.stationdownloader.data.source.local.model.StationDownloadTask
 import com.station.stationdownloader.data.source.local.model.TreeNode
 import com.station.stationdownloader.data.source.local.model.getSelectedFileIndexes
 import com.station.stationdownloader.data.source.local.room.entities.XLDownloadTaskEntity
+import java.io.File
 
 sealed class NewTaskConfigModel(
     val _name: String,
@@ -86,7 +87,7 @@ fun NewTaskConfigModel.asStationDownloadTask(): StationDownloadTask {
                 urlType = urlType,
                 engine = this.engine,
                 totalSize = fileSize,
-                downloadPath = this.downloadPath,
+                downloadPath = File(this.downloadPath, taskName).path,
                 selectIndexes = selectIndexes,
             )
 
@@ -104,7 +105,7 @@ fun NewTaskConfigModel.asStationDownloadTask(): StationDownloadTask {
                 urlType = DownloadUrlType.TORRENT,
                 engine = this.engine,
                 totalSize = fileSize,
-                downloadPath = this.downloadPath,
+                downloadPath = File(this.downloadPath, taskName).path,
                 selectIndexes = selectIndexes,
             )
 
@@ -127,7 +128,7 @@ fun NewTaskConfigModel.asXLDownloadTaskEntity(): XLDownloadTaskEntity {
                 urlType = urlType,
                 engine = this.engine,
                 totalSize = fileSize,
-                downloadPath = this.downloadPath,
+                downloadPath = File(this.downloadPath, taskName).path,
                 selectIndexes = selectIndexes,
                 fileCount = fileCount
             )
@@ -148,7 +149,7 @@ fun NewTaskConfigModel.asXLDownloadTaskEntity(): XLDownloadTaskEntity {
                 urlType = DownloadUrlType.TORRENT,
                 engine = this.engine,
                 totalSize = fileSize,
-                downloadPath = this.downloadPath,
+                downloadPath = File(this.downloadPath, taskName).path,
                 selectIndexes = selectIndexes,
                 fileCount = fileCount
             )
