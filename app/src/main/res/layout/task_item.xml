@@ -12,7 +12,7 @@
             type="TaskItem" />
     </data>
 
-    <androidx.constraintlayout.widget.ConstraintLayout
+    <RelativeLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginLeft="30dp"
@@ -28,10 +28,7 @@
             android:layout_height="68dp"
             android:layout_marginTop="25dp"
             android:layout_marginBottom="25dp"
-            android:src="@mipmap/ic_video"
-            app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toTopOf="parent" />
+            android:src="@mipmap/ic_video" />
 
 
         <ProgressBar
@@ -39,47 +36,51 @@
             style="@style/Station.Widget.ProgressBar.Horizontal"
             android:layout_width="0dp"
             android:layout_height="6dp"
+            android:layout_below="@id/taskName"
             android:layout_marginStart="11dp"
             android:layout_marginTop="7dp"
-            android:layout_marginEnd="30dp"
+            android:layout_toStartOf="@id/startTaskBtn"
+            android:layout_toEndOf="@id/fileIcon"
             android:max="100"
-            android:progress="@{taskItem.progress}"
-            app:layout_constraintEnd_toStartOf="@id/startTaskBtn"
-            app:layout_constraintStart_toEndOf="@id/fileIcon"
-            app:layout_constraintTop_toBottomOf="@id/taskName" />
+            android:progress="@{taskItem.progress}" />
 
         <ImageView
             android:id="@+id/startTaskBtn"
             android:layout_width="30dp"
             android:layout_height="30dp"
+            android:layout_alignParentEnd="true"
+            android:layout_centerVertical="true"
+            android:layout_marginStart="11dp"
             android:layout_marginEnd="35dp"
             android:background="@android:color/transparent"
-            app:imageResource="@{taskItem.statuBtn}"
-            app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintTop_toTopOf="parent" />
+            app:imageResource="@{taskItem.statuBtn}" />
 
 
         <TextView
             android:id="@+id/taskName"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:layout_alignStart="@id/taskProcess"
+            android:layout_alignEnd="@id/taskProcess"
             android:layout_marginTop="22dp"
+            android:ellipsize="end"
+            android:lines="1"
             android:text="@{taskItem.taskName}"
             android:textFontWeight="400"
             android:textSize="@dimen/t2"
-            app:layout_constraintStart_toStartOf="@id/taskProcess"
-            app:layout_constraintTop_toTopOf="parent"
             tools:text="下载文件.mp4" />
 
         <LinearLayout
             android:id="@+id/msgInfo"
-            android:layout_width="wrap_content"
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
+            android:layout_below="@id/taskProcess"
+            android:layout_alignStart="@id/taskProcess"
             android:layout_marginTop="14dp"
-            android:orientation="horizontal"
-            app:layout_constraintStart_toStartOf="@id/taskProcess"
-            app:layout_constraintTop_toBottomOf="@id/taskProcess">
+            android:layout_marginEnd="30dp"
+            android:layout_toStartOf="@id/speedTextView"
+            android:layout_toEndOf="@id/fileIcon"
+            android:orientation="horizontal">
 
             <TextView
                 android:id="@+id/downloadSize"
@@ -101,9 +102,12 @@
                 style="@style/TaskItemSmallText"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
+                android:ellipsize="end"
+                android:maxWidth="560dp"
+                android:lines="1"
                 android:text="@{taskItem.downloadPath}"
                 android:textSize="12sp"
-                tools:text="内置存储/Station/Movies" />
+                tools:text="Movies" />
 
             <View
                 android:id="@+id/divider_2"
@@ -122,17 +126,17 @@
         </LinearLayout>
 
         <TextView
-            android:id="@+id/textView"
+            android:id="@+id/speedTextView"
             style="@style/TaskItemSmallText"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:layout_below="@id/taskProcess"
             android:layout_marginTop="14dp"
+            android:layout_alignEnd="@id/taskProcess"
             android:text="@{taskItem.speed}"
             android:textSize="12sp"
-            app:layout_constraintEnd_toEndOf="@id/taskProcess"
-            app:layout_constraintTop_toBottomOf="@id/taskProcess"
             tools:text="56KB/S" />
 
 
-    </androidx.constraintlayout.widget.ConstraintLayout>
+    </RelativeLayout>
 </layout>

@@ -58,7 +58,7 @@ class MainViewModel @Inject constructor(
     val mainUiState: StateFlow<MainUiState> = _mainUiState.asStateFlow()
 
     private val _toastState = MutableStateFlow<ToastState>(ToastState.INIT)
-    val toastState=_toastState.asStateFlow()
+    val toastState = _toastState.asStateFlow()
 
     private val _newTaskState = MutableStateFlow<NewTaskState>(NewTaskState.INIT)
     val newTaskState: StateFlow<NewTaskState> = _newTaskState.asStateFlow()
@@ -106,8 +106,17 @@ class MainViewModel @Inject constructor(
                     taskRepo.saveTask((_newTaskState.value as NewTaskState.PreparingData).task)
                 if (saveTaskResult is IResult.Error) {
                     when (saveTaskResult.code) {
+                        TaskExecuteError.REPEATING_TASK_NOTHING_CHANGED.ordinal -> {
+                            _toastState.update {
+                                ToastState.Toast(application.getString(R.string.repeating_task_nothing_changed))
+                            }
+                            _newTaskState.update {
+                                NewTaskState.INIT
+                            }
+                        }
+
                         else -> _toastState.update {
-                          ToastState.Toast(saveTaskResult.exception.message.toString())
+                            ToastState.Toast(saveTaskResult.exception.message.toString())
                         }
                     }
 
@@ -121,7 +130,10 @@ class MainViewModel @Inject constructor(
                     engineRepo.startTask(saveTaskResult.data.asStationDownloadTask())
                 if (taskIdResult is IResult.Error) {
                     _toastState.update {
-                       ToastState.Toast(taskIdResult.exception.message.toString())
+                        ToastState.Toast(taskIdResult.exception.message.toString())
+                    }
+                    _newTaskState.update {
+                        NewTaskState.INIT
                     }
                     return@collect
                 }
@@ -132,9 +144,11 @@ class MainViewModel @Inject constructor(
                     (taskIdResult as IResult.Success).data
                 )
 
-
+                _toastState.update {
+                    ToastState.Toast(application.getString(R.string.start_to_download))
+                }
                 _newTaskState.update {
-                    NewTaskState.SUCCESS
+                    NewTaskState.INIT
                 }
             }
         }
@@ -185,7 +199,7 @@ class MainViewModel @Inject constructor(
         viewModelScope.launch {
             resetToastFlow.collect {
                 _toastState.update {
-                     ToastState.INIT
+                    ToastState.INIT
                 }
             }
         }
@@ -338,9 +352,6 @@ sealed class NewTaskState {
         val taskSizeInfo: TaskSizeInfo = TaskSizeInfo()
     ) : NewTaskState()
 
-    object SUCCESS : NewTaskState()
-
-    object LOADING : AddUriUiState<Nothing>()
 }
 
 data class TaskSizeInfo(

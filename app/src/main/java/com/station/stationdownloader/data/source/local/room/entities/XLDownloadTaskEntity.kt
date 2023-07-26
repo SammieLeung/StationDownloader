@@ -19,7 +19,7 @@ import org.jetbrains.annotations.NotNull
  */
 @Entity(
     tableName = "xl_download_task",
-    indices = [Index(value = ["url", "engine", "download_path"], unique = true)]
+    indices = [Index(value = ["url"], unique = true)]
 )
 data class XLDownloadTaskEntity @JvmOverloads constructor(
     @PrimaryKey(autoGenerate = true)

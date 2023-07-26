@@ -12,7 +12,7 @@
             type="DoneTaskItem" />
     </data>
 
-    <androidx.constraintlayout.widget.ConstraintLayout
+    <RelativeLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginLeft="30dp"
@@ -28,21 +28,20 @@
             android:layout_height="68dp"
             android:layout_marginTop="25dp"
             android:layout_marginBottom="25dp"
-            android:src="@mipmap/ic_video"
-            app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toTopOf="parent" />
+            android:src="@mipmap/ic_video" />
 
         <TextView
             android:id="@+id/taskName"
+            android:lines="1"
+            android:ellipsize="end"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:layout_alignTop="@id/fileIcon"
+            android:layout_marginStart="11dp"
+            android:layout_toEndOf="@id/fileIcon"
             android:text="@{taskItem.taskName}"
             android:textFontWeight="400"
             android:textSize="@dimen/t2"
-            android:layout_marginStart="11dp"
-            app:layout_constraintStart_toEndOf="@id/fileIcon"
-            app:layout_constraintTop_toTopOf="@id/fileIcon"
             tools:text="下载文件.mp4" />
 
         <LinearLayout
@@ -51,8 +50,9 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="14dp"
             android:orientation="horizontal"
-            app:layout_constraintStart_toStartOf="@id/taskName"
-            app:layout_constraintBottom_toBottomOf="@id/fileIcon">
+            android:layout_alignBottom="@id/fileIcon"
+            android:layout_alignStart="@id/taskName"
+          >
 
             <TextView
                 android:id="@+id/downloadSize"
@@ -72,6 +72,9 @@
             <TextView
                 android:id="@+id/downloadPath"
                 style="@style/TaskItemSmallText"
+                android:maxWidth="760dp"
+                android:lines="1"
+                android:ellipsize="end"
                 android:layout_width="wrap_content"
                 android:layout_height="match_parent"
                 android:text="@{taskItem.downloadPath}"
@@ -95,6 +98,5 @@
         </LinearLayout>
 
 
-
-    </androidx.constraintlayout.widget.ConstraintLayout>
+    </RelativeLayout>
 </layout>

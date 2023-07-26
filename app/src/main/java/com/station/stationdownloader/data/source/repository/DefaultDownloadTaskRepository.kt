@@ -1,5 +1,6 @@
 package com.station.stationdownloader.data.source.repository
 
+import com.orhanobut.logger.Logger
 import com.station.stationdownloader.DownloadEngine
 import com.station.stationdownloader.contants.TaskExecuteError
 import com.station.stationdownloader.data.IResult
@@ -15,6 +16,7 @@ import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.withContext
+import java.io.File
 
 /**
  * author: Sam Leung
@@ -80,6 +82,11 @@ class DefaultDownloadTaskRepository(
             val newSelectIndexes =
                 rootDir.getSelectedFileIndexes()
 
+            if (newSelectIndexes.isEmpty())
+                return@withContext IResult.Error(
+                    Exception(TaskExecuteError.SELECT_AT_LEAST_ONE_FILE.name),
+                    TaskExecuteError.SELECT_AT_LEAST_ONE_FILE.ordinal
+                )
 
             val existsTask = getTaskByUrl(originUrl)
             if (existsTask == null) {
@@ -94,7 +101,6 @@ class DefaultDownloadTaskRepository(
                 return@withContext IResult.Success(newTaskResult)
             }
 
-
             if (assertTaskConfigNotChange(existsTask, newTask)) {
                 return@withContext IResult.Error(
                     Exception(TaskExecuteError.REPEATING_TASK_NOTHING_CHANGED.name),
@@ -103,7 +109,7 @@ class DefaultDownloadTaskRepository(
             }
 
             val updatedTask = existsTask.copy(
-                downloadPath = newTask._downloadPath,
+                downloadPath = File(newTask._downloadPath,newTask._name).path,
                 engine = newTask._downloadEngine,
                 selectIndexes = newSelectIndexes,
                 name = newTask._name
@@ -126,7 +132,7 @@ class DefaultDownloadTaskRepository(
         newTask: NewTaskConfigModel
     ): Boolean {
         return existsTask.engine == newTask._downloadEngine &&
-                existsTask.downloadPath == newTask._downloadPath &&
+                existsTask.downloadPath == File(newTask._downloadPath,newTask._name).path &&
                 existsTask.name == newTask._name &&
                 existsTask.selectIndexes == (newTask._fileTree as TreeNode.Directory).getSelectedFileIndexes()
     }

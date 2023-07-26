@@ -89,7 +89,7 @@ class DownloadingTaskFragment : BaseFragment<FragmentDownloadtaskBinding>(), DLo
         taskListView.itemAnimator = null
         lifecycleScope.launch {
             newTaskState.collect {
-                if (it is NewTaskState.SUCCESS) {
+                if (it is NewTaskState.INIT) {
                     accept(UiAction.getTaskList)
                 }
             }
