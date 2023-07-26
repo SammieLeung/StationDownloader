@@ -61,7 +61,7 @@ class DefaultDownloadTaskRepository(
         return localDataSource.getTasksStream()
     }
 
-    override suspend fun insertTask(task: XLDownloadTaskEntity): Long {
+    override suspend fun insertTask(task: XLDownloadTaskEntity): IResult<Long> {
         return localDataSource.insertTask(task)
     }
 
@@ -76,27 +76,29 @@ class DefaultDownloadTaskRepository(
                 is NewTaskConfigModel.TorrentTask -> newTask.torrentPath
             }
 
-            val rootDir=newTask._fileTree as TreeNode.Directory
+            val rootDir = newTask._fileTree as TreeNode.Directory
             val newSelectIndexes =
                 rootDir.getSelectedFileIndexes()
 
 
             val existsTask = getTaskByUrl(originUrl)
             if (existsTask == null) {
-                insertTask(newTask.asXLDownloadTaskEntity())
-                val taskResult =
-                    getTaskByUrl(originUrl, newTask._downloadEngine, newTask._downloadPath)
-                if (taskResult is IResult.Error)
-                    return@withContext taskResult
-
-                return@withContext IResult.Success((taskResult as IResult.Success).data)
+                val insertResult = insertTask(newTask.asXLDownloadTaskEntity())
+                if (insertResult is IResult.Error)
+                    return@withContext insertResult
+                val newTaskResult = getTaskByUrl(originUrl)
+                    ?: return@withContext IResult.Error(
+                        Exception(TaskExecuteError.TASK_INSERT_ERROR.name),
+                        TaskExecuteError.TASK_INSERT_ERROR.ordinal
+                    )
+                return@withContext IResult.Success(newTaskResult)
             }
 
 
             if (assertTaskConfigNotChange(existsTask, newTask)) {
                 return@withContext IResult.Error(
-                    Exception(TaskExecuteError.REPEATING_TASK_NOTHING_CHANGE.name),
-                    TaskExecuteError.REPEATING_TASK_NOTHING_CHANGE.ordinal
+                    Exception(TaskExecuteError.REPEATING_TASK_NOTHING_CHANGED.name),
+                    TaskExecuteError.REPEATING_TASK_NOTHING_CHANGED.ordinal
                 )
             }
 

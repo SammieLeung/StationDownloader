@@ -51,24 +51,9 @@ class MainActivity : BaseActivity<ActivityMainBinding>(), DLogger {
         lifecycleScope.launch {
             repeatOnLifecycle(Lifecycle.State.RESUMED) {
                 launch {
-                    vm.mainUiState.map { it.isLoading }.distinctUntilChanged().collectLatest {
-                        mBinding.isLoading = it
-                    }
-                }
-                launch {
-                    vm.mainUiState.filter { it.toastState is ToastState.Toast }
-                        .map { it.toastState as ToastState.Toast }.distinctUntilChanged()
-                        .collectLatest {
-                            withContext(Dispatchers.Main) {
-                                showToast(applicationContext, it.msg)
-                                vm.accept(UiAction.ResetToast)
-                            }
-                        }
-                }
-
-                launch {
-                    vm.newTaskState.filter { it is NewTaskState.PreparingData }
-                        .collect {
+                    vm.mainUiState.collect {
+                        mBinding.isLoading = it.isLoading
+                        if(it.isShowAddNewTask){
                             if (supportFragmentManager.findFragmentByTag(
                                     AddNewTaskDialogFragment::class.java.simpleName
                                 )?.isVisible == true
@@ -81,6 +66,17 @@ class MainActivity : BaseActivity<ActivityMainBinding>(), DLogger {
                                 supportFragmentManager,
                                 AddNewTaskDialogFragment::class.java.simpleName
                             )
+                        }
+                    }
+                }
+                launch {
+                    vm.toastState.filter { it is ToastState.Toast }
+                        .map { it as ToastState.Toast }
+                        .collect {
+                            withContext(Dispatchers.Main) {
+                                showToast(applicationContext, it.msg)
+                                vm.accept(UiAction.ResetToast)
+                            }
                         }
                 }
 

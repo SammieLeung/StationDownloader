@@ -5,7 +5,6 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.orhanobut.logger.Logger
-import com.station.stationdownloader.DownloadEngine
 import com.station.stationdownloader.FileType
 import com.station.stationdownloader.R
 import com.station.stationdownloader.TaskService
@@ -16,7 +15,6 @@ import com.station.stationdownloader.data.source.IDownloadTaskRepository
 import com.station.stationdownloader.data.source.IEngineRepository
 import com.station.stationdownloader.data.source.ITorrentInfoRepository
 import com.station.stationdownloader.data.source.local.engine.NewTaskConfigModel
-import com.station.stationdownloader.data.source.local.engine.xl.XLEngine
 import com.station.stationdownloader.data.source.local.model.StationDownloadTask
 import com.station.stationdownloader.data.source.local.model.TreeNode
 import com.station.stationdownloader.data.source.local.model.filterFile
@@ -24,14 +22,12 @@ import com.station.stationdownloader.data.source.local.room.entities.asStationDo
 import com.station.stationdownloader.ui.fragment.newtask.toHumanReading
 import com.station.stationdownloader.utils.DLogger
 import com.station.stationdownloader.utils.XLEngineTools
-import com.xunlei.downloadlib.XLTaskHelper
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flow
@@ -60,6 +56,9 @@ class MainViewModel @Inject constructor(
 
     private val _mainUiState = MutableStateFlow(MainUiState(false))
     val mainUiState: StateFlow<MainUiState> = _mainUiState.asStateFlow()
+
+    private val _toastState = MutableStateFlow<ToastState>(ToastState.INIT)
+    val toastState=_toastState.asStateFlow()
 
     private val _newTaskState = MutableStateFlow<NewTaskState>(NewTaskState.INIT)
     val newTaskState: StateFlow<NewTaskState> = _newTaskState.asStateFlow()
@@ -100,15 +99,18 @@ class MainViewModel @Inject constructor(
     private fun handleStartTaskAction(startTaskFlow: Flow<UiAction.StartDownloadTask>) =
         viewModelScope.launch {
             startTaskFlow.collect { it ->
+                logger("startTaskFlow collect")
                 if (_newTaskState.value !is NewTaskState.PreparingData)
                     return@collect
-
                 val saveTaskResult =
                     taskRepo.saveTask((_newTaskState.value as NewTaskState.PreparingData).task)
                 if (saveTaskResult is IResult.Error) {
-                    _mainUiState.update {
-                        it.copy(toastState = ToastState.Toast(saveTaskResult.exception.message.toString()))
+                    when (saveTaskResult.code) {
+                        else -> _toastState.update {
+                          ToastState.Toast(saveTaskResult.exception.message.toString())
+                        }
                     }
+
                     return@collect
                 }
 
@@ -118,8 +120,8 @@ class MainViewModel @Inject constructor(
                 val taskIdResult =
                     engineRepo.startTask(saveTaskResult.data.asStationDownloadTask())
                 if (taskIdResult is IResult.Error) {
-                    _mainUiState.update {
-                        it.copy(toastState = ToastState.Toast(taskIdResult.exception.message.toString()))
+                    _toastState.update {
+                       ToastState.Toast(taskIdResult.exception.message.toString())
                     }
                     return@collect
                 }
@@ -141,8 +143,6 @@ class MainViewModel @Inject constructor(
         viewModelScope.launch {
             initTaskFlow.flatMapLatest {
                 flow {
-                    Logger.d("initTask flow")
-
                     _addUriState.update {
                         AddUriUiState.LOADING
                     }
@@ -174,6 +174,9 @@ class MainViewModel @Inject constructor(
                         task = newTaskModel,
                     )
                 }
+                _mainUiState.update {
+                    it.copy(isShowAddNewTask = true)
+                }
                 dialogAccept(DialogAction.CalculateSizeInfo)
             }
         }
@@ -181,8 +184,8 @@ class MainViewModel @Inject constructor(
     private fun handleResetToast(resetToastFlow: Flow<UiAction.ResetToast>) =
         viewModelScope.launch {
             resetToastFlow.collect {
-                _mainUiState.update {
-                    it.copy(toastState = ToastState.INIT)
+                _toastState.update {
+                     ToastState.INIT
                 }
             }
         }
@@ -226,6 +229,9 @@ class MainViewModel @Inject constructor(
         viewModelScope.launch {
             initTaskSettingStateFlow.collect {
                 _newTaskState.value = NewTaskState.INIT
+                _mainUiState.update {
+                    it.copy(isShowAddNewTask = false)
+                }
             }
         }
 
@@ -316,7 +322,7 @@ sealed class DialogAction {
 
 data class MainUiState(
     val isLoading: Boolean = false,
-    val toastState: ToastState = ToastState.INIT,
+    val isShowAddNewTask: Boolean = false,
 )
 
 sealed class ToastState {

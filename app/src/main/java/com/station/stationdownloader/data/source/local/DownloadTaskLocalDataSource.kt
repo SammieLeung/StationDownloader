@@ -35,8 +35,16 @@ class DownloadTaskLocalDataSource internal constructor(
         }
     }
 
-    override suspend fun insertTask(task: XLDownloadTaskEntity): Long {
-        return downloadTaskDao.insertTask(task)
+    override suspend fun insertTask(task: XLDownloadTaskEntity): IResult<Long> = withContext(ioDispatcher) {
+        val id= downloadTaskDao.insertTask(task)
+        if(id>0){
+            IResult.Success(id)
+        }else{
+            IResult.Error(
+                Exception(TaskExecuteError.TASK_INSERT_ERROR.name),
+                TaskExecuteError.TASK_INSERT_ERROR.ordinal
+            )
+        }
     }
 
     override suspend fun getTaskByUrl(url: String): XLDownloadTaskEntity? =
