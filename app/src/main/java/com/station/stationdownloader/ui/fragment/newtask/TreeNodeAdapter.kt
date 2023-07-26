@@ -11,14 +11,14 @@ import com.station.stationdownloader.data.source.local.model.getChildrenCount
 import com.station.stationdownloader.utils.DLogger
 import com.station.stationdownloader.utils.TaskTools
 
-class TreeNodeAdapter() : RecyclerView.Adapter<RecyclerView.ViewHolder>(), DLogger {
+class TreeNodeAdapter(val calculateSizeInfo: () -> Unit) : RecyclerView.Adapter<RecyclerView.ViewHolder>(), DLogger {
     lateinit var root: TreeNode.Directory
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
         return if (viewType == R.layout.file_item) {
-            FileViewHolder.create(parent)
+            FileViewHolder.create(parent,calculateSizeInfo)
         } else {
-            DirectoryViewHolder.create(parent)
+            DirectoryViewHolder.create(parent,calculateSizeInfo)
         }
     }
 
@@ -29,8 +29,6 @@ class TreeNodeAdapter() : RecyclerView.Adapter<RecyclerView.ViewHolder>(), DLogg
             is TreeNode.Directory -> (holder as DirectoryViewHolder).bind(treeNode,position)
             else -> {}
         }
-
-
     }
 
     override fun getItemCount(): Int {

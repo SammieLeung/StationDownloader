@@ -5,7 +5,6 @@ import android.view.ViewGroup
 import androidx.recyclerview.widget.RecyclerView
 import com.station.stationdownloader.R
 import com.station.stationdownloader.data.source.local.model.TreeNode
-import com.station.stationdownloader.data.source.local.model.findNodeByIndexRecursive
 import com.station.stationdownloader.data.source.local.model.getChildrenCount
 import com.station.stationdownloader.databinding.FolderItemBinding
 import com.station.stationdownloader.ui.fragment.newtask.TreeNodeAdapter.Companion.TREE_NODE_INDENT
@@ -15,6 +14,7 @@ import com.station.stationkitkt.dp
 
 class DirectoryViewHolder(
     val binding: FolderItemBinding,
+    val calculateSizeInfo: () -> Unit,
 ) : RecyclerView.ViewHolder(binding.root),
     DLogger {
     val checkBox = binding.checkbox
@@ -51,6 +51,7 @@ class DirectoryViewHolder(
                         position,
                         treeNode.getChildrenCount() + 1
                     )
+                    calculateSizeInfo()
                 }
             }
         })
@@ -74,13 +75,14 @@ class DirectoryViewHolder(
     companion object {
         fun create(
             parent: ViewGroup,
+            update: () -> Unit,
         ): DirectoryViewHolder {
             return DirectoryViewHolder(
                 FolderItemBinding.inflate(
                     LayoutInflater.from(parent.context),
                     parent,
                     false
-                )
+                ),update
             )
 
         }

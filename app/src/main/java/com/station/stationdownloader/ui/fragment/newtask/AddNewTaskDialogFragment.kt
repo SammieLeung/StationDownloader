@@ -60,7 +60,7 @@ class AddNewTaskDialogFragment : BaseDialogFragment<DialogFragmentAddNewTaskBind
 
 
     private val taskFileListAdapter: TreeNodeAdapter by lazy {
-        TreeNodeAdapter()
+        TreeNodeAdapter { vm.dialogAccept(DialogAction.CalculateSizeInfo) }
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
@@ -70,7 +70,7 @@ class AddNewTaskDialogFragment : BaseDialogFragment<DialogFragmentAddNewTaskBind
             mBinding.initRecyclerView()
             mBinding.initSpinner()
             mBinding.bindState(
-                vm.newTaskState, vm.accept,vm.dialogAccept
+                vm.newTaskState, vm.accept, vm.dialogAccept
             )
         }
     }
@@ -95,7 +95,7 @@ class AddNewTaskDialogFragment : BaseDialogFragment<DialogFragmentAddNewTaskBind
         accept: (UiAction) -> Unit,
         dialogAccept: (DialogAction) -> Unit
     ) {
-        downloadPathView.isSelected=true
+        downloadPathView.isSelected = true
         cancelBtn.setOnClickListener {
             dismiss()
         }
@@ -108,32 +108,32 @@ class AddNewTaskDialogFragment : BaseDialogFragment<DialogFragmentAddNewTaskBind
             openFilePicker()
         }
 
+        collectFileTree(newTaskState)
+        collectFileFilterGroup(newTaskState, dialogAccept)
+        collectTaskSizeInfo(newTaskState)
+        collectSuccess(newTaskState)
+        collectDownloadPath(newTaskState)
+        collectTaskName(newTaskState)
+    }
 
-        val newTaskConfigFlow = newTaskState.filter {
-            it is NewTaskState.PreparingData
-        }.map {
-            (it as NewTaskState.PreparingData)
-        }.distinctUntilChanged()
 
-        val fileFilterGroupFlow = newTaskState.filter { it is NewTaskState.PreparingData }.map {
-            (it as NewTaskState.PreparingData).fileFilterGroup
-        }.distinctUntilChanged()
-
-        val successStart=newTaskState.filter { it is NewTaskState.SUCCESS }
-
+    private fun collectFileTree(newTaskState: Flow<NewTaskState>){
         lifecycleScope.launch {
-            newTaskConfigFlow.collect {
-                val task = it.task
-                taskName = task._name
-                downloadPath = task._downloadPath
-                downloadSpace = "可用:1000.00GB/1050.00GB"
-                engineSpinner.setSelection(task._downloadEngine.ordinal)
-                taskFileListAdapter.fillData(task._fileTree as TreeNode.Directory)
+            newTaskState.filter {
+                it is NewTaskState.PreparingData
+            }.map {
+                (it as NewTaskState.PreparingData).task._fileTree
+            }.distinctUntilChanged().collect{
+                taskFileListAdapter.fillData(it as TreeNode.Directory)
             }
         }
+    }
 
+    private fun DialogFragmentAddNewTaskBinding.collectFileFilterGroup(newTaskState: Flow<NewTaskState>, dialogAccept: (DialogAction) -> Unit){
         lifecycleScope.launch {
-            fileFilterGroupFlow.collect {
+            newTaskState.filter { it is NewTaskState.PreparingData }.map {
+                (it as NewTaskState.PreparingData).fileFilterGroup
+            }.distinctUntilChanged().collect {
                 unBindCheckBox(videoCBox, audioCBox, otherCBox, pictureCBox)
 
                 videoCBox.isChecked = it.selectVideo
@@ -145,17 +145,50 @@ class AddNewTaskDialogFragment : BaseDialogFragment<DialogFragmentAddNewTaskBind
                 bindCheckBox(audioCBox, FileType.AUDIO, dialogAccept)
                 bindCheckBox(pictureCBox, FileType.IMG, dialogAccept)
                 bindCheckBox(otherCBox, FileType.OTHER, dialogAccept)
+                taskFileListAdapter.notifyDataSetChanged()
             }
         }
+    }
 
+    private fun  DialogFragmentAddNewTaskBinding.collectTaskSizeInfo(newTaskState: Flow<NewTaskState>){
         lifecycleScope.launch {
-            successStart.collect{
+            newTaskState.filter { it is NewTaskState.PreparingData }.map {
+                (it as NewTaskState.PreparingData).taskSizeInfo
+            }.distinctUntilChanged().collect {
+                taskSizeInfo = it.taskSizeInfo
+                downloadSpace=it.downloadPathSizeInfo
+            }
+        }
+    }
 
-                Toast.makeText(requireContext(),R.string.start_to_download,Toast.LENGTH_SHORT).show()
+    private fun collectSuccess(newTaskState: Flow<NewTaskState>){
+        lifecycleScope.launch {
+            newTaskState.filter { it is NewTaskState.SUCCESS }.collect {
+                Toast.makeText(requireContext(), R.string.start_to_download, Toast.LENGTH_SHORT)
+                    .show()
                 dismiss()
             }
         }
+    }
 
+    private fun DialogFragmentAddNewTaskBinding.collectTaskName(newTaskState: Flow<NewTaskState>){
+        lifecycleScope.launch {
+            newTaskState.filter { it is NewTaskState.PreparingData }.map {
+                (it as NewTaskState.PreparingData).task._name
+            }.distinctUntilChanged().collect {
+                taskName=it
+            }
+        }
+    }
+
+    private fun DialogFragmentAddNewTaskBinding.collectDownloadPath(newTaskState: Flow<NewTaskState>){
+        lifecycleScope.launch {
+            newTaskState.filter { it is NewTaskState.PreparingData }.map {
+                (it as NewTaskState.PreparingData).task._downloadPath
+            }.distinctUntilChanged().collect {
+                downloadPath=it
+            }
+        }
     }
 
     private fun openFilePicker() {

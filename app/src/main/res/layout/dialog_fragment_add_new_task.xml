@@ -16,6 +16,10 @@
         <variable
             name="downloadSpace"
             type="String" />
+
+        <variable
+            name="taskSizeInfo"
+            type="String" />
     </data>
 
     <RelativeLayout
@@ -93,8 +97,7 @@
 
             <TextView
                 android:textFontWeight="300"
-                android:textSize="@dimen/t2"
-                android:textColor="#FF646477"
+                android:textSize="@dimen/t4"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_below="@id/taskFileList"
@@ -102,7 +105,7 @@
                 android:layout_marginTop="15dp"
                 android:layout_toEndOf="@id/filterSets"
                 android:gravity="end|center_vertical"
-                android:text="已选3100个文件 共5100GB"/>
+                android:text="@{taskSizeInfo}"/>
 
             <Spinner
                 android:id="@+id/engineSpinner"

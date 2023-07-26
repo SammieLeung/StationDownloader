@@ -5,7 +5,9 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.orhanobut.logger.Logger
+import com.station.stationdownloader.DownloadEngine
 import com.station.stationdownloader.FileType
+import com.station.stationdownloader.R
 import com.station.stationdownloader.TaskService
 import com.station.stationdownloader.contants.TaskExecuteError
 import com.station.stationdownloader.data.IResult
@@ -19,6 +21,7 @@ import com.station.stationdownloader.data.source.local.model.StationDownloadTask
 import com.station.stationdownloader.data.source.local.model.TreeNode
 import com.station.stationdownloader.data.source.local.model.filterFile
 import com.station.stationdownloader.data.source.local.room.entities.asStationDownloadTask
+import com.station.stationdownloader.ui.fragment.newtask.toHumanReading
 import com.station.stationdownloader.utils.DLogger
 import com.station.stationdownloader.utils.XLEngineTools
 import com.xunlei.downloadlib.XLTaskHelper
@@ -61,8 +64,6 @@ class MainViewModel @Inject constructor(
     private val _newTaskState = MutableStateFlow<NewTaskState>(NewTaskState.INIT)
     val newTaskState: StateFlow<NewTaskState> = _newTaskState.asStateFlow()
 
-    private val _taskIdMap = MutableStateFlow(mapOf<String, Long>())
-    val taskIdMap = _taskIdMap.asStateFlow()
 
     val accept: (UiAction) -> Unit
     val dialogAccept: (DialogAction) -> Unit
@@ -74,8 +75,8 @@ class MainViewModel @Inject constructor(
     }
 
 
-    fun assertTorrentFile(path:String):Boolean{
-      return  XLEngineTools.assertTorrentFile(path)
+    fun assertTorrentFile(path: String): Boolean {
+        return XLEngineTools.assertTorrentFile(path)
     }
 
     private fun initAcceptAction(): (UiAction) -> Unit {
@@ -130,14 +131,6 @@ class MainViewModel @Inject constructor(
                 )
 
 
-                val taskId = taskIdResult.data
-
-                val currentMap = _taskIdMap.value.toMutableMap()
-                currentMap[saveTaskResult.data.url] = taskId
-                _taskIdMap.update {
-                    currentMap.toMap()
-                }
-
                 _newTaskState.update {
                     NewTaskState.SUCCESS
                 }
@@ -178,9 +171,10 @@ class MainViewModel @Inject constructor(
                 val newTaskModel = (result as IResult.Success).data
                 _newTaskState.update {
                     NewTaskState.PreparingData(
-                        task = newTaskModel
+                        task = newTaskModel,
                     )
                 }
+                dialogAccept(DialogAction.CalculateSizeInfo)
             }
         }
 
@@ -203,12 +197,15 @@ class MainViewModel @Inject constructor(
         val filterStateFlow = actionStateFlow.filterIsInstance<DialogAction.FilterGroupState>()
 
         val setDownloadPathFlow = actionStateFlow.filterIsInstance<DialogAction.SetDownloadPath>()
+        val calculateSizeInfoFlow =
+            actionStateFlow.filterIsInstance<DialogAction.CalculateSizeInfo>()
+
 
         handleInitAddUriState(initAddUriState)
         handleInitTaskSettingState(initTaskSettingState)
         handleFilterState(filterStateFlow)
         handleSetDownloadPathFlow(setDownloadPathFlow)
-
+        handleCalculateSizeInfo(calculateSizeInfoFlow)
 
         return { dialogAction ->
             viewModelScope.launch {
@@ -236,19 +233,20 @@ class MainViewModel @Inject constructor(
         viewModelScope.launch {
             filterStateFlow.collect { checkState ->
                 logger("actionCheckStateFlow collect")
-                checkState.fileType
                 _newTaskState.update {
                     if (it is NewTaskState.PreparingData) {
-                        if (it.task._fileTree is TreeNode.Directory) {
-                            it.task._fileTree.filterFile(checkState.fileType, checkState.isSelect)
-                        }
+                        it.task._fileTree as TreeNode.Directory
+                        it.task._fileTree.filterFile(checkState.fileType, checkState.isSelect)
                         val filterGroup = when (checkState.fileType) {
                             FileType.VIDEO -> it.fileFilterGroup.copy(selectVideo = checkState.isSelect)
                             FileType.AUDIO -> it.fileFilterGroup.copy(selectAudio = checkState.isSelect)
                             FileType.IMG -> it.fileFilterGroup.copy(selectImage = checkState.isSelect)
                             FileType.OTHER -> it.fileFilterGroup.copy(selectOther = checkState.isSelect)
                         }
-                        it.copy(it.task, filterGroup)
+                        dialogAccept(DialogAction.CalculateSizeInfo)
+                        it.copy(
+                            fileFilterGroup = filterGroup
+                        )
                     } else {
                         it
                     }
@@ -267,7 +265,32 @@ class MainViewModel @Inject constructor(
                             )
                         )
                     }
+                    dialogAccept(DialogAction.CalculateSizeInfo)
                 }
+            }
+        }
+
+    private fun handleCalculateSizeInfo(calculateSizeInfoFlow: Flow<DialogAction.CalculateSizeInfo>) =
+        viewModelScope.launch {
+            calculateSizeInfoFlow.collect {
+
+                _newTaskState.update {
+                    it as NewTaskState.PreparingData
+                    val totalCheckedFileSize =
+                        (it.task._fileTree as TreeNode.Directory).totalCheckedFileSize
+                    val checkedFileCount = it.task._fileTree.checkedFileCount
+                    it.copy(
+                        taskSizeInfo = TaskSizeInfo(
+                            taskSizeInfo = application.getString(
+                                R.string.new_task_size_info,
+                                checkedFileCount,
+                                totalCheckedFileSize.toHumanReading()
+                            ),
+                            downloadPathSizeInfo = "可用:1000.00GB/1050.00GB"
+                        )
+                    )
+                }
+
             }
         }
 
@@ -288,13 +311,13 @@ sealed class DialogAction {
 
     data class FilterGroupState(val fileType: FileType, val isSelect: Boolean) : DialogAction()
     data class SetDownloadPath(val downloadPath: String) : DialogAction()
+    object CalculateSizeInfo : DialogAction()
 }
 
 data class MainUiState(
     val isLoading: Boolean = false,
     val toastState: ToastState = ToastState.INIT,
 )
-
 
 sealed class ToastState {
     object INIT : ToastState()
@@ -305,13 +328,19 @@ sealed class NewTaskState {
     object INIT : NewTaskState()
     data class PreparingData(
         val task: NewTaskConfigModel,
-        val fileFilterGroup: fileFilterGroup = fileFilterGroup()
+        val fileFilterGroup: fileFilterGroup = fileFilterGroup(),
+        val taskSizeInfo: TaskSizeInfo = TaskSizeInfo()
     ) : NewTaskState()
 
     object SUCCESS : NewTaskState()
 
     object LOADING : AddUriUiState<Nothing>()
 }
+
+data class TaskSizeInfo(
+    val taskSizeInfo: String = "",
+    val downloadPathSizeInfo: String = ""
+)
 
 data class fileFilterGroup(
     val selectVideo: Boolean = true,

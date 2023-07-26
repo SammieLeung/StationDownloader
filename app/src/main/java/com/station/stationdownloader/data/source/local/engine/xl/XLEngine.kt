@@ -258,7 +258,7 @@ class XLEngine internal constructor(
     ): IResult<NewTaskConfigModel> {
         val taskName = XLTaskHelper.instance().getFileName(realUrl)
         val downloadPath =
-            File(configurationDataSource.getDownloadPath(), taskName.substringBeforeLast(".")).path
+            File(configurationDataSource.getDownloadPath()).path
         val normalTask = NewTaskConfigModel.NormalTask(
             originUrl = originUrl,
             url = realUrl,

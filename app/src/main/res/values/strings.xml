@@ -35,4 +35,6 @@
     <string name="common_setting_download_speed_limit">下载速度限制</string>
 
     <string name="speed_no_limit">无限制</string>
+
+    <string name="new_task_size_info">已选%1$d个文件 共%2$s</string>
 </resources>

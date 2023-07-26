@@ -1,6 +1,5 @@
 package com.station.stationdownloader.ui.fragment.newtask
 
-import android.util.Log
 import android.view.LayoutInflater
 import android.view.ViewGroup
 import androidx.recyclerview.widget.RecyclerView
@@ -13,7 +12,7 @@ import com.station.stationdownloader.utils.DLogger
 import com.station.stationdownloader.view.ThreeStateCheckbox
 import com.station.stationkitkt.dp
 
-class FileViewHolder(val binding: FileItemBinding) :
+class FileViewHolder(val binding: FileItemBinding, val calculateSizeInfo: () -> Unit) :
     RecyclerView.ViewHolder(binding.root), DLogger {
     init {
         binding.root.setOnClickListener {
@@ -40,6 +39,7 @@ class FileViewHolder(val binding: FileItemBinding) :
                     checkbox.post {
                         treeNode.autoSelect(newState)
                         notifyParent(treeNode,position)
+                        calculateSizeInfo()
                     }
                 }
 //                logger("${treeNode.fileName} $newState")
@@ -67,13 +67,13 @@ class FileViewHolder(val binding: FileItemBinding) :
 
     companion object {
 
-        fun create(parent: ViewGroup): FileViewHolder {
+        fun create(parent: ViewGroup, update: () -> Unit): FileViewHolder {
             return FileViewHolder(
                 FileItemBinding.inflate(
                     LayoutInflater.from(parent.context),
                     parent,
                     false
-                )
+                ),update
             )
 
         }

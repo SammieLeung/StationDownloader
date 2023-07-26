@@ -51,22 +51,30 @@ sealed class NewTaskConfigModel(
         name: String = this._name,
         downloadPath: String = this._downloadPath,
         downloadEngine: DownloadEngine = this._downloadEngine,
+        fileTree: TreeNode= this._fileTree
     ): NewTaskConfigModel {
         return when (this) {
             is NormalTask -> {
-                this.copy(
+              NormalTask(
+                    originUrl = originUrl,
+                    url = url,
                     taskName = name,
+                    urlType = urlType,
                     downloadPath = downloadPath,
-                    engine = downloadEngine
+                    engine = downloadEngine,
+                    fileTree = fileTree,
                 )
             }
 
             is TorrentTask -> {
-                this.copy(
+               TorrentTask(
+                    torrentId = torrentId,
+                    torrentPath = torrentPath,
                     taskName = name,
                     downloadPath = downloadPath,
-                    engine = downloadEngine
-                )
+                    fileCount = fileCount,
+                    engine = downloadEngine,
+                    fileTree = fileTree,)
             }
         }
     }

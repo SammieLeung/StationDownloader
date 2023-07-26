@@ -123,20 +123,20 @@ object TaskTools {
 //            "flv","ts"-> true
 //            else -> false
 //        }
-        return MimeTypeHelper.isVideo(fileName.substringAfterLast("."))
+        return MimeTypeHelper.isVideo(fileName.substringAfterLast(".").lowercase())
     }
 
     fun isAudioFile(fileName: String): Boolean {
-        return MimeTypeHelper.isAudio(fileName.substringAfterLast("."))
+        return MimeTypeHelper.isAudio(fileName.substringAfterLast(".").lowercase())
     }
 
 
     fun isImageFile(fileName: String): Boolean {
-        return MimeTypeHelper.isImage(fileName.substringAfterLast("."))
+        return MimeTypeHelper.isImage(fileName.substringAfterLast(".").lowercase())
     }
 
     fun isCompress(fileName: String): Boolean {
-        return when (fileName.substringAfterLast('.')) {
+        return when (fileName.substringAfterLast('.').lowercase()) {
             "rar", "gz", "7z",
             "zip", "tar", "tgz" -> true
 
@@ -166,7 +166,7 @@ object TaskTools {
     }
 
     fun getExt(name: String): String {
-        return name.substringAfterLast('.', "")
+        return name.substringAfterLast('.', "").lowercase()
     }
 
     fun toHumanReading(byte: Long): String {

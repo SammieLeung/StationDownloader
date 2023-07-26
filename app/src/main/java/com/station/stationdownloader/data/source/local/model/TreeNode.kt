@@ -1,5 +1,6 @@
 package com.station.stationdownloader.data.source.local.model
 
+import com.orhanobut.logger.Logger
 import com.station.stationdownloader.FileType
 import com.station.stationdownloader.utils.TaskTools
 
@@ -63,7 +64,6 @@ sealed class TreeNode(
         }
 
         override fun equals(other: Any?): Boolean {
-            if (this === other) return true
             if (javaClass != other?.javaClass) return false
 
             other as File
@@ -72,6 +72,8 @@ sealed class TreeNode(
             if (fileName != other.fileName) return false
             if (fileExt != other.fileExt) return false
             if (fileSize != other.fileSize) return false
+            if (isChecked != other.isChecked) return false
+            if (deep != other.deep) return false
 
             return true
         }
@@ -81,6 +83,8 @@ sealed class TreeNode(
             result = 31 * result + fileName.hashCode()
             result = 31 * result + fileExt.hashCode()
             result = 31 * result + fileSize.hashCode()
+            result = 31 * result + isChecked.hashCode()
+            result = 31 * result + deep
             return result
         }
 
@@ -202,22 +206,34 @@ sealed class TreeNode(
         }
 
         override fun equals(other: Any?): Boolean {
-            if (this === other) return true
             if (javaClass != other?.javaClass) return false
 
             other as Directory
 
             if (folderName != other.folderName) return false
+            if (checkState != other.checkState) return false
+            if (totalCheckedFileSize != other.totalCheckedFileSize) return false
+            if (checkedFileCount != other.checkedFileCount) return false
+            if (totalFileCount != other.totalFileCount) return false
             if (children != other.children) return false
+            if (deep != other.deep) return false
+            if (isFold != other.isFold) return false
 
             return true
         }
 
         override fun hashCode(): Int {
             var result = folderName.hashCode()
+            result = 31 * result + checkState.hashCode()
+            result = 31 * result + totalCheckedFileSize.hashCode()
+            result = 31 * result + checkedFileCount
+            result = 31 * result + totalFileCount
             result = 31 * result + children.hashCode()
+            result = 31 * result + deep
+            result = 31 * result + isFold.hashCode()
             return result
         }
+
 
         companion object {
             fun createRoot(): Directory {

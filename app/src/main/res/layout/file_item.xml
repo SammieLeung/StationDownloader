@@ -20,6 +20,7 @@
         android:background="@drawable/file_item_bg">
 
         <com.station.stationdownloader.view.ThreeStateCheckbox
+            android:focusable="false"
             style="@style/AppTheme.CheckBox.WithOutBackground"
             android:id="@+id/checkbox"
             android:layout_width="30dp"
