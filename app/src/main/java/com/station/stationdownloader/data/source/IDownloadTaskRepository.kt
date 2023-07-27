@@ -19,4 +19,5 @@ interface IDownloadTaskRepository {
     suspend fun insertTask(task: XLDownloadTaskEntity):IResult<Long>
     suspend fun updateTask(task:XLDownloadTaskEntity):IResult<Int>
     suspend fun saveTask(newTask:NewTaskConfigModel):IResult<XLDownloadTaskEntity>
+    suspend fun deleteTask(url: String):IResult<Int>
 }

@@ -126,6 +126,10 @@ class DefaultDownloadTaskRepository(
             )
         }
 
+    override suspend fun deleteTask(url: String): IResult<Int> {
+        return localDataSource.deleteTask(url)
+    }
+
 
     private fun assertTaskConfigNotChange(
         existsTask: XLDownloadTaskEntity,

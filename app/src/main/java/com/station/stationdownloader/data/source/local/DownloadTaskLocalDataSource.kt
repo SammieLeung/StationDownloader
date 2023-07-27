@@ -35,17 +35,18 @@ class DownloadTaskLocalDataSource internal constructor(
         }
     }
 
-    override suspend fun insertTask(task: XLDownloadTaskEntity): IResult<Long> = withContext(ioDispatcher) {
-        val id= downloadTaskDao.insertTask(task)
-        if(id>0){
-            IResult.Success(id)
-        }else{
-            IResult.Error(
-                Exception(TaskExecuteError.TASK_INSERT_ERROR.name),
-                TaskExecuteError.TASK_INSERT_ERROR.ordinal
-            )
+    override suspend fun insertTask(task: XLDownloadTaskEntity): IResult<Long> =
+        withContext(ioDispatcher) {
+            val id = downloadTaskDao.insertTask(task)
+            if (id > 0) {
+                IResult.Success(id)
+            } else {
+                IResult.Error(
+                    Exception(TaskExecuteError.TASK_INSERT_ERROR.name),
+                    TaskExecuteError.TASK_INSERT_ERROR.ordinal
+                )
+            }
         }
-    }
 
     override suspend fun getTaskByUrl(url: String): XLDownloadTaskEntity? =
         withContext(ioDispatcher) {
@@ -67,7 +68,20 @@ class DownloadTaskLocalDataSource internal constructor(
         }
     }
 
-    override suspend fun updateTask(task: XLDownloadTaskEntity): IResult<Int> = withContext(ioDispatcher) {
-         IResult.Success(downloadTaskDao.updateTask(task))
+    override suspend fun updateTask(task: XLDownloadTaskEntity): IResult<Int> =
+        withContext(ioDispatcher) {
+            try {
+                IResult.Success(downloadTaskDao.updateTask(task))
+            } catch (e: Exception) {
+                IResult.Error(exception = e)
+            }
+        }
+
+    override suspend fun deleteTask(url: String): IResult<Int> = withContext(ioDispatcher) {
+        try {
+            IResult.Success(downloadTaskDao.deleteTask(url))
+        } catch (e: Exception) {
+            IResult.Error(exception = e)
+        }
     }
 }

@@ -15,7 +15,7 @@ class TaskViewHolder(val binding: TaskItemBinding, val accept: (UiAction) -> Uni
         binding.taskItem = taskItem
         binding.root.setOnClickListener {
             if (taskItem.statuBtn == R.drawable.ic_stop) {
-                accept(UiAction.StopTask(taskItem.url, taskItem.taskId))
+                accept(UiAction.StopTask(taskItem.url))
             } else {
                 accept(UiAction.StartTask(taskItem.url))
             }

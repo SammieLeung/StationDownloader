@@ -27,8 +27,8 @@ interface XLDownloadTaskDao {
     fun observeTasksStream(): Flow<List<XLDownloadTaskEntity>>
     @Insert(onConflict = OnConflictStrategy.IGNORE)
     suspend fun insertTask(task: XLDownloadTaskEntity):Long
-    @Delete
-    suspend fun deleteTask(task: XLDownloadTaskEntity):Int
+    @Query("DELETE FROM xl_download_task WHERE url=:url")
+    suspend fun deleteTask(url:String):Int
     @Update
     suspend fun updateTask(task: XLDownloadTaskEntity):Int
 }

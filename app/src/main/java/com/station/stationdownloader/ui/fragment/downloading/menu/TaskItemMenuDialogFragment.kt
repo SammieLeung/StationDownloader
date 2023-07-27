@@ -3,11 +3,13 @@ package com.station.stationdownloader.ui.fragment.downloading.menu
 import android.content.DialogInterface
 import android.os.Bundle
 import android.view.View
+import androidx.lifecycle.lifecycleScope
 import com.station.stationdownloader.databinding.DialogTaskItemMenuBinding
 import com.station.stationdownloader.ui.base.BaseDialogFragment
 import com.station.stationdownloader.ui.fragment.downloading.DownloadingTaskFragment
 import com.station.stationdownloader.ui.fragment.downloading.UiAction
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.launch
 
 @AndroidEntryPoint
 class TaskItemMenuDialogFragment : BaseDialogFragment<DialogTaskItemMenuBinding>() {
@@ -24,7 +26,29 @@ class TaskItemMenuDialogFragment : BaseDialogFragment<DialogTaskItemMenuBinding>
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-        mBinding.isTaskRunning=isTaskRunning
+        mBinding.bindState(vm.accept)
+
+    }
+
+    private fun DialogTaskItemMenuBinding.bindState(accept: (UiAction) -> Unit) {
+        isTaskRunning = this@TaskItemMenuDialogFragment.isTaskRunning
+        deleteTaskBtn.setOnClickListener {
+            accept(UiAction.DeleteTask(url))
+            dismiss()
+        }
+
+        if (isTaskRunning) {
+            stopTaskBtn.setOnClickListener {
+                accept(UiAction.StopTask(url))
+                dismiss()
+            }
+        } else {
+            startTaskBtn.setOnClickListener {
+                accept(UiAction.StartTask(url))
+                dismiss()
+            }
+        }
+
     }
 
 
