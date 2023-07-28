@@ -33,6 +33,7 @@ import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import java.util.concurrent.atomic.AtomicBoolean
 import javax.inject.Inject
 
 @HiltViewModel
@@ -66,6 +67,8 @@ class MainViewModel @Inject constructor(
 
     val accept: (UiAction) -> Unit
     val dialogAccept: (DialogAction) -> Unit
+
+    val isInitTaskList=AtomicBoolean(false)
 
 
     init {

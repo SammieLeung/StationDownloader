@@ -52,7 +52,7 @@ class TaskService : Service(), DLogger {
     private val taskStatusFlow: MutableStateFlow<TaskStatus> =
         MutableStateFlow(TaskStatus(0, "", 0, 0, 0, 0))
 
-    private val runningTaskList: MutableMap<String, TaskStatus> = mutableMapOf()
+    private val runningTaskMap: MutableMap<String, TaskStatus> = mutableMapOf()
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         intent?.let {
@@ -66,7 +66,7 @@ class TaskService : Service(), DLogger {
 
                 ACTION_CANCEL_WATCH_TASK -> {
                     val url = intent.getStringExtra("url") ?: return START_NOT_STICKY
-                    runningTaskList.remove(url)
+                    runningTaskMap.remove(url)
                     watchTaskJobMap.remove(url)?.apply { cancel() }
                 }
 
@@ -118,7 +118,7 @@ class TaskService : Service(), DLogger {
                 totalSize = 0,
                 status = ITaskState.UNKNOWN.code
             )
-            runningTaskList[url] = status
+            runningTaskMap[url] = status
             updateTaskStatusNow(url, taskId, ITaskState.RUNNING.code)
 
             watchTaskJobMap[url]?.apply { cancel() }
@@ -132,8 +132,12 @@ class TaskService : Service(), DLogger {
         try {
             watchTaskJobMap.remove(url)?.apply { cancel() }
             val entity = taskRepo.getTaskByUrl(url) ?: return@launch
-            val taskId = runningTaskList.remove(url)?.taskId ?: return@launch
-            engineRepo.stopTask(taskId, entity.asStationDownloadTask())
+            val taskId = runningTaskMap.remove(url)?.taskId
+            if (taskId == null) {
+                taskRepo.updateTask(entity.copy(status = DownloadTaskStatus.PAUSE))
+            } else {
+                engineRepo.stopTask(taskId, entity.asStationDownloadTask())
+            }
             updateTaskStatusNow(url, -1, ITaskState.STOP.code)
         } catch (e: Exception) {
             logError(e.message.toString())
@@ -270,7 +274,7 @@ class TaskService : Service(), DLogger {
     }
 
     private fun updateTaskStatus(url: String, status: TaskStatus) {
-        runningTaskList[url] = status
+        runningTaskMap[url] = status
         taskStatusFlow.update {
             status
         }
@@ -285,6 +289,10 @@ class TaskService : Service(), DLogger {
         return taskStatusFlow.asStateFlow()
     }
 
+    fun getRunningTaskMap(): MutableMap<String, TaskStatus> {
+        return runningTaskMap
+    }
+
     override fun DLogger.tag(): String {
         return TaskService.javaClass.simpleName
     }
@@ -295,14 +303,14 @@ class TaskService : Service(), DLogger {
         fun getService(): TaskService = this@TaskService
         override fun getTaskStatus(): MutableMap<String, TaskStatus> {
             val statusMap = mutableMapOf<String, TaskStatus>()
-            runningTaskList.forEach { (url, status) ->
+            runningTaskMap.forEach { (url, status) ->
                 statusMap[url] = status.copy()
             }
             return statusMap
         }
 
         override fun getTaskStatusByUrl(url: String?): TaskStatus? {
-            return runningTaskList[url]?.copy()
+            return runningTaskMap[url]?.copy()
         }
     }
 

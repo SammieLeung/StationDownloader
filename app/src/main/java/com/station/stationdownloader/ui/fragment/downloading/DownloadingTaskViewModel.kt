@@ -57,6 +57,7 @@ class DownloadingTaskViewModel @Inject constructor(
         val showTaskMenu = actionStateFlow.filterIsInstance<UiAction.ShowTaskMenu>()
         val hideTaskMenu = actionStateFlow.filterIsInstance<UiAction.HideTaskMenu>()
         val deleteTask = actionStateFlow.filterIsInstance<UiAction.DeleteTask>()
+        val initTaskList = actionStateFlow.filterIsInstance<UiAction.CheckTaskList>()
 
         handleGetTaskList(getTaskList)
         handleStartTask(startTask)
@@ -64,6 +65,7 @@ class DownloadingTaskViewModel @Inject constructor(
         handleTaskMenu(showTaskMenu)
         handleHideTaskMenu(hideTaskMenu)
         handleDeleteTask(deleteTask)
+        handleInitTaskList(initTaskList)
 
         return { action ->
             viewModelScope.launch {
@@ -83,7 +85,7 @@ class DownloadingTaskViewModel @Inject constructor(
                 _uiState.update {
                     tmpTaskItemList.clear()
                     tmpTaskItemList.addAll(taskItemList)
-                    UiState.FillTaskList(taskItemList)
+                    UiState.FillTaskList(tmpTaskItemList)
                 }
             }
         }
@@ -175,13 +177,33 @@ class DownloadingTaskViewModel @Inject constructor(
     }
 
 
+    private fun handleInitTaskList(initTaskList: Flow<UiAction.CheckTaskList>) = viewModelScope.launch {
+        initTaskList.collect {
+            withContext(Dispatchers.Default) {
+                logger("handleInitTaskList")
+                val newList=tmpTaskItemList.map {
+                    it.copy(statusBtn = ITaskState.STOP.code)
+                }
+                tmpTaskItemList.clear()
+                tmpTaskItemList.addAll(newList)
+                newList.forEach{
+                    logger("handleInitTaskList over ${it.statusBtn} ${it.taskName}")
+                }
+                _uiState.update {
+                    UiState.FillTaskList(newList)
+                }
+            }
+        }
+    }
+
+
     fun setTaskStatus(taskStatus: StateFlow<TaskStatus>) {
         viewModelScope.launch {
-            taskStatus.collectLatest { taskStatus ->
+            taskStatus.collect { taskStatus ->
                 val url = taskStatus.url
                 val taskItem = tmpTaskItemList.find {
                     it.url == url
-                } ?: return@collectLatest
+                } ?: return@collect
                 val index = tmpTaskItemList.indexOf(taskItem)
                 if (taskStatus.status == ITaskState.RUNNING.code) {
                     tmpTaskItemList[index] = taskItem.copy(
@@ -297,5 +319,6 @@ sealed class UiAction {
     object HideTaskMenu : UiAction()
     data class StartTask(val url: String) : UiAction()
     data class StopTask(val url: String, val taskId: Long) : UiAction()
+    object CheckTaskList:UiAction()
 }
 
