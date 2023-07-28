@@ -34,7 +34,6 @@ class DownloadingTaskFragment : BaseFragment<FragmentDownloadtaskBinding>(), DLo
         override fun onServiceConnected(name: ComponentName?, service: IBinder?) {
             Logger.w("onServiceConnected")
             service as TaskService.TaskBinder
-//            vm.setTaskStatus(service.getService().getStatusFlow())
             vm.setTaskStatus(service.getService().getStatusFlow())
         }
 
@@ -57,7 +56,7 @@ class DownloadingTaskFragment : BaseFragment<FragmentDownloadtaskBinding>(), DLo
     override fun onResume() {
         super.onResume()
         logger("onResume")
-        vm.accept(UiAction.getTaskList)
+        vm.accept(UiAction.GetTaskList)
         bindService()
     }
 
@@ -86,7 +85,7 @@ class DownloadingTaskFragment : BaseFragment<FragmentDownloadtaskBinding>(), DLo
         lifecycleScope.launch {
             newTaskState.collect {
                 if (it is NewTaskState.Success) {
-                    accept(UiAction.getTaskList)
+                    accept(UiAction.GetTaskList)
                 }
             }
         }
@@ -111,23 +110,6 @@ class DownloadingTaskFragment : BaseFragment<FragmentDownloadtaskBinding>(), DLo
                 }
             }
         }
-
-//        lifecycleScope.launch {
-//            taskItemListFlow.collect {
-//                logger("fillData= ${it}")
-//                taskListAdapter.fillData(it)
-//            }
-//        }
-//
-//        lifecycleScope.launch {
-//            status.collect {
-//                if (it is StatusState.Status) {
-//                    taskListAdapter.updateProgress(it.taskItem)
-//                }
-//            }
-//        }
-
-
     }
 
 

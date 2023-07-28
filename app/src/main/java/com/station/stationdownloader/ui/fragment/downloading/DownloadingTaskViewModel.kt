@@ -51,7 +51,7 @@ class DownloadingTaskViewModel @Inject constructor(
 
     private fun initAction(): (UiAction) -> Unit {
         val actionStateFlow: MutableSharedFlow<UiAction> = MutableSharedFlow()
-        val getTaskList = actionStateFlow.filterIsInstance<UiAction.getTaskList>()
+        val getTaskList = actionStateFlow.filterIsInstance<UiAction.GetTaskList>()
         val startTask = actionStateFlow.filterIsInstance<UiAction.StartTask>()
         val stopTask = actionStateFlow.filterIsInstance<UiAction.StopTask>()
         val showTaskMenu = actionStateFlow.filterIsInstance<UiAction.ShowTaskMenu>()
@@ -72,7 +72,7 @@ class DownloadingTaskViewModel @Inject constructor(
         }
     }
 
-    private fun handleGetTaskList(getTaskList: Flow<UiAction.getTaskList>) = viewModelScope.launch {
+    private fun handleGetTaskList(getTaskList: Flow<UiAction.GetTaskList>) = viewModelScope.launch {
         getTaskList.collect {
             logger("getTaskList")
             taskRepo.getTasks().filter {
@@ -182,9 +182,6 @@ class DownloadingTaskViewModel @Inject constructor(
                 val taskItem = tmpTaskItemList.find {
                     it.url == url
                 } ?: return@collectLatest
-//                    if (taskStatus.status == ITaskState.DONE.code) {
-//                        accept(UiAction.getTaskList)
-//                    }
                 val index = tmpTaskItemList.indexOf(taskItem)
                 if (taskStatus.status == ITaskState.RUNNING.code) {
                     tmpTaskItemList[index] = taskItem.copy(
@@ -213,7 +210,7 @@ class DownloadingTaskViewModel @Inject constructor(
                 }
 
                 if (taskStatus.status == ITaskState.DONE.code) {
-                    accept(UiAction.getTaskList)
+                    accept(UiAction.GetTaskList)
                 }
             }
         }
@@ -256,7 +253,7 @@ class DownloadingTaskViewModel @Inject constructor(
                    ITaskState.RUNNING.code
                 }
 
-                DownloadTaskStatus.PENDING,   DownloadTaskStatus.PAUSE,   DownloadTaskStatus.FAILED -> {
+                DownloadTaskStatus.PENDING, DownloadTaskStatus.PAUSE, DownloadTaskStatus.FAILED -> {
                     ITaskState.STOP.code
                 }
                 DownloadTaskStatus.COMPLETED -> {
@@ -295,7 +292,7 @@ data class TaskItem(
 )
 
 sealed class UiAction {
-    object getTaskList : UiAction()
+    object GetTaskList : UiAction()
     data class ShowTaskMenu(val url: String) : UiAction()
     object HideTaskMenu : UiAction()
     data class StartTask(val url: String) : UiAction()
