@@ -116,19 +116,22 @@ class AddNewTaskDialogFragment : BaseDialogFragment<DialogFragmentAddNewTaskBind
     }
 
 
-    private fun collectFileTree(newTaskState: Flow<NewTaskState>){
+    private fun collectFileTree(newTaskState: Flow<NewTaskState>) {
         lifecycleScope.launch {
             newTaskState.filter {
                 it is NewTaskState.PreparingData
             }.map {
                 (it as NewTaskState.PreparingData).task._fileTree
-            }.distinctUntilChanged().collect{
+            }.distinctUntilChanged().collect {
                 taskFileListAdapter.fillData(it as TreeNode.Directory)
             }
         }
     }
 
-    private fun DialogFragmentAddNewTaskBinding.collectFileFilterGroup(newTaskState: Flow<NewTaskState>, dialogAccept: (DialogAction) -> Unit){
+    private fun DialogFragmentAddNewTaskBinding.collectFileFilterGroup(
+        newTaskState: Flow<NewTaskState>,
+        dialogAccept: (DialogAction) -> Unit
+    ) {
         lifecycleScope.launch {
             newTaskState.filter { it is NewTaskState.PreparingData }.map {
                 (it as NewTaskState.PreparingData).fileFilterGroup
@@ -149,41 +152,41 @@ class AddNewTaskDialogFragment : BaseDialogFragment<DialogFragmentAddNewTaskBind
         }
     }
 
-    private fun  DialogFragmentAddNewTaskBinding.collectTaskSizeInfo(newTaskState: Flow<NewTaskState>){
+    private fun DialogFragmentAddNewTaskBinding.collectTaskSizeInfo(newTaskState: Flow<NewTaskState>) {
         lifecycleScope.launch {
             newTaskState.filter { it is NewTaskState.PreparingData }.map {
                 (it as NewTaskState.PreparingData).taskSizeInfo
             }.distinctUntilChanged().collect {
                 taskSizeInfo = it.taskSizeInfo
-                downloadSpace=it.downloadPathSizeInfo
+                downloadSpace = it.downloadPathSizeInfo
             }
         }
     }
 
-    private fun collectSuccess(newTaskState: Flow<NewTaskState>){
+    private fun collectSuccess(newTaskState: Flow<NewTaskState>) {
         lifecycleScope.launch {
-            newTaskState.filter { it is NewTaskState.INIT }.collect {
+            newTaskState.filter { it is NewTaskState.Success }.collect {
                 dismiss()
             }
         }
     }
 
-    private fun DialogFragmentAddNewTaskBinding.collectTaskName(newTaskState: Flow<NewTaskState>){
+    private fun DialogFragmentAddNewTaskBinding.collectTaskName(newTaskState: Flow<NewTaskState>) {
         lifecycleScope.launch {
             newTaskState.filter { it is NewTaskState.PreparingData }.map {
                 (it as NewTaskState.PreparingData).task._name
             }.distinctUntilChanged().collect {
-                taskName=it
+                taskName = it
             }
         }
     }
 
-    private fun DialogFragmentAddNewTaskBinding.collectDownloadPath(newTaskState: Flow<NewTaskState>){
+    private fun DialogFragmentAddNewTaskBinding.collectDownloadPath(newTaskState: Flow<NewTaskState>) {
         lifecycleScope.launch {
             newTaskState.filter { it is NewTaskState.PreparingData }.map {
                 (it as NewTaskState.PreparingData).task._downloadPath
             }.distinctUntilChanged().collect {
-                downloadPath=it
+                downloadPath = it
             }
         }
     }

@@ -111,7 +111,7 @@ class MainViewModel @Inject constructor(
                                 ToastState.Toast(application.getString(R.string.repeating_task_nothing_changed))
                             }
                             _newTaskState.update {
-                                NewTaskState.INIT
+                                NewTaskState.Success
                             }
                         }
 
@@ -148,7 +148,7 @@ class MainViewModel @Inject constructor(
                     ToastState.Toast(application.getString(R.string.start_to_download))
                 }
                 _newTaskState.update {
-                    NewTaskState.INIT
+                    NewTaskState.Success
                 }
             }
         }
@@ -351,6 +351,8 @@ sealed class NewTaskState {
         val fileFilterGroup: fileFilterGroup = fileFilterGroup(),
         val taskSizeInfo: TaskSizeInfo = TaskSizeInfo()
     ) : NewTaskState()
+
+    object Success : NewTaskState()
 
 }
 

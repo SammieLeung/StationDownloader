@@ -47,6 +47,7 @@ enum class ITaskState(val code: Int) {
     DONE(2),//下载完成
     ERROR(-1),//任务错误状态
     FAILED(3),//任务失败
-    UNKNOWN(-2)
+    UNKNOWN(-2),
+    LOADING(-3)//任务加载中
 }
 

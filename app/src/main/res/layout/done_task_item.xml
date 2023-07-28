@@ -28,7 +28,7 @@
             android:layout_height="68dp"
             android:layout_marginTop="25dp"
             android:layout_marginBottom="25dp"
-            android:src="@mipmap/ic_video" />
+            android:src="@mipmap/ic_folder" />
 
         <TextView
             android:id="@+id/taskName"

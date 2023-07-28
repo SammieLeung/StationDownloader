@@ -5,6 +5,8 @@
 
     <data>
 
+        <import type="android.view.View" />
+
         <import type="com.station.stationdownloader.ui.fragment.downloading.TaskItem" />
 
         <variable
@@ -28,7 +30,7 @@
             android:layout_height="68dp"
             android:layout_marginTop="25dp"
             android:layout_marginBottom="25dp"
-            android:src="@mipmap/ic_video" />
+            android:src="@mipmap/ic_folder" />
 
 
         <ProgressBar
@@ -50,11 +52,21 @@
             android:layout_height="30dp"
             android:layout_alignParentEnd="true"
             android:layout_centerVertical="true"
-            android:layout_marginStart="11dp"
+            android:layout_marginStart="30dp"
             android:layout_marginEnd="35dp"
             android:background="@android:color/transparent"
-            app:imageResource="@{taskItem.statuBtn}" />
+            android:visibility="@{taskItem.statusBtn==-3 ? View.INVISIBLE : View.VISIBLE}"
+            android:src="@{taskItem.statusBtn==1?@drawable/ic_stop:@drawable/ic_start}" />
 
+        <ProgressBar
+            android:layout_width="30dp"
+            android:layout_height="30dp"
+            android:layout_alignParentEnd="true"
+            android:layout_centerVertical="true"
+            android:layout_marginStart="30dp"
+            android:layout_marginEnd="35dp"
+            android:indeterminateTint="@android:color/white"
+            android:visibility="@{taskItem.statusBtn==-3 ? View.VISIBLE : View.GONE}" />
 
         <TextView
             android:id="@+id/taskName"
@@ -103,8 +115,8 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:ellipsize="end"
-                android:maxWidth="560dp"
                 android:lines="1"
+                android:maxWidth="560dp"
                 android:text="@{taskItem.downloadPath}"
                 android:textSize="12sp"
                 tools:text="Movies" />
@@ -131,8 +143,8 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_below="@id/taskProcess"
-            android:layout_marginTop="14dp"
             android:layout_alignEnd="@id/taskProcess"
+            android:layout_marginTop="14dp"
             android:text="@{taskItem.speed}"
             android:textSize="12sp"
             tools:text="56KB/S" />

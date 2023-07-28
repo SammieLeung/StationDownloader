@@ -7,6 +7,10 @@ interface DLogger {
         Log.w(tag(), "[${tag()}]>>$message<<")
     }
 
+    fun logError(message: Any?) {
+        Log.e(tag(), "[${tag()}]$message")
+    }
+
     fun printCodeLine() {
         val stackTrace = Thread.currentThread().stackTrace
         if (stackTrace.size > 4) {

@@ -1,6 +1,7 @@
 package com.station.stationdownloader.ui.fragment.downloading
 
 import android.app.Application
+import android.util.Log
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -9,14 +10,12 @@ import com.station.stationdownloader.ITaskState
 import com.station.stationdownloader.R
 import com.station.stationdownloader.TaskService
 import com.station.stationdownloader.TaskStatus
-import com.station.stationdownloader.data.IResult
 import com.station.stationdownloader.data.source.IDownloadTaskRepository
 import com.station.stationdownloader.data.source.IEngineRepository
 import com.station.stationdownloader.data.source.local.model.StationDownloadTask
 import com.station.stationdownloader.data.source.local.room.entities.asStationDownloadTask
 import com.station.stationdownloader.utils.DLogger
 import com.station.stationdownloader.utils.TaskTools
-import com.xunlei.downloadlib.XLTaskHelper
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
@@ -30,7 +29,6 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import javax.inject.Inject
-import kotlin.math.log
 
 @HiltViewModel
 class DownloadingTaskViewModel @Inject constructor(
@@ -39,16 +37,13 @@ class DownloadingTaskViewModel @Inject constructor(
     val taskRepo: IDownloadTaskRepository,
     val enginRepo: IEngineRepository
 ) : ViewModel(), DLogger {
-    private val _taskItemList = MutableStateFlow<List<TaskItem>>(emptyList())
-    val taskItemList = _taskItemList.asStateFlow()
 
-    private val _statusState: MutableStateFlow<StatusState> = MutableStateFlow(StatusState.Init)
-    val statusState = _statusState.asStateFlow()
-
-    private val _taskMenuState = MutableStateFlow<TaskMenuState>(TaskMenuState.Hide)
-    val taskMenuState = _taskMenuState.asStateFlow()
+    private val _uiState: MutableStateFlow<UiState> = MutableStateFlow(UiState.Init)
+    val uiState = _uiState.asStateFlow()
 
     val accept: (UiAction) -> Unit
+
+    private val tmpTaskItemList: MutableList<TaskItem> = mutableListOf()
 
     init {
         accept = initAction()
@@ -79,11 +74,16 @@ class DownloadingTaskViewModel @Inject constructor(
 
     private fun handleGetTaskList(getTaskList: Flow<UiAction.getTaskList>) = viewModelScope.launch {
         getTaskList.collect {
-            _taskItemList.update {
-                taskRepo.getTasks().filter {
-                    it.status != DownloadTaskStatus.COMPLETED
-                }.map {
-                    it.asStationDownloadTask().asTaskItem()
+            logger("getTaskList")
+            taskRepo.getTasks().filter {
+                it.status != DownloadTaskStatus.COMPLETED
+            }.map {
+                it.asStationDownloadTask().asTaskItem()
+            }.let { taskItemList ->
+                _uiState.update {
+                    tmpTaskItemList.clear()
+                    tmpTaskItemList.addAll(taskItemList)
+                    UiState.FillTaskList(taskItemList)
                 }
             }
         }
@@ -92,35 +92,32 @@ class DownloadingTaskViewModel @Inject constructor(
     private fun handleStartTask(startTask: Flow<UiAction.StartTask>) = viewModelScope.launch {
         startTask.collect { action ->
             withContext(Dispatchers.Default) {
-                val taskItem =
-                    _taskItemList.value.find { it.url == action.url } ?: return@withContext
-                _statusState.update {
-                    StatusState.Status(
-                        taskItem = taskItem.copy(
-                            statuBtn = formatStatusBtn(ITaskState.RUNNING.code)
-                        ),
-                        taskStatus = ITaskState.UNKNOWN.code
-                    )
+                Log.d(tag(), "handleStartTask")
+                val taskItem = tmpTaskItemList.find { it.url == action.url } ?: return@withContext
+                val index = tmpTaskItemList.indexOf(taskItem)
+                tmpTaskItemList[index] = taskItem.copy(
+                    statusBtn = ITaskState.LOADING.code,
+                    speed = formatSpeed(0L)
+                )
+                _uiState.update {
+                    UiState.UpdateProgress(tmpTaskItemList[index])
                 }
                 TaskService.startTask(application, action.url)
             }
         }
     }
 
-
     private fun handleStopTask(stopTask: Flow<UiAction.StopTask>) = viewModelScope.launch {
         stopTask.collect { action ->
             withContext(Dispatchers.Default) {
-                logger("$this handleStopTask")
-                val taskItem =
-                    _taskItemList.value.find { it.url == action.url } ?: return@withContext
-                _statusState.update {
-                    StatusState.Status(
-                        taskItem = taskItem.copy(
-                            statuBtn = formatStatusBtn(ITaskState.STOP.code)
-                        ),
-                        taskStatus = ITaskState.UNKNOWN.code
-                    )
+                val taskItem = tmpTaskItemList.find { it.url == action.url } ?: return@withContext
+                val index = tmpTaskItemList.indexOf(taskItem)
+                tmpTaskItemList[index] = taskItem.copy(
+                    statusBtn = ITaskState.STOP.code,
+                    speed = ""
+                )
+                _uiState.update {
+                    UiState.UpdateProgress(tmpTaskItemList[index])
                 }
                 TaskService.stopTask(application, action.url)
             }
@@ -129,9 +126,15 @@ class DownloadingTaskViewModel @Inject constructor(
 
     private fun handleTaskMenu(showTaskMenu: Flow<UiAction.ShowTaskMenu>) = viewModelScope.launch {
         showTaskMenu.collect { action ->
-            val taskItem = _taskItemList.value.find { it.url == action.url }
-            _taskMenuState.update {
-                TaskMenuState.Show(action.url, taskItem?.statuBtn == R.drawable.ic_stop)
+            withContext(Dispatchers.Default) {
+                val taskItem = tmpTaskItemList.find { it.url == action.url } ?: return@withContext
+                val index = tmpTaskItemList.indexOf(taskItem)
+                _uiState.update {
+                    UiState.ShowMenu(
+                        action.url,
+                        tmpTaskItemList[index].statusBtn == ITaskState.STOP.code
+                    )
+                }
             }
         }
     }
@@ -139,8 +142,10 @@ class DownloadingTaskViewModel @Inject constructor(
     private fun handleHideTaskMenu(hideTaskMenu: Flow<UiAction.HideTaskMenu>) =
         viewModelScope.launch {
             hideTaskMenu.collect {
-                _taskMenuState.update {
-                    TaskMenuState.Hide
+                withContext(Dispatchers.Default) {
+                    _uiState.update {
+                        UiState.HideMenu
+                    }
                 }
             }
         }
@@ -170,35 +175,45 @@ class DownloadingTaskViewModel @Inject constructor(
     }
 
 
-    fun setTaskStatus(taskStatus: StateFlow<Map<String, TaskStatus>>) {
+    fun setTaskStatus(taskStatus: StateFlow<TaskStatus>) {
         viewModelScope.launch {
-            taskStatus.collectLatest {
-                it.forEach { url, taskStatus ->
-                    val taskItem = _taskItemList.value.find {
-                        it.url == url
-                    } ?: return@forEach
+            taskStatus.collectLatest { taskStatus ->
+                val url = taskStatus.url
+                val taskItem = tmpTaskItemList.find {
+                    it.url == url
+                } ?: return@collectLatest
+//                    if (taskStatus.status == ITaskState.DONE.code) {
+//                        accept(UiAction.getTaskList)
+//                    }
+                val index = tmpTaskItemList.indexOf(taskItem)
+                if (taskStatus.status == ITaskState.RUNNING.code) {
+                    tmpTaskItemList[index] = taskItem.copy(
+                        taskId = taskStatus.taskId,
+                        speed = formatSpeed(taskStatus.speed),
+                        sizeInfo = formatSizeInfo(
+                            taskStatus.downloadSize,
+                            taskStatus.totalSize
+                        ),
+                        progress = formatProgress(
+                            taskStatus.downloadSize,
+                            taskStatus.totalSize
+                        ),
+                        statusBtn = taskStatus.status
+                    )
+                } else {
+                    tmpTaskItemList[index] = taskItem.copy(
+                        taskId = taskStatus.taskId,
+                        speed = "",
+                        statusBtn = taskStatus.status
+                    )
+                }
 
-                    if (taskStatus.status == ITaskState.DONE.code) {
-                        accept(UiAction.getTaskList)
-                    }
-                    _statusState.update {
-                        StatusState.Status(
-                            taskItem = taskItem.copy(
-                                taskId = taskStatus.taskId,
-                                speed = formatSpeed(taskStatus.speed),
-                                sizeInfo = formatSizeInfo(
-                                    taskStatus.downloadSize,
-                                    taskStatus.totalSize
-                                ),
-                                progress = formatProgress(
-                                    taskStatus.downloadSize,
-                                    taskStatus.totalSize
-                                ),
-                                statuBtn = formatStatusBtn(taskStatus.status)
-                            ),
-                            taskStatus = taskStatus.status
-                        )
-                    }
+                _uiState.update {
+                    UiState.UpdateProgress(tmpTaskItemList[index])
+                }
+
+                if (taskStatus.status == ITaskState.DONE.code) {
+                    accept(UiAction.getTaskList)
                 }
             }
         }
@@ -236,13 +251,16 @@ class DownloadingTaskViewModel @Inject constructor(
         return TaskItem(
             url = this.url,
             taskName = this.name,
-            statuBtn = when (this.status) {
+            statusBtn = when (this.status) {
                 DownloadTaskStatus.DOWNLOADING -> {
-                    R.drawable.ic_stop
+                   ITaskState.RUNNING.code
                 }
 
-                else -> {
-                    R.drawable.ic_start
+                DownloadTaskStatus.PENDING,   DownloadTaskStatus.PAUSE,   DownloadTaskStatus.FAILED -> {
+                    ITaskState.STOP.code
+                }
+                DownloadTaskStatus.COMPLETED -> {
+                    ITaskState.DONE.code
                 }
             },
             progress = TaskTools.formatProgress(downloadSize, totalSize),
@@ -255,31 +273,20 @@ class DownloadingTaskViewModel @Inject constructor(
 
 }
 
-sealed class TaskMenuState {
-    data class Show(val url: String, val isTaskRunning: Boolean) : TaskMenuState()
-    object Hide : TaskMenuState()
-}
 
-sealed class StatusState {
-    data class Status(val taskItem: TaskItem, val taskStatus: Int) : StatusState()
-    object Init : StatusState()
-}
-
-
-sealed class UiAction {
-    object getTaskList : UiAction()
-    data class ShowTaskMenu(val url: String) : UiAction()
-    object HideTaskMenu : UiAction()
-    data class DeleteTask(val url: String) : UiAction()
-    data class StartTask(val url: String) : UiAction()
-    data class StopTask(val url: String) : UiAction()
+sealed class UiState {
+    object Init : UiState()
+    data class FillTaskList(val taskList: List<TaskItem>) : UiState()
+    data class UpdateProgress(val taskItem: TaskItem) : UiState()
+    data class ShowMenu(val url: String, val isTaskRunning: Boolean) : UiState()
+    object HideMenu : UiState()
 }
 
 data class TaskItem(
     val taskId: Long = -1L,
     val url: String,
     val taskName: String,
-    val statuBtn: Int,
+    val statusBtn: Int,
     val progress: Int = 50,
     val sizeInfo: String,
     val speed: String,
@@ -287,6 +294,11 @@ data class TaskItem(
     val engine: String
 )
 
-
-
+sealed class UiAction {
+    object getTaskList : UiAction()
+    data class ShowTaskMenu(val url: String) : UiAction()
+    object HideTaskMenu : UiAction()
+    data class StartTask(val url: String) : UiAction()
+    data class StopTask(val url: String, val taskId: Long) : UiAction()
+}
 

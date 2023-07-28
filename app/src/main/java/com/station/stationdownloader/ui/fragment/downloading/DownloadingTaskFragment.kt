@@ -14,7 +14,6 @@ import com.orhanobut.logger.Logger
 import com.station.stationdownloader.TaskService
 import com.station.stationdownloader.databinding.FragmentDownloadtaskBinding
 import com.station.stationdownloader.ui.base.BaseFragment
-import com.station.stationdownloader.ui.fragment.downloading.menu.DoneTaskItemMenuDialogFragment
 import com.station.stationdownloader.ui.fragment.downloading.menu.TaskItemMenuDialogFragment
 import com.station.stationdownloader.ui.viewmodel.MainViewModel
 import com.station.stationdownloader.ui.viewmodel.NewTaskState
@@ -35,6 +34,7 @@ class DownloadingTaskFragment : BaseFragment<FragmentDownloadtaskBinding>(), DLo
         override fun onServiceConnected(name: ComponentName?, service: IBinder?) {
             Logger.w("onServiceConnected")
             service as TaskService.TaskBinder
+//            vm.setTaskStatus(service.getService().getStatusFlow())
             vm.setTaskStatus(service.getService().getStatusFlow())
         }
 
@@ -49,9 +49,7 @@ class DownloadingTaskFragment : BaseFragment<FragmentDownloadtaskBinding>(), DLo
         Logger.d("onViewCreated")
         mBinding.bindState(
             pVm.newTaskState,
-            vm.taskItemList,
-            vm.statusState,
-            vm.taskMenuState,
+            vm.uiState,
             vm.accept,
         )
     }
@@ -80,44 +78,55 @@ class DownloadingTaskFragment : BaseFragment<FragmentDownloadtaskBinding>(), DLo
 
     private fun FragmentDownloadtaskBinding.bindState(
         newTaskState: StateFlow<NewTaskState>,
-        taskItemListFlow: StateFlow<List<TaskItem>>,
-        status: StateFlow<StatusState>,
-        menuState: StateFlow<TaskMenuState>,
+        uiStateFlow: StateFlow<UiState>,
         accept: (UiAction) -> Unit,
     ) {
         taskListView.adapter = taskListAdapter
         taskListView.itemAnimator = null
         lifecycleScope.launch {
             newTaskState.collect {
-                if (it is NewTaskState.INIT) {
+                if (it is NewTaskState.Success) {
                     accept(UiAction.getTaskList)
                 }
             }
         }
 
         lifecycleScope.launch {
-            taskItemListFlow.collect {
-                logger("fillData= ${it}")
-                taskListAdapter.fillData(it)
-            }
-        }
+            uiStateFlow.collect {
+                when (it) {
+                    is UiState.Init -> {}
+                    is UiState.FillTaskList -> {
+                        taskListAdapter.fillData(it.taskList)
+                    }
+                    is UiState.UpdateProgress -> {
+                        taskListAdapter.updateProgress(it.taskItem)
+                    }
 
-        lifecycleScope.launch {
-            status.collect {
-                if (it is StatusState.Status) {
-                    taskListAdapter.updateProgress(it.taskItem)
+                    UiState.HideMenu -> {
+                    }
+                    is UiState.ShowMenu -> {
+                        val dialog = TaskItemMenuDialogFragment.newInstance(it.url, it.isTaskRunning)
+                        dialog.show(childFragmentManager, "TaskItemMenuDialogFragment")
+                    }
                 }
             }
         }
 
-        lifecycleScope.launch {
-            menuState.collect {
-                if (it is TaskMenuState.Show) {
-                    val dialog = TaskItemMenuDialogFragment.newInstance(it.url,it.isTaskRunning)
-                    dialog.show(childFragmentManager, "TaskItemMenuDialogFragment")
-                }
-            }
-        }
+//        lifecycleScope.launch {
+//            taskItemListFlow.collect {
+//                logger("fillData= ${it}")
+//                taskListAdapter.fillData(it)
+//            }
+//        }
+//
+//        lifecycleScope.launch {
+//            status.collect {
+//                if (it is StatusState.Status) {
+//                    taskListAdapter.updateProgress(it.taskItem)
+//                }
+//            }
+//        }
+
 
     }
 

@@ -134,10 +134,7 @@ class XLEngine internal constructor(
                     url, downloadPath, deselectIndexes
                 )
 
-                logger("$url")
-                logger("$downloadPath")
                 if (taskId == -1L) {
-                    printCodeLine()
                     return@withContext IResult.Error(
                         Exception("${TaskExecuteError.START_TASK_FAILED.name}:Error Url is [${url}]"),
                         TaskExecuteError.START_TASK_FAILED.ordinal

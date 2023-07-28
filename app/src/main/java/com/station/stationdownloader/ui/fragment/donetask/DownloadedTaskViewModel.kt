@@ -3,6 +3,7 @@ package com.station.stationdownloader.ui.fragment.donetask
 import android.app.Application
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.station.stationdownloader.DownloadTaskStatus
 import com.station.stationdownloader.data.source.IDownloadTaskRepository
 import com.station.stationdownloader.data.source.local.model.StationDownloadTask
 import com.station.stationdownloader.data.source.local.room.entities.asStationDownloadTask
@@ -56,7 +57,9 @@ class DownloadedTaskViewModel @Inject constructor(
     private fun handleGetTaskList(getTaskList: Flow<UiAction.getTaskList>) = viewModelScope.launch {
         getTaskList.collect {
             _taskList.update {
-                taskRepo.getTasks().map {
+                taskRepo.getTasks().filter {
+                    it.status==DownloadTaskStatus.COMPLETED
+                }.map {
                     it.asStationDownloadTask().asDoneTaskItem()
                 }
             }
