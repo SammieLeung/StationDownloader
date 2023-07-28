@@ -4,12 +4,15 @@ import android.content.DialogInterface
 import android.os.Bundle
 import com.station.stationdownloader.databinding.DialogDoneTaskItemMenuBinding
 import com.station.stationdownloader.ui.base.BaseDialogFragment
+import com.station.stationdownloader.ui.contract.GetContentActivityContract
 import com.station.stationdownloader.ui.fragment.donetask.DownloadedTaskFragment
 import com.station.stationdownloader.ui.fragment.donetask.UiAction
 import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint
 class DoneTaskItemMenuDialogFragment : BaseDialogFragment<DialogDoneTaskItemMenuBinding>() {
+
+    private val te:GetContentActivityContract
     private val url: String by lazy {
         arguments?.getString(EXTRA_URL) ?: ""
     }

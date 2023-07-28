@@ -23,7 +23,6 @@ import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -98,7 +97,7 @@ class DownloadingTaskViewModel @Inject constructor(
                 val taskItem = tmpTaskItemList.find { it.url == action.url } ?: return@withContext
                 val index = tmpTaskItemList.indexOf(taskItem)
                 tmpTaskItemList[index] = taskItem.copy(
-                    statusBtn = ITaskState.LOADING.code,
+                    status = ITaskState.LOADING.code,
                     speed = formatSpeed(0L)
                 )
                 _uiState.update {
@@ -115,7 +114,7 @@ class DownloadingTaskViewModel @Inject constructor(
                 val taskItem = tmpTaskItemList.find { it.url == action.url } ?: return@withContext
                 val index = tmpTaskItemList.indexOf(taskItem)
                 tmpTaskItemList[index] = taskItem.copy(
-                    statusBtn = ITaskState.STOP.code,
+                    status = ITaskState.STOP.code,
                     speed = ""
                 )
                 _uiState.update {
@@ -134,7 +133,7 @@ class DownloadingTaskViewModel @Inject constructor(
                 _uiState.update {
                     UiState.ShowMenu(
                         action.url,
-                        tmpTaskItemList[index].statusBtn == ITaskState.STOP.code
+                        tmpTaskItemList[index].status == ITaskState.RUNNING.code
                     )
                 }
             }
@@ -182,12 +181,12 @@ class DownloadingTaskViewModel @Inject constructor(
             withContext(Dispatchers.Default) {
                 logger("handleInitTaskList")
                 val newList=tmpTaskItemList.map {
-                    it.copy(statusBtn = ITaskState.STOP.code)
+                    it.copy(status = ITaskState.STOP.code)
                 }
                 tmpTaskItemList.clear()
                 tmpTaskItemList.addAll(newList)
                 newList.forEach{
-                    logger("handleInitTaskList over ${it.statusBtn} ${it.taskName}")
+                    logger("handleInitTaskList over ${it.status} ${it.taskName}")
                 }
                 _uiState.update {
                     UiState.FillTaskList(newList)
@@ -217,13 +216,13 @@ class DownloadingTaskViewModel @Inject constructor(
                             taskStatus.downloadSize,
                             taskStatus.totalSize
                         ),
-                        statusBtn = taskStatus.status
+                        status = taskStatus.status
                     )
                 } else {
                     tmpTaskItemList[index] = taskItem.copy(
                         taskId = taskStatus.taskId,
                         speed = "",
-                        statusBtn = taskStatus.status
+                        status = taskStatus.status
                     )
                 }
 
@@ -270,7 +269,7 @@ class DownloadingTaskViewModel @Inject constructor(
         return TaskItem(
             url = this.url,
             taskName = this.name,
-            statusBtn = when (this.status) {
+            status = when (this.status) {
                 DownloadTaskStatus.DOWNLOADING -> {
                    ITaskState.RUNNING.code
                 }
@@ -305,7 +304,7 @@ data class TaskItem(
     val taskId: Long = -1L,
     val url: String,
     val taskName: String,
-    val statusBtn: Int,
+    val status: Int,
     val progress: Int = 50,
     val sizeInfo: String,
     val speed: String,

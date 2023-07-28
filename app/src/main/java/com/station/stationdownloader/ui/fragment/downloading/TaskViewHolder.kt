@@ -5,7 +5,6 @@ import android.view.ViewGroup
 import androidx.core.view.updateLayoutParams
 import androidx.recyclerview.widget.RecyclerView
 import com.station.stationdownloader.ITaskState
-import com.station.stationdownloader.R
 import com.station.stationdownloader.databinding.TaskItemBinding
 import com.station.stationkitkt.dp
 
@@ -15,7 +14,7 @@ class TaskViewHolder(val binding: TaskItemBinding, val accept: (UiAction) -> Uni
     fun bind(taskItem: TaskItem) {
         binding.taskItem = taskItem
         binding.root.setOnClickListener {
-            when (taskItem.statusBtn) {
+            when (taskItem.status) {
                 ITaskState.RUNNING.code -> {
                     accept(UiAction.StopTask(taskItem.url, taskItem.taskId))
                 }

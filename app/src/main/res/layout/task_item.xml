@@ -55,8 +55,8 @@
             android:layout_marginStart="30dp"
             android:layout_marginEnd="35dp"
             android:background="@android:color/transparent"
-            android:visibility="@{taskItem.statusBtn==-3 ? View.INVISIBLE : View.VISIBLE}"
-            android:src="@{taskItem.statusBtn==1?@drawable/ic_stop:@drawable/ic_start}" />
+            android:visibility="@{taskItem.status==-3 ? View.INVISIBLE : View.VISIBLE}"
+            android:src="@{taskItem.status==1?@drawable/ic_stop:@drawable/ic_start}" />
 
         <ProgressBar
             android:layout_width="30dp"
@@ -66,7 +66,7 @@
             android:layout_marginStart="30dp"
             android:layout_marginEnd="35dp"
             android:indeterminateTint="@android:color/white"
-            android:visibility="@{taskItem.statusBtn==-3 ? View.VISIBLE : View.GONE}" />
+            android:visibility="@{taskItem.status==-3 ? View.VISIBLE : View.GONE}" />
 
         <TextView
             android:id="@+id/taskName"
