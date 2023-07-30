@@ -1,4 +1,7 @@
 package com.station.stationdownloader.ui.fragment.downloading.menu
 
-class ConfirmDeleteDialogFragment {
+import com.station.stationdownloader.databinding.DialogConfirmDeleteBinding
+import com.station.stationdownloader.ui.base.BaseDialogFragment
+
+class ConfirmDeleteDialogFragment: BaseDialogFragment<DialogConfirmDeleteBinding>() {
 }

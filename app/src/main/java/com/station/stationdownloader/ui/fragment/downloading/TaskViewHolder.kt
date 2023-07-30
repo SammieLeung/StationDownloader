@@ -16,7 +16,7 @@ class TaskViewHolder(val binding: TaskItemBinding, val accept: (UiAction) -> Uni
         binding.root.setOnClickListener {
             when (taskItem.status) {
                 ITaskState.RUNNING.code -> {
-                    accept(UiAction.StopTask(taskItem.url, taskItem.taskId))
+                    accept(UiAction.StopTask(taskItem.url))
                 }
 
                 ITaskState.LOADING.code -> {}

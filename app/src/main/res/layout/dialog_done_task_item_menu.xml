@@ -34,7 +34,7 @@
 
 
                 <Button
-                    android:id="@+id/playTaskBtn"
+                    android:id="@+id/openFileBtn"
                     style="@style/TaskMenuDialogMenuButtonStyle"
                     android:text="@string/menu_play_done_task" />
 

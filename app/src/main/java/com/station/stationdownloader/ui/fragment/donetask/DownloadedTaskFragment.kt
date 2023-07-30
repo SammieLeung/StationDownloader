@@ -32,7 +32,7 @@ class DownloadedTaskFragment : BaseFragment<FragmentDownloadtaskBinding>(), DLog
     override fun onResume() {
         super.onResume()
         logger("onResume")
-        vm.accept(UiAction.getTaskList)
+        vm.accept(UiAction.GetTaskList)
     }
 
     override fun DLogger.tag(): String {

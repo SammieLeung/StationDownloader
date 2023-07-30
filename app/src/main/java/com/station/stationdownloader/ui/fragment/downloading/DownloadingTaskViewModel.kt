@@ -154,46 +154,42 @@ class DownloadingTaskViewModel @Inject constructor(
     private fun handleDeleteTask(deleteTask: Flow<UiAction.DeleteTask>) = viewModelScope.launch {
         deleteTask.collect { action ->
             withContext(Dispatchers.Default) {
-                val taskItem =
-                    _taskItemList.value.find { it.url == action.url } ?: return@withContext
-                _statusState.update {
-                    StatusState.Status(
-                        taskItem = taskItem.copy(
-                            statuBtn = formatStatusBtn(ITaskState.STOP.code)
-                        ),
-                        taskStatus = ITaskState.UNKNOWN.code
-                    )
-                }
+                val taskItem = tmpTaskItemList.find { it.url == action.url } ?: return@withContext
+                val index = tmpTaskItemList.indexOf(taskItem)
                 TaskService.stopTask(application, action.url)
-                _taskItemList.update {
-                    val mutableList = it.toMutableList()
-                    mutableList.remove(taskItem)
-                    mutableList.toList()
+                tmpTaskItemList[index] = tmpTaskItemList[index].copy(status = ITaskState.STOP.code)
+                _uiState.update {
+                    UiState.UpdateProgress(tmpTaskItemList[index])
                 }
                 taskRepo.deleteTask(action.url)
-            }
-        }
-    }
-
-
-    private fun handleInitTaskList(initTaskList: Flow<UiAction.CheckTaskList>) = viewModelScope.launch {
-        initTaskList.collect {
-            withContext(Dispatchers.Default) {
-                logger("handleInitTaskList")
-                val newList=tmpTaskItemList.map {
-                    it.copy(status = ITaskState.STOP.code)
-                }
-                tmpTaskItemList.clear()
-                tmpTaskItemList.addAll(newList)
-                newList.forEach{
-                    logger("handleInitTaskList over ${it.status} ${it.taskName}")
-                }
                 _uiState.update {
-                    UiState.FillTaskList(newList)
+                    tmpTaskItemList.remove(tmpTaskItemList[index])
+                    UiState.FillTaskList(tmpTaskItemList)
                 }
             }
         }
     }
+
+
+    private fun handleInitTaskList(initTaskList: Flow<UiAction.CheckTaskList>) =
+        viewModelScope.launch {
+            initTaskList.collect {
+                withContext(Dispatchers.Default) {
+                    logger("handleInitTaskList")
+                    val newList = tmpTaskItemList.map {
+                        it.copy(status = ITaskState.STOP.code)
+                    }
+                    tmpTaskItemList.clear()
+                    tmpTaskItemList.addAll(newList)
+                    newList.forEach {
+                        logger("handleInitTaskList over ${it.status} ${it.taskName}")
+                    }
+                    _uiState.update {
+                        UiState.FillTaskList(newList)
+                    }
+                }
+            }
+        }
 
 
     fun setTaskStatus(taskStatus: StateFlow<TaskStatus>) {
@@ -271,12 +267,13 @@ class DownloadingTaskViewModel @Inject constructor(
             taskName = this.name,
             status = when (this.status) {
                 DownloadTaskStatus.DOWNLOADING -> {
-                   ITaskState.RUNNING.code
+                    ITaskState.RUNNING.code
                 }
 
                 DownloadTaskStatus.PENDING, DownloadTaskStatus.PAUSE, DownloadTaskStatus.FAILED -> {
                     ITaskState.STOP.code
                 }
+
                 DownloadTaskStatus.COMPLETED -> {
                     ITaskState.DONE.code
                 }
@@ -317,7 +314,8 @@ sealed class UiAction {
     data class ShowTaskMenu(val url: String) : UiAction()
     object HideTaskMenu : UiAction()
     data class StartTask(val url: String) : UiAction()
-    data class StopTask(val url: String, val taskId: Long) : UiAction()
-    object CheckTaskList:UiAction()
+    data class StopTask(val url: String) : UiAction()
+    object CheckTaskList : UiAction()
+    data class DeleteTask(val url: String) : UiAction()
 }
 
