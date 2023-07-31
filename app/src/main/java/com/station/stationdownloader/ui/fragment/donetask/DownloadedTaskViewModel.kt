@@ -93,11 +93,15 @@ class DownloadedTaskViewModel @Inject constructor(
         viewModelScope.launch {
             getFileUri.collect { action ->
                 val xlDownloadTaskEntity = taskRepo.getTaskByUrl(action.url) ?: return@collect
-                val fileUri =
-                    File(xlDownloadTaskEntity.downloadPath, xlDownloadTaskEntity.name).toUri()
-                _taskMenuState.update {
-                    TaskMenuState.FileUriState(fileUri)
+                if(xlDownloadTaskEntity.fileCount==1)
+                {
+                }else{
+                    val fileUri =Uri.fromFile(File(xlDownloadTaskEntity.downloadPath))
+                    _taskMenuState.update {
+                        TaskMenuState.FileUriState(fileUri,false)
+                    }
                 }
+
             }
         }
 
@@ -120,7 +124,7 @@ class DownloadedTaskViewModel @Inject constructor(
 sealed class TaskMenuState {
     data class Show(val url: String) : TaskMenuState()
     object Hide : TaskMenuState()
-    data class FileUriState(val fileUri: Uri) : TaskMenuState()
+    data class FileUriState(val fileUri: Uri,val isVideo:Boolean) : TaskMenuState()
 }
 
 sealed class UiAction {

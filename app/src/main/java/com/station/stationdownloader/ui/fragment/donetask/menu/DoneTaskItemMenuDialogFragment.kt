@@ -2,7 +2,9 @@ package com.station.stationdownloader.ui.fragment.downloading.menu
 
 import android.content.DialogInterface
 import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
+import android.provider.DocumentsContract
 import android.view.View
 import androidx.lifecycle.lifecycleScope
 import com.station.stationdownloader.databinding.DialogDoneTaskItemMenuBinding
@@ -11,13 +13,15 @@ import com.station.stationdownloader.ui.contract.GetContentActivityContract
 import com.station.stationdownloader.ui.fragment.donetask.DownloadedTaskFragment
 import com.station.stationdownloader.ui.fragment.donetask.TaskMenuState
 import com.station.stationdownloader.ui.fragment.donetask.UiAction
+import com.station.stationdownloader.utils.DLogger
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 
 
 @AndroidEntryPoint
-class DoneTaskItemMenuDialogFragment : BaseDialogFragment<DialogDoneTaskItemMenuBinding>() {
+class DoneTaskItemMenuDialogFragment : BaseDialogFragment<DialogDoneTaskItemMenuBinding>(),
+    DLogger {
 
     private val url: String by lazy {
         arguments?.getString(EXTRA_URL) ?: ""
@@ -49,8 +53,6 @@ class DoneTaskItemMenuDialogFragment : BaseDialogFragment<DialogDoneTaskItemMenu
     ) {
         openFileBtn.setOnClickListener {
             accept(UiAction.GetFileUri(url))
-
-
         }
         deleteTaskBtn.setOnClickListener {
 
@@ -58,15 +60,31 @@ class DoneTaskItemMenuDialogFragment : BaseDialogFragment<DialogDoneTaskItemMenu
 
         lifecycleScope.launch {
             taskMenuState.collect {
+                logger("taskMenuState collect $it")
                 if (it is TaskMenuState.FileUriState) {
-                    val intent = Intent(Intent.ACTION_VIEW)
-                    intent.data = it.fileUri
-                    intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                    openFile(it.fileUri)
+                    dismiss()
                 }
             }
         }
 
 
+    }
+
+    private fun openFile(uri: Uri) {
+        val intent = Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
+            addCategory(Intent.CATEGORY_OPENABLE)
+            type = "*/*"
+
+            // Optionally, specify a URI for the file that should appear in the
+            // system file picker when it loads.
+            putExtra(DocumentsContract.EXTRA_INITIAL_URI, uri)
+        }
+        if (intent.resolveActivity(requireActivity().packageManager) != null) {
+            startActivity(intent);
+        } else {
+            logger("处理没有文件管理器应用的情况")
+        }
     }
 
     companion object {
@@ -78,5 +96,9 @@ class DoneTaskItemMenuDialogFragment : BaseDialogFragment<DialogDoneTaskItemMenu
             fragment.arguments = args
             return fragment
         }
+    }
+
+    override fun DLogger.tag(): String {
+        return DoneTaskItemMenuDialogFragment.javaClass.simpleName
     }
 }
