@@ -1,10 +1,14 @@
 package com.station.stationdownloader.ui.fragment.downloading
 
 import android.app.Application
+import android.content.BroadcastReceiver
+import android.content.Context
+import android.content.Intent
 import android.util.Log
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import com.station.stationdownloader.DownloadTaskStatus
 import com.station.stationdownloader.ITaskState
 import com.station.stationdownloader.R
@@ -58,6 +62,22 @@ class DownloadingTaskViewModel @Inject constructor(
 
     init {
         accept = initAction()
+    }
+
+    val broadcastReceiver = object :BroadcastReceiver(){
+        override fun onReceive(context: Context?, intent: Intent?) {
+            intent?.let {
+                when(intent.action){
+                    TaskService.ACTION_DELETE_TASK_RESULT->{
+                        val url = it.getStringExtra("url")?:""
+                        val result=it.getBooleanExtra("result",false)
+                        if(result){
+                            accept(UiAction.DeleteTask(url,true))
+                        }
+                    }
+                }
+            }
+        }
     }
 
     private fun initAction(): (UiAction) -> Unit {

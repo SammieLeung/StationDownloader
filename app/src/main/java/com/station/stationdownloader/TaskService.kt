@@ -6,6 +6,7 @@ import android.content.Context
 import android.content.Intent
 import android.os.IBinder
 import android.util.Log
+import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import com.orhanobut.logger.Logger
 import com.station.stationdownloader.data.IResult
 import com.station.stationdownloader.data.source.IDownloadTaskRepository
@@ -13,10 +14,14 @@ import com.station.stationdownloader.data.source.IEngineRepository
 import com.station.stationdownloader.data.source.local.room.entities.XLDownloadTaskEntity
 import com.station.stationdownloader.data.source.local.room.entities.asStationDownloadTask
 import com.station.stationdownloader.di.AppCoroutineScope
+import com.station.stationdownloader.di.IoDispatcher
 import com.station.stationdownloader.utils.DLogger
+import com.station.stationdownloader.utils.TaskTools
 import com.xunlei.downloadlib.XLTaskHelper
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
@@ -28,7 +33,9 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import okhttp3.internal.wait
+import java.io.File
 import javax.inject.Inject
 
 @AndroidEntryPoint
@@ -82,6 +89,32 @@ class TaskService : Service(), DLogger {
                     stopTaskJobMap[url] = stopTask(url)
                 }
 
+                ACTION_DELETE_TASK -> {
+                    val url = intent.getStringExtra("url") ?: return START_NOT_STICKY
+                    val isDeleteFile = intent.getBooleanExtra("isDeleteFile",false)
+                    serviceScope.launch {
+                        val job = deleteTask(url,isDeleteFile).await()
+                        if (job is IResult.Error) {
+                            Logger.e(job.exception.message.toString())
+                            LocalBroadcastManager.getInstance(this@TaskService)
+                                .sendBroadcast(
+                                    Intent(ACTION_DELETE_TASK_RESULT).putExtra("url", url)
+                                        .putExtra("result", false)
+                                )
+                        } else {
+                            job as IResult.Success
+                            LocalBroadcastManager.getInstance(this@TaskService)
+                                .sendBroadcast(
+                                    Intent(ACTION_DELETE_TASK_RESULT).putExtra("url", url)
+                                        .putExtra("result", true)
+                                )
+                        }
+
+                    }
+
+
+                }
+
                 else -> {
                     return START_NOT_STICKY
                 }
@@ -106,6 +139,7 @@ class TaskService : Service(), DLogger {
 
     private fun startTask(url: String) = serviceScope.launch {
         try {
+
             val xlEntity = taskRepo.getTaskByUrl(url) ?: return@launch
             val taskIdResult = engineRepo.startTask(xlEntity.asStationDownloadTask())
             if (taskIdResult is IResult.Error) return@launch
@@ -128,7 +162,7 @@ class TaskService : Service(), DLogger {
         }
     }
 
-    private fun stopTask(url: String) = serviceScope.launch(Dispatchers.IO) {
+    private fun stopTask(url: String) = serviceScope.launch {
         try {
             watchTaskJobMap.remove(url)?.apply { cancel() }
             val entity = taskRepo.getTaskByUrl(url) ?: return@launch
@@ -143,6 +177,11 @@ class TaskService : Service(), DLogger {
             logError(e.message.toString())
         }
 
+    }
+
+    private fun deleteTask(url: String,isDeleteFile: Boolean): Deferred<IResult<Int>> = serviceScope.async<IResult<Int>> {
+        stopTask(url)
+        taskRepo.deleteTask(url,isDeleteFile)
     }
 
     private fun cancelJob(url: String) {
@@ -321,6 +360,9 @@ class TaskService : Service(), DLogger {
         private const val ACTION_START_TASK = "action.start.task"
         private const val ACTION_STOP_TASK = "action.stop.task"
 
+        private const val ACTION_DELETE_TASK = "action.delete.task"
+
+         const val ACTION_DELETE_TASK_RESULT = "action.delete.task.result"
 
         @JvmStatic
         fun watchTask(context: Context, url: String, taskId: Long = -1) {
@@ -349,6 +391,14 @@ class TaskService : Service(), DLogger {
         fun stopTask(context: Context, url: String) {
             val intent = Intent(context, TaskService::class.java).setAction(ACTION_STOP_TASK)
             intent.putExtra("url", url)
+            context.startService(intent)
+        }
+
+        @JvmStatic
+        fun deleteTask(context: Context, url: String,isDeleteFile:Boolean) {
+            val intent = Intent(context, TaskService::class.java).setAction(ACTION_DELETE_TASK)
+            intent.putExtra("url", url)
+            intent.putExtra("isDeleteFile",isDeleteFile)
             context.startService(intent)
         }
     }

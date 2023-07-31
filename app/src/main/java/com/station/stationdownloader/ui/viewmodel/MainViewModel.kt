@@ -68,7 +68,7 @@ class MainViewModel @Inject constructor(
     val accept: (UiAction) -> Unit
     val dialogAccept: (DialogAction) -> Unit
 
-    val isInitTaskList=AtomicBoolean(false)
+    val isInitTaskList = AtomicBoolean(false)
 
 
     init {
@@ -119,6 +119,7 @@ class MainViewModel @Inject constructor(
                         }
 
                         else -> _toastState.update {
+                            Logger.e(saveTaskResult.exception.message.toString())
                             ToastState.Toast(saveTaskResult.exception.message.toString())
                         }
                     }
@@ -132,11 +133,9 @@ class MainViewModel @Inject constructor(
                 val taskIdResult =
                     engineRepo.startTask(saveTaskResult.data.asStationDownloadTask())
                 if (taskIdResult is IResult.Error) {
+                    Logger.e(taskIdResult.exception.message.toString())
                     _toastState.update {
                         ToastState.Toast(taskIdResult.exception.message.toString())
-                    }
-                    _newTaskState.update {
-                        NewTaskState.INIT
                     }
                     return@collect
                 }

@@ -1,6 +1,7 @@
 package com.station.stationdownloader.data.source.local.engine.xl
 
 import android.content.Context
+import com.orhanobut.logger.Logger
 import com.station.stationdownloader.DownloadEngine
 import com.station.stationdownloader.DownloadUrlType
 import com.station.stationdownloader.ITaskState
@@ -133,7 +134,7 @@ class XLEngine internal constructor(
                 val taskId = XLTaskHelper.instance().addTorrentTask(
                     url, downloadPath, deselectIndexes
                 )
-
+                Logger.d("taskId:$taskId")
                 if (taskId == -1L) {
                     return@withContext IResult.Error(
                         Exception("${TaskExecuteError.START_TASK_FAILED.name}:Error Url is [${url}]"),

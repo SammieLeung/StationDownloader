@@ -12,6 +12,7 @@ import com.station.stationdownloader.data.source.local.model.TreeNode
 import com.station.stationdownloader.data.source.local.model.getSelectedFileIndexes
 import com.station.stationdownloader.data.source.local.room.entities.XLDownloadTaskEntity
 import com.station.stationdownloader.data.succeeded
+import com.station.stationdownloader.utils.TaskTools
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
@@ -126,8 +127,18 @@ class DefaultDownloadTaskRepository(
             )
         }
 
-    override suspend fun deleteTask(url: String): IResult<Int> {
+    override suspend fun deleteTask(url: String,isDeleteFile:Boolean): IResult<Int> {
+        val xlEntity= getTaskByUrl(url)
+            ?: return IResult.Error(
+                Exception(TaskExecuteError.TASK_NOT_FOUND.name),
+                TaskExecuteError.TASK_NOT_FOUND.ordinal
+            )
+        if(isDeleteFile) {
+            val fileDirectory = File(xlEntity.downloadPath, xlEntity.name)
+            TaskTools.deleteFolder(fileDirectory)
+        }
         return localDataSource.deleteTask(url)
+
     }
 
 

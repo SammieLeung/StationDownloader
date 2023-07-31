@@ -10,6 +10,7 @@ import android.view.View
 import androidx.fragment.app.activityViewModels
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.lifecycleScope
+import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import com.orhanobut.logger.Logger
 import com.station.stationdownloader.TaskService
 import com.station.stationdownloader.databinding.FragmentDownloadtaskBinding
@@ -129,6 +130,17 @@ class DownloadingTaskFragment : BaseFragment<FragmentDownloadtaskBinding>(), DLo
 
     private fun unbindService() {
         requireContext().unbindService(serviceConnection)
+    }
+
+    private fun bindServiceBroadcastReceiver() {
+        LocalBroadcastManager.getInstance(requireContext()).registerReceiver(
+            vm.broadcastReceiver,
+            vm.intentFilter
+        )
+    }
+
+    private fun unbindServiceBroadcastReceiver() {
+        LocalBroadcastManager.getInstance(requireContext()).unregisterReceiver(vm.broadcastReceiver)
     }
 
 }
