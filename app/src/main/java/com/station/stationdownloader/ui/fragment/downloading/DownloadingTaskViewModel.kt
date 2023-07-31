@@ -81,10 +81,17 @@ class DownloadingTaskViewModel @Inject constructor(
             }.map {
                 it.asStationDownloadTask().asTaskItem()
             }.let { taskItemList ->
+                logger("taskItemList size ${taskItemList.size}")
                 _uiState.update {
                     tmpTaskItemList.clear()
                     tmpTaskItemList.addAll(taskItemList)
-                    UiState.FillTaskList(tmpTaskItemList)
+                    if (it is UiState.FillTaskList)
+                        it.copy(taskList = tmpTaskItemList)
+                    else
+                        UiState.FillTaskList(tmpTaskItemList)
+                }
+                _uiState.update {
+                    UiState.Init
                 }
             }
         }
