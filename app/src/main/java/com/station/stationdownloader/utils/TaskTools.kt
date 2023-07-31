@@ -205,8 +205,14 @@ object TaskTools {
         return "${toHumanReading(speed)}/S"
     }
 
-    fun formatRoundSpeed(speed: Long):String{
+    fun formatRoundSpeed(speed: Long): String {
         return "${toRoundHumanReading(speed)}/S"
+    }
+
+    fun deleteFolder(folder: File): Boolean {
+        return if (folder.exists()) {
+            folder.deleteRecursively()
+        } else false
     }
 
 }

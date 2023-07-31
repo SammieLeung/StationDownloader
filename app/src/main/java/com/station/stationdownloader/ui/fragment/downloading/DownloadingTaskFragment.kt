@@ -20,6 +20,7 @@ import com.station.stationdownloader.ui.viewmodel.NewTaskState
 import com.station.stationdownloader.utils.DLogger
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
 
 @AndroidEntryPoint
@@ -49,6 +50,7 @@ class DownloadingTaskFragment : BaseFragment<FragmentDownloadtaskBinding>(), DLo
         mBinding.bindState(
             pVm.newTaskState,
             vm.uiState,
+            vm.menuState,
             vm.accept,
         )
     }
@@ -57,6 +59,7 @@ class DownloadingTaskFragment : BaseFragment<FragmentDownloadtaskBinding>(), DLo
         super.onResume()
         logger("onResume")
         vm.accept(UiAction.GetTaskList)
+        vm.accept(UiAction.InitUiState)
         bindService()
     }
 
@@ -78,6 +81,7 @@ class DownloadingTaskFragment : BaseFragment<FragmentDownloadtaskBinding>(), DLo
     private fun FragmentDownloadtaskBinding.bindState(
         newTaskState: StateFlow<NewTaskState>,
         uiStateFlow: StateFlow<UiState>,
+        menuStateFlow: StateFlow<MenuDialogUiState>,
         accept: (UiAction) -> Unit,
     ) {
         taskListView.adapter = taskListAdapter
@@ -96,17 +100,20 @@ class DownloadingTaskFragment : BaseFragment<FragmentDownloadtaskBinding>(), DLo
                     is UiState.Init -> {}
                     is UiState.FillTaskList -> {
                         taskListAdapter.fillData(it.taskList)
+                        accept(UiAction.InitUiState)
                     }
                     is UiState.UpdateProgress -> {
                         taskListAdapter.updateProgress(it.taskItem)
                     }
+                }
+            }
+        }
 
-                    UiState.HideMenu -> {
-                    }
-                    is UiState.ShowMenu -> {
-                        val dialog = TaskItemMenuDialogFragment.newInstance(it.url, it.isTaskRunning)
-                        dialog.show(childFragmentManager, "TaskItemMenuDialogFragment")
-                    }
+        lifecycleScope.launch {
+            menuStateFlow.collect {
+                if (it.isShow) {
+                    val dialog = TaskItemMenuDialogFragment.newInstance(it.url, it.isTaskRunning)
+                    dialog.show(childFragmentManager, "TaskItemMenuDialogFragment")
                 }
             }
         }

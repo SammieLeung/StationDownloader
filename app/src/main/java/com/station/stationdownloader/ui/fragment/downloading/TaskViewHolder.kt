@@ -27,7 +27,7 @@ class TaskViewHolder(val binding: TaskItemBinding, val accept: (UiAction) -> Uni
 
         }
         binding.root.setOnLongClickListener {
-            accept(UiAction.ShowTaskMenu(taskItem.url))
+            accept(UiAction.ShowTaskMenu(taskItem.url,true))
             true
         }
         if (this.absoluteAdapterPosition == 0) {

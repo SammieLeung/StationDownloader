@@ -7,8 +7,11 @@ import androidx.lifecycle.lifecycleScope
 import com.station.stationdownloader.databinding.DialogTaskItemMenuBinding
 import com.station.stationdownloader.ui.base.BaseDialogFragment
 import com.station.stationdownloader.ui.fragment.downloading.DownloadingTaskFragment
+import com.station.stationdownloader.ui.fragment.downloading.DownloadingTaskViewModel
+import com.station.stationdownloader.ui.fragment.downloading.MenuDialogUiState
 import com.station.stationdownloader.ui.fragment.downloading.UiAction
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 
 @AndroidEntryPoint
@@ -26,35 +29,59 @@ class TaskItemMenuDialogFragment : BaseDialogFragment<DialogTaskItemMenuBinding>
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-        mBinding.bindState(vm.accept)
+        mBinding.bindState(vm.accept, vm.menuState)
 
     }
 
-    private fun DialogTaskItemMenuBinding.bindState(accept: (UiAction) -> Unit) {
-        isTaskRunning = this@TaskItemMenuDialogFragment.isTaskRunning
+    private fun DialogTaskItemMenuBinding.bindState(
+        accept: (UiAction) -> Unit,
+        menuState: StateFlow<MenuDialogUiState>
+    ) {
         deleteTaskBtn.setOnClickListener {
-            accept(UiAction.DeleteTask(url))
-            dismiss()
+            showConfirmDeleteDialog()
         }
 
-        if (isTaskRunning) {
-            stopTaskBtn.setOnClickListener {
-                accept(UiAction.StopTask(url))
-                dismiss()
-            }
-        } else {
-            startTaskBtn.setOnClickListener {
-                accept(UiAction.StartTask(url))
-                dismiss()
+        lifecycleScope.launch {
+            menuState.collect {
+                isTaskRunning = it.isTaskRunning
+                if (isTaskRunning) {
+                    stopTaskBtn.setOnClickListener {
+                        accept(UiAction.StopTask(url))
+                        dismiss()
+                    }
+                } else {
+                    startTaskBtn.setOnClickListener {
+                        accept(UiAction.StartTask(url))
+                        dismiss()
+                    }
+                }
+
+                if (it.isDelete) {
+                    dismiss()
+                }
+                if (!it.isShow) {
+                    dismiss()
+                }
             }
         }
-
     }
 
+
+    fun getViewModel(): DownloadingTaskViewModel {
+        return vm
+    }
 
     override fun onDismiss(dialog: DialogInterface) {
         super.onDismiss(dialog)
-        vm.accept(UiAction.HideTaskMenu)
+        vm.accept(UiAction.ShowTaskMenu(url, false))
+    }
+
+    private fun showConfirmDeleteDialog() {
+        parentFragmentManager.beginTransaction()
+            .add(ConfirmDeleteDialogFragment.newInstance(url), "confirm_delete")
+            .hide(this)
+            .addToBackStack("confirm_delete")
+            .commit()
     }
 
     companion object {

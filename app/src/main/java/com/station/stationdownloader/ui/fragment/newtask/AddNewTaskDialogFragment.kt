@@ -87,6 +87,7 @@ class AddNewTaskDialogFragment : BaseDialogFragment<DialogFragmentAddNewTaskBind
             ) // 设置下拉菜单的样式
         // 将适配器绑定到spinner上
         engineSpinner.adapter = adapter
+        engineSpinner.isEnabled=false
     }
 
     private fun DialogFragmentAddNewTaskBinding.bindState(

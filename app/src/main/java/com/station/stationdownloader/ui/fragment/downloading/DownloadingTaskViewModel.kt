@@ -27,6 +27,7 @@ import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.io.File
 import javax.inject.Inject
 
 @HiltViewModel
@@ -40,6 +41,17 @@ class DownloadingTaskViewModel @Inject constructor(
     private val _uiState: MutableStateFlow<UiState> = MutableStateFlow(UiState.Init)
     val uiState = _uiState.asStateFlow()
 
+    private val _menuState: MutableStateFlow<MenuDialogUiState> =
+        MutableStateFlow(
+            MenuDialogUiState(
+                isTaskRunning = false,
+                isDelete = false,
+                isShow = false,
+                isShowDelete = false
+            )
+        )
+    val menuState = _menuState.asStateFlow()
+
     val accept: (UiAction) -> Unit
 
     private val tmpTaskItemList: MutableList<TaskItem> = mutableListOf()
@@ -50,21 +62,24 @@ class DownloadingTaskViewModel @Inject constructor(
 
     private fun initAction(): (UiAction) -> Unit {
         val actionStateFlow: MutableSharedFlow<UiAction> = MutableSharedFlow()
+        val initUiState = actionStateFlow.filterIsInstance<UiAction.InitUiState>()
         val getTaskList = actionStateFlow.filterIsInstance<UiAction.GetTaskList>()
         val startTask = actionStateFlow.filterIsInstance<UiAction.StartTask>()
         val stopTask = actionStateFlow.filterIsInstance<UiAction.StopTask>()
         val showTaskMenu = actionStateFlow.filterIsInstance<UiAction.ShowTaskMenu>()
-        val hideTaskMenu = actionStateFlow.filterIsInstance<UiAction.HideTaskMenu>()
         val deleteTask = actionStateFlow.filterIsInstance<UiAction.DeleteTask>()
         val initTaskList = actionStateFlow.filterIsInstance<UiAction.CheckTaskList>()
+        val showDeleteConfirmDialog =
+            actionStateFlow.filterIsInstance<UiAction.ShowDeleteConfirmDialog>()
 
+        handleInitUiState(initUiState)
         handleGetTaskList(getTaskList)
         handleStartTask(startTask)
         handleStopTask(stopTask)
         handleTaskMenu(showTaskMenu)
-        handleHideTaskMenu(hideTaskMenu)
         handleDeleteTask(deleteTask)
         handleInitTaskList(initTaskList)
+        handleShowDeleteConfirmDialog(showDeleteConfirmDialog)
 
         return { action ->
             viewModelScope.launch {
@@ -72,6 +87,15 @@ class DownloadingTaskViewModel @Inject constructor(
             }
         }
     }
+
+    private fun handleInitUiState(initUiState: Flow<UiAction.InitUiState>) =
+        viewModelScope.launch {
+            initUiState.collect {
+                _uiState.update {
+                    UiState.Init
+                }
+            }
+        }
 
     private fun handleGetTaskList(getTaskList: Flow<UiAction.GetTaskList>) = viewModelScope.launch {
         getTaskList.collect {
@@ -89,9 +113,6 @@ class DownloadingTaskViewModel @Inject constructor(
                         it.copy(taskList = tmpTaskItemList)
                     else
                         UiState.FillTaskList(tmpTaskItemList)
-                }
-                _uiState.update {
-                    UiState.Init
                 }
             }
         }
@@ -137,46 +158,66 @@ class DownloadingTaskViewModel @Inject constructor(
             withContext(Dispatchers.Default) {
                 val taskItem = tmpTaskItemList.find { it.url == action.url } ?: return@withContext
                 val index = tmpTaskItemList.indexOf(taskItem)
-                _uiState.update {
-                    UiState.ShowMenu(
-                        action.url,
-                        tmpTaskItemList[index].status == ITaskState.RUNNING.code
-                    )
-                }
-            }
-        }
-    }
-
-    private fun handleHideTaskMenu(hideTaskMenu: Flow<UiAction.HideTaskMenu>) =
-        viewModelScope.launch {
-            hideTaskMenu.collect {
-                withContext(Dispatchers.Default) {
-                    _uiState.update {
-                        UiState.HideMenu
+                if (action.isShow) {
+                    _menuState.update {
+                        it.copy(
+                            url = action.url,
+                            isTaskRunning = tmpTaskItemList[index].status == ITaskState.RUNNING.code,
+                            isDelete = false,
+                            isShow = true,
+                            isShowDelete = false
+                        )
+                    }
+                } else {
+                    _menuState.update {
+                        it.copy(
+                            url = action.url,
+                            isTaskRunning = tmpTaskItemList[index].status == ITaskState.RUNNING.code,
+                            isDelete = false,
+                            isShow = false,
+                            isShowDelete = false
+                        )
                     }
                 }
             }
         }
+    }
+
 
     private fun handleDeleteTask(deleteTask: Flow<UiAction.DeleteTask>) = viewModelScope.launch {
         deleteTask.collect { action ->
-            withContext(Dispatchers.Default) {
-                val taskItem = tmpTaskItemList.find { it.url == action.url } ?: return@withContext
-                val index = tmpTaskItemList.indexOf(taskItem)
-                TaskService.stopTask(application, action.url)
-                tmpTaskItemList[index] = tmpTaskItemList[index].copy(status = ITaskState.STOP.code)
-                _uiState.update {
-                    UiState.UpdateProgress(tmpTaskItemList[index])
-                }
-                taskRepo.deleteTask(action.url)
-                _uiState.update {
-                    tmpTaskItemList.remove(tmpTaskItemList[index])
-                    UiState.FillTaskList(tmpTaskItemList)
-                }
+            val url = action.url
+            val isDeleteFile = action.isDeleteFile
+            val taskItem = tmpTaskItemList.find { it.url == url } ?: return@collect
+            val index = tmpTaskItemList.indexOf(taskItem)
+            TaskService.stopTask(application, url)
+            tmpTaskItemList[index] = tmpTaskItemList[index].copy(status = ITaskState.STOP.code)
+            _uiState.update {
+                UiState.UpdateProgress(tmpTaskItemList[index])
             }
+            taskRepo.deleteTask(url)
+            _uiState.update {
+                tmpTaskItemList.remove(tmpTaskItemList[index])
+                UiState.FillTaskList(tmpTaskItemList)
+            }
+
+            if (isDeleteFile) {
+                val fileDirectory = File(taskItem.downloadPath, taskItem.taskName)
+                TaskTools.deleteFolder(fileDirectory)
+            }
+
+            _menuState.update {
+                MenuDialogUiState(
+                    url = url,
+                    isTaskRunning = false,
+                    isDelete = true,
+                    isShow = false,
+                    isShowDelete = false
+                )
+            }
+
         }
     }
-
 
     private fun handleInitTaskList(initTaskList: Flow<UiAction.CheckTaskList>) =
         viewModelScope.launch {
@@ -198,6 +239,18 @@ class DownloadingTaskViewModel @Inject constructor(
             }
         }
 
+    private fun handleShowDeleteConfirmDialog(cancelDeleteConfirmDialog: Flow<UiAction.ShowDeleteConfirmDialog>) =
+        viewModelScope.launch {
+            cancelDeleteConfirmDialog.collect { action ->
+                withContext(Dispatchers.Default) {
+                    _menuState.update {
+                        it.copy(
+                            isShowDelete = action.isShowDelete
+                        )
+                    }
+                }
+            }
+        }
 
     fun setTaskStatus(taskStatus: StateFlow<TaskStatus>) {
         viewModelScope.launch {
@@ -300,9 +353,15 @@ sealed class UiState {
     object Init : UiState()
     data class FillTaskList(val taskList: List<TaskItem>) : UiState()
     data class UpdateProgress(val taskItem: TaskItem) : UiState()
-    data class ShowMenu(val url: String, val isTaskRunning: Boolean) : UiState()
-    object HideMenu : UiState()
 }
+
+data class MenuDialogUiState(
+    val url: String = "",
+    val isTaskRunning: Boolean,
+    val isDelete: Boolean,
+    val isShow: Boolean,
+    val isShowDelete: Boolean
+)
 
 data class TaskItem(
     val taskId: Long = -1L,
@@ -317,12 +376,13 @@ data class TaskItem(
 )
 
 sealed class UiAction {
+    object InitUiState : UiAction()
     object GetTaskList : UiAction()
-    data class ShowTaskMenu(val url: String) : UiAction()
-    object HideTaskMenu : UiAction()
     data class StartTask(val url: String) : UiAction()
     data class StopTask(val url: String) : UiAction()
     object CheckTaskList : UiAction()
-    data class DeleteTask(val url: String) : UiAction()
+    data class ShowTaskMenu(val url: String, val isShow: Boolean) : UiAction()
+    data class DeleteTask(val url: String, val isDeleteFile: Boolean) : UiAction()
+    data class ShowDeleteConfirmDialog(val isShowDelete: Boolean) : UiAction()
 }
 

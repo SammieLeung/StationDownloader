@@ -1,7 +1,53 @@
 package com.station.stationdownloader.ui.fragment.downloading.menu
 
+import android.content.DialogInterface
+import android.os.Bundle
+import android.view.View
 import com.station.stationdownloader.databinding.DialogConfirmDeleteBinding
 import com.station.stationdownloader.ui.base.BaseDialogFragment
+import com.station.stationdownloader.ui.fragment.downloading.DownloadingTaskFragment
+import com.station.stationdownloader.ui.fragment.downloading.UiAction
+import com.station.stationdownloader.ui.fragment.downloading.menu.TaskItemMenuDialogFragment.Companion.EXTRA_URL
 
-class ConfirmDeleteDialogFragment: BaseDialogFragment<DialogConfirmDeleteBinding>() {
+class ConfirmDeleteDialogFragment private constructor(): BaseDialogFragment<DialogConfirmDeleteBinding>() {
+
+    private val url by lazy {
+        arguments?.getString(EXTRA_URL) ?: ""
+    }
+    private val vm by lazy {
+        (requireParentFragment() as DownloadingTaskFragment).getViewModel()
+    }
+
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
+        mBinding.bindState(vm.accept)
+    }
+
+    fun DialogConfirmDeleteBinding.bindState(accept: (UiAction) -> Unit) {
+        cancelBtn.setOnClickListener {
+            dismiss()
+        }
+        okBtn.setOnClickListener {
+            accept(UiAction.DeleteTask(url,deleteFileCheckBox.isChecked))
+            accept(UiAction.InitUiState)
+            dismiss()
+        }
+    }
+
+    override fun onDismiss(dialog: DialogInterface) {
+        super.onDismiss(dialog)
+        vm.accept(UiAction.ShowDeleteConfirmDialog(false))
+    }
+
+
+
+    companion object {
+        fun newInstance(url: String): ConfirmDeleteDialogFragment {
+            val args = Bundle()
+            args.putString(EXTRA_URL, url)
+            val fragment = ConfirmDeleteDialogFragment()
+            fragment.arguments = args
+            return fragment
+        }
+    }
 }
