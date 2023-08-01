@@ -9,13 +9,13 @@ import android.view.View
 import androidx.lifecycle.lifecycleScope
 import com.station.stationdownloader.databinding.DialogDoneTaskItemMenuBinding
 import com.station.stationdownloader.ui.base.BaseDialogFragment
-import com.station.stationdownloader.ui.contract.GetContentActivityContract
 import com.station.stationdownloader.ui.fragment.donetask.DownloadedTaskFragment
-import com.station.stationdownloader.ui.fragment.donetask.TaskMenuState
 import com.station.stationdownloader.ui.fragment.donetask.UiAction
+import com.station.stationdownloader.ui.fragment.donetask.UiState
 import com.station.stationdownloader.utils.DLogger
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
 
 
@@ -31,12 +31,10 @@ class DoneTaskItemMenuDialogFragment : BaseDialogFragment<DialogDoneTaskItemMenu
         (requireParentFragment() as DownloadedTaskFragment).getViewModel()
     }
 
-    private val openFileManager = registerForActivityResult(GetContentActivityContract()) {}
-
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         mBinding.bindState(
-            vm.taskMenuState,
+            vm.uiState,
             vm.accept
         )
     }
@@ -44,30 +42,27 @@ class DoneTaskItemMenuDialogFragment : BaseDialogFragment<DialogDoneTaskItemMenu
 
     override fun onDismiss(dialog: DialogInterface) {
         super.onDismiss(dialog)
-        vm.accept(UiAction.HideTaskMenu)
+        vm.accept(UiAction.ShowTaskMenu(isShow = false))
+        vm.accept(UiAction.InitUiState)
     }
 
     private fun DialogDoneTaskItemMenuBinding.bindState(
-        taskMenuState: StateFlow<TaskMenuState>,
+        uiState: StateFlow<UiState>,
         accept: (UiAction) -> Unit,
     ) {
         openFileBtn.setOnClickListener {
-            accept(UiAction.GetFileUri(url))
+            accept(UiAction.OpenFile(url))
         }
         deleteTaskBtn.setOnClickListener {
-
+            showConfirmDeleteDialog()
         }
-
         lifecycleScope.launch {
-            taskMenuState.collect {
-                logger("taskMenuState collect $it")
-                if (it is TaskMenuState.FileUriState) {
-                    openFile(it.fileUri)
-                    dismiss()
+            uiState.collect{
+                if (it is UiState.OpenFileState) {
+                    openFile(it.uri)
                 }
             }
         }
-
 
     }
 
@@ -85,6 +80,14 @@ class DoneTaskItemMenuDialogFragment : BaseDialogFragment<DialogDoneTaskItemMenu
         } else {
             logger("处理没有文件管理器应用的情况")
         }
+    }
+
+    private fun showConfirmDeleteDialog() {
+        parentFragmentManager.beginTransaction()
+            .add(ConfirmDeleteDialogFragment.newInstance(url), "confirm_delete")
+            .hide(this)
+            .addToBackStack("confirm_delete")
+            .commit()
     }
 
     companion object {

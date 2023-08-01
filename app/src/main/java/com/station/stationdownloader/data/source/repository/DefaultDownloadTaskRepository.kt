@@ -130,13 +130,16 @@ class DefaultDownloadTaskRepository(
     override suspend fun deleteTask(url: String,isDeleteFile:Boolean): IResult<Int> {
         val xlEntity= getTaskByUrl(url)
             ?: return IResult.Error(
-                Exception(TaskExecuteError.TASK_NOT_FOUND.name),
-                TaskExecuteError.TASK_NOT_FOUND.ordinal
+                Exception(TaskExecuteError.DELETE_TASK_FAILED.name),
+                TaskExecuteError.DELETE_TASK_FAILED.ordinal
             )
-        if(isDeleteFile) {
-            val fileDirectory = File(xlEntity.downloadPath, xlEntity.name)
-            TaskTools.deleteFolder(fileDirectory)
+        withContext(Dispatchers.IO){
+            if(isDeleteFile) {
+                val fileDirectory = File(xlEntity.downloadPath, xlEntity.name)
+                TaskTools.deleteFolder(fileDirectory)
+            }
         }
+
         return localDataSource.deleteTask(url)
 
     }

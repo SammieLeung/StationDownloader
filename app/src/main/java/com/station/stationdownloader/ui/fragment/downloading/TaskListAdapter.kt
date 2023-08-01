@@ -40,4 +40,15 @@ class TaskListAdapter(val accept:(UiAction)->Unit) : RecyclerView.Adapter<TaskVi
         }
     }
 
+    fun deleteTask(item: TaskItem) {
+        for (idx in dataList.indices) {
+            val data = dataList[idx]
+            if (data.url == item.url) {
+                dataList.removeAt(idx)
+                notifyDataSetChanged()
+                break;
+            }
+        }
+    }
+
 }

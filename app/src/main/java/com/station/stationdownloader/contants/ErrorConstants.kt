@@ -10,6 +10,7 @@ enum class ConfigureError {
 
 enum class TaskExecuteError {
     ADD_MAGNET_TASK_ERROR,
+    DELETE_TASK_FAILED,
     DOWNLOAD_TORRENT_TIME_OUT,
     GET_FILE_SIZE_TIMEOUT,
     GET_HTTP_FILE_HEADER_ERROR,
@@ -26,7 +27,8 @@ enum class TaskExecuteError {
     TASK_NOT_FOUND,
     TORRENT_INFO_IS_NULL,
     TORRENT_TASK_EXISTS,
-    UPDATE_TASK_CONFIG_FAILED,;
+    UPDATE_TASK_CONFIG_FAILED,
+
 
 }
 

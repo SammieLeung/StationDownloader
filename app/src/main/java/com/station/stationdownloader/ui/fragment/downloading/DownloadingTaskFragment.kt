@@ -106,6 +106,10 @@ class DownloadingTaskFragment : BaseFragment<FragmentDownloadtaskBinding>(), DLo
                     is UiState.UpdateProgress -> {
                         taskListAdapter.updateProgress(it.taskItem)
                     }
+
+                    is UiState.DeleteTaskResultState -> {
+                        taskListAdapter.deleteTask(it.deleteItem)
+                    }
                 }
             }
         }
@@ -126,10 +130,12 @@ class DownloadingTaskFragment : BaseFragment<FragmentDownloadtaskBinding>(), DLo
             Intent(requireContext(), TaskService::class.java), serviceConnection,
             Service.BIND_AUTO_CREATE
         )
+        bindServiceBroadcastReceiver()
     }
 
     private fun unbindService() {
         requireContext().unbindService(serviceConnection)
+        unbindServiceBroadcastReceiver()
     }
 
     private fun bindServiceBroadcastReceiver() {

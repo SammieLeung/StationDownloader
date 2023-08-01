@@ -23,7 +23,6 @@ data class StationDownloadTask(
     val totalSize: Long = -1L,
     val downloadPath: String,
     val selectIndexes: List<Int> = emptyList(),
-    //FIXME @Deprecate
     val fileList: List<String> = emptyList(),
     val fileCount: Int = 0,
     val createTime: Long = System.currentTimeMillis()

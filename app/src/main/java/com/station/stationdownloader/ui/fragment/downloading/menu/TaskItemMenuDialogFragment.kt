@@ -66,14 +66,10 @@ class TaskItemMenuDialogFragment : BaseDialogFragment<DialogTaskItemMenuBinding>
         }
     }
 
-
-    fun getViewModel(): DownloadingTaskViewModel {
-        return vm
-    }
-
     override fun onDismiss(dialog: DialogInterface) {
         super.onDismiss(dialog)
         vm.accept(UiAction.ShowTaskMenu(url, false))
+        vm.accept(UiAction.InitUiState)
     }
 
     private fun showConfirmDeleteDialog() {

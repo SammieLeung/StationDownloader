@@ -1,4 +1,4 @@
-package com.station.stationdownloader.ui.fragment.downloading.menu
+package com.station.stationdownloader.ui.fragment.donetask.menu
 
 import android.content.DialogInterface
 import android.os.Bundle
@@ -7,10 +7,9 @@ import com.station.stationdownloader.databinding.DialogConfirmDeleteBinding
 import com.station.stationdownloader.ui.base.BaseDialogFragment
 import com.station.stationdownloader.ui.fragment.donetask.DownloadedTaskFragment
 import com.station.stationdownloader.ui.fragment.donetask.UiAction
-import com.station.stationdownloader.ui.fragment.downloading.menu.TaskItemMenuDialogFragment.Companion.EXTRA_URL
+import com.station.stationdownloader.ui.fragment.downloading.menu.DoneTaskItemMenuDialogFragment.Companion.EXTRA_URL
 
-class ConfirmDeleteDialogFragment private constructor() :
-    BaseDialogFragment<DialogConfirmDeleteBinding>() {
+class ConfirmDeleteDialogFragment private constructor(): BaseDialogFragment<DialogConfirmDeleteBinding>() {
 
     private val url by lazy {
         arguments?.getString(EXTRA_URL) ?: ""
@@ -29,7 +28,7 @@ class ConfirmDeleteDialogFragment private constructor() :
             dismiss()
         }
         okBtn.setOnClickListener {
-            accept(UiAction.DeleteTask(url, deleteFileCheckBox.isChecked))
+            accept(UiAction.DeleteTask(url,deleteFileCheckBox.isChecked))
             dismiss()
         }
     }
@@ -39,7 +38,6 @@ class ConfirmDeleteDialogFragment private constructor() :
         vm.accept(UiAction.ShowDeleteConfirmDialog(false))
         vm.accept(UiAction.InitUiState)
     }
-
 
     companion object {
         fun newInstance(url: String): ConfirmDeleteDialogFragment {

@@ -4,6 +4,7 @@ import android.app.Application
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
 import android.util.Log
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
@@ -31,7 +32,6 @@ import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import java.io.File
 import javax.inject.Inject
 
 @HiltViewModel
@@ -58,26 +58,30 @@ class DownloadingTaskViewModel @Inject constructor(
 
     val accept: (UiAction) -> Unit
 
-    private val tmpTaskItemList: MutableList<TaskItem> = mutableListOf()
+    private val runningTaskItemList: MutableList<TaskItem> = mutableListOf()
 
-    init {
-        accept = initAction()
-    }
-
-    val broadcastReceiver = object :BroadcastReceiver(){
+    val broadcastReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
             intent?.let {
-                when(intent.action){
-                    TaskService.ACTION_DELETE_TASK_RESULT->{
-                        val url = it.getStringExtra("url")?:""
-                        val result=it.getBooleanExtra("result",false)
-                        if(result){
-                            accept(UiAction.DeleteTask(url,true))
-                        }
+                when (intent.action) {
+                    TaskService.ACTION_DELETE_TASK_RESULT -> {
+                        val url = it.getStringExtra("url") ?: ""
+                        val result = it.getBooleanExtra("result", false)
+                        handleDeleteTaskResult(url, result)
                     }
                 }
             }
         }
+    }
+
+    val intentFilter: IntentFilter by lazy {
+        IntentFilter().apply {
+            addAction(TaskService.ACTION_DELETE_TASK_RESULT)
+        }
+    }
+
+    init {
+        accept = initAction()
     }
 
     private fun initAction(): (UiAction) -> Unit {
@@ -127,12 +131,12 @@ class DownloadingTaskViewModel @Inject constructor(
             }.let { taskItemList ->
                 logger("taskItemList size ${taskItemList.size}")
                 _uiState.update {
-                    tmpTaskItemList.clear()
-                    tmpTaskItemList.addAll(taskItemList)
+                    runningTaskItemList.clear()
+                    runningTaskItemList.addAll(taskItemList)
                     if (it is UiState.FillTaskList)
-                        it.copy(taskList = tmpTaskItemList)
+                        it.copy(taskList = runningTaskItemList)
                     else
-                        UiState.FillTaskList(tmpTaskItemList)
+                        UiState.FillTaskList(runningTaskItemList)
                 }
             }
         }
@@ -142,14 +146,15 @@ class DownloadingTaskViewModel @Inject constructor(
         startTask.collect { action ->
             withContext(Dispatchers.Default) {
                 Log.d(tag(), "handleStartTask")
-                val taskItem = tmpTaskItemList.find { it.url == action.url } ?: return@withContext
-                val index = tmpTaskItemList.indexOf(taskItem)
-                tmpTaskItemList[index] = taskItem.copy(
+                val taskItem =
+                    runningTaskItemList.find { it.url == action.url } ?: return@withContext
+                val index = runningTaskItemList.indexOf(taskItem)
+                runningTaskItemList[index] = taskItem.copy(
                     status = ITaskState.LOADING.code,
                     speed = formatSpeed(0L)
                 )
                 _uiState.update {
-                    UiState.UpdateProgress(tmpTaskItemList[index])
+                    UiState.UpdateProgress(runningTaskItemList[index])
                 }
                 TaskService.startTask(application, action.url)
             }
@@ -159,14 +164,15 @@ class DownloadingTaskViewModel @Inject constructor(
     private fun handleStopTask(stopTask: Flow<UiAction.StopTask>) = viewModelScope.launch {
         stopTask.collect { action ->
             withContext(Dispatchers.Default) {
-                val taskItem = tmpTaskItemList.find { it.url == action.url } ?: return@withContext
-                val index = tmpTaskItemList.indexOf(taskItem)
-                tmpTaskItemList[index] = taskItem.copy(
+                val taskItem =
+                    runningTaskItemList.find { it.url == action.url } ?: return@withContext
+                val index = runningTaskItemList.indexOf(taskItem)
+                runningTaskItemList[index] = taskItem.copy(
                     status = ITaskState.STOP.code,
                     speed = ""
                 )
                 _uiState.update {
-                    UiState.UpdateProgress(tmpTaskItemList[index])
+                    UiState.UpdateProgress(runningTaskItemList[index])
                 }
                 TaskService.stopTask(application, action.url)
             }
@@ -176,13 +182,14 @@ class DownloadingTaskViewModel @Inject constructor(
     private fun handleTaskMenu(showTaskMenu: Flow<UiAction.ShowTaskMenu>) = viewModelScope.launch {
         showTaskMenu.collect { action ->
             withContext(Dispatchers.Default) {
-                val taskItem = tmpTaskItemList.find { it.url == action.url } ?: return@withContext
-                val index = tmpTaskItemList.indexOf(taskItem)
+                val taskItem =
+                    runningTaskItemList.find { it.url == action.url } ?: return@withContext
+                val index = runningTaskItemList.indexOf(taskItem)
                 if (action.isShow) {
                     _menuState.update {
                         it.copy(
                             url = action.url,
-                            isTaskRunning = tmpTaskItemList[index].status == ITaskState.RUNNING.code,
+                            isTaskRunning = runningTaskItemList[index].status == ITaskState.RUNNING.code,
                             isDelete = false,
                             isShow = true,
                             isShowDelete = false
@@ -192,7 +199,7 @@ class DownloadingTaskViewModel @Inject constructor(
                     _menuState.update {
                         it.copy(
                             url = action.url,
-                            isTaskRunning = tmpTaskItemList[index].status == ITaskState.RUNNING.code,
+                            isTaskRunning = runningTaskItemList[index].status == ITaskState.RUNNING.code,
                             isDelete = false,
                             isShow = false,
                             isShowDelete = false
@@ -206,36 +213,7 @@ class DownloadingTaskViewModel @Inject constructor(
 
     private fun handleDeleteTask(deleteTask: Flow<UiAction.DeleteTask>) = viewModelScope.launch {
         deleteTask.collect { action ->
-            val url = action.url
-            val isDeleteFile = action.isDeleteFile
-            val taskItem = tmpTaskItemList.find { it.url == url } ?: return@collect
-            val index = tmpTaskItemList.indexOf(taskItem)
-            TaskService.stopTask(application, url)
-            tmpTaskItemList[index] = tmpTaskItemList[index].copy(status = ITaskState.STOP.code)
-            _uiState.update {
-                UiState.UpdateProgress(tmpTaskItemList[index])
-            }
-            taskRepo.deleteTask(url)
-            _uiState.update {
-                tmpTaskItemList.remove(tmpTaskItemList[index])
-                UiState.FillTaskList(tmpTaskItemList)
-            }
-
-            if (isDeleteFile) {
-                val fileDirectory = File(taskItem.downloadPath, taskItem.taskName)
-                TaskTools.deleteFolder(fileDirectory)
-            }
-
-            _menuState.update {
-                MenuDialogUiState(
-                    url = url,
-                    isTaskRunning = false,
-                    isDelete = true,
-                    isShow = false,
-                    isShowDelete = false
-                )
-            }
-
+            TaskService.deleteTask(application, action.url, action.isDeleteFile)
         }
     }
 
@@ -244,11 +222,11 @@ class DownloadingTaskViewModel @Inject constructor(
             initTaskList.collect {
                 withContext(Dispatchers.Default) {
                     logger("handleInitTaskList")
-                    val newList = tmpTaskItemList.map {
+                    val newList = runningTaskItemList.map {
                         it.copy(status = ITaskState.STOP.code)
                     }
-                    tmpTaskItemList.clear()
-                    tmpTaskItemList.addAll(newList)
+                    runningTaskItemList.clear()
+                    runningTaskItemList.addAll(newList)
                     newList.forEach {
                         logger("handleInitTaskList over ${it.status} ${it.taskName}")
                     }
@@ -272,16 +250,37 @@ class DownloadingTaskViewModel @Inject constructor(
             }
         }
 
+    private fun handleDeleteTaskResult(url: String, result: Boolean) {
+        val taskItem = runningTaskItemList.find { it.url == url } ?: return
+        val index = runningTaskItemList.indexOf(taskItem)
+
+        _uiState.update {
+            val deleteItem = runningTaskItemList[index]
+            runningTaskItemList.remove(deleteItem)
+            UiState.DeleteTaskResultState(result, deleteItem)
+        }
+
+        _menuState.update {
+            MenuDialogUiState(
+                url = url,
+                isTaskRunning = false,
+                isDelete = true,
+                isShow = false,
+                isShowDelete = false
+            )
+        }
+    }
+
     fun setTaskStatus(taskStatus: StateFlow<TaskStatus>) {
         viewModelScope.launch {
             taskStatus.collect { taskStatus ->
                 val url = taskStatus.url
-                val taskItem = tmpTaskItemList.find {
+                val taskItem = runningTaskItemList.find {
                     it.url == url
                 } ?: return@collect
-                val index = tmpTaskItemList.indexOf(taskItem)
+                val index = runningTaskItemList.indexOf(taskItem)
                 if (taskStatus.status == ITaskState.RUNNING.code) {
-                    tmpTaskItemList[index] = taskItem.copy(
+                    runningTaskItemList[index] = taskItem.copy(
                         taskId = taskStatus.taskId,
                         speed = formatSpeed(taskStatus.speed),
                         sizeInfo = formatSizeInfo(
@@ -295,7 +294,7 @@ class DownloadingTaskViewModel @Inject constructor(
                         status = taskStatus.status
                     )
                 } else {
-                    tmpTaskItemList[index] = taskItem.copy(
+                    runningTaskItemList[index] = taskItem.copy(
                         taskId = taskStatus.taskId,
                         speed = "",
                         status = taskStatus.status
@@ -303,11 +302,16 @@ class DownloadingTaskViewModel @Inject constructor(
                 }
 
                 _uiState.update {
-                    UiState.UpdateProgress(tmpTaskItemList[index])
+                    UiState.UpdateProgress(runningTaskItemList[index])
                 }
 
                 if (taskStatus.status == ITaskState.DONE.code) {
                     accept(UiAction.GetTaskList)
+                    LocalBroadcastManager.getInstance(application).sendBroadcast(
+                        Intent(ACTION_NOTIFY_ADD_DONE_TASK).apply {
+                            putExtra(EXTRA_URL, url)
+                        }
+                    )
                 }
             }
         }
@@ -366,6 +370,11 @@ class DownloadingTaskViewModel @Inject constructor(
         )
     }
 
+    companion object {
+        const val ACTION_NOTIFY_ADD_DONE_TASK = "action.notify.add.done.task"
+        const val EXTRA_URL = "extra_url"
+    }
+
 }
 
 
@@ -373,7 +382,13 @@ sealed class UiState {
     object Init : UiState()
     data class FillTaskList(val taskList: List<TaskItem>) : UiState()
     data class UpdateProgress(val taskItem: TaskItem) : UiState()
+    data class DeleteTaskResultState(
+        val isSuccess: Boolean,
+        val deleteItem: TaskItem,
+        val reason: String = ""
+    ) : UiState()
 }
+
 
 data class MenuDialogUiState(
     val url: String = "",

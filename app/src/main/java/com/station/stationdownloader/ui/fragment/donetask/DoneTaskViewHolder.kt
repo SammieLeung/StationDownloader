@@ -17,7 +17,7 @@ class DoneTaskViewHolder(val binding: DoneTaskItemBinding, val accept: (UiAction
 
         }
         binding.root.setOnLongClickListener{
-            accept(UiAction.ShowTaskMenu(taskItem.url))
+            accept(UiAction.ShowTaskMenu(taskItem.url,true))
             true
         }
         if (this.absoluteAdapterPosition == 0) {
