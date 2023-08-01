@@ -198,11 +198,7 @@ class DownloadingTaskViewModel @Inject constructor(
                 } else {
                     _menuState.update {
                         it.copy(
-                            url = action.url,
-                            isTaskRunning = runningTaskItemList[index].status == ITaskState.RUNNING.code,
-                            isDelete = false,
                             isShow = false,
-                            isShowDelete = false
                         )
                     }
                 }
@@ -377,6 +373,13 @@ class DownloadingTaskViewModel @Inject constructor(
 
 }
 
+data class MenuDialogUiState(
+    val url: String = "",
+    val isTaskRunning: Boolean,
+    val isDelete: Boolean,
+    val isShow: Boolean,
+    val isShowDelete: Boolean
+)
 
 sealed class UiState {
     object Init : UiState()
@@ -389,14 +392,6 @@ sealed class UiState {
     ) : UiState()
 }
 
-
-data class MenuDialogUiState(
-    val url: String = "",
-    val isTaskRunning: Boolean,
-    val isDelete: Boolean,
-    val isShow: Boolean,
-    val isShowDelete: Boolean
-)
 
 data class TaskItem(
     val taskId: Long = -1L,
@@ -416,7 +411,7 @@ sealed class UiAction {
     data class StartTask(val url: String) : UiAction()
     data class StopTask(val url: String) : UiAction()
     object CheckTaskList : UiAction()
-    data class ShowTaskMenu(val url: String, val isShow: Boolean) : UiAction()
+    data class ShowTaskMenu(val url: String="", val isShow: Boolean) : UiAction()
     data class DeleteTask(val url: String, val isDeleteFile: Boolean) : UiAction()
     data class ShowDeleteConfirmDialog(val isShowDelete: Boolean) : UiAction()
 }

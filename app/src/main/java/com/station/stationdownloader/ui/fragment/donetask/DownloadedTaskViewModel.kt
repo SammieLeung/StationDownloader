@@ -131,8 +131,6 @@ class DownloadedTaskViewModel @Inject constructor(
                     MenuDialogUiState(
                         url = action.url,
                         isShow = action.isShow,
-                        isShowDelete = false,
-                        isDelete = false
                     )
                 }
             }
@@ -213,7 +211,6 @@ class DownloadedTaskViewModel @Inject constructor(
         )
     }
 }
-
 
 data class MenuDialogUiState(
     val url: String = "",

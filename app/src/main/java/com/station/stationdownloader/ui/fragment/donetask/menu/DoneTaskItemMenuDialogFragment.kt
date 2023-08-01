@@ -10,9 +10,9 @@ import androidx.lifecycle.lifecycleScope
 import com.station.stationdownloader.databinding.DialogDoneTaskItemMenuBinding
 import com.station.stationdownloader.ui.base.BaseDialogFragment
 import com.station.stationdownloader.ui.fragment.donetask.DownloadedTaskFragment
+import com.station.stationdownloader.ui.fragment.donetask.MenuDialogUiState
 import com.station.stationdownloader.ui.fragment.donetask.UiAction
 import com.station.stationdownloader.ui.fragment.donetask.UiState
-import com.station.stationdownloader.ui.fragment.downloading.menu.ConfirmDeleteDialogFragment
 import com.station.stationdownloader.utils.DLogger
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.flow.StateFlow
@@ -34,11 +34,11 @@ class DoneTaskItemMenuDialogFragment : BaseDialogFragment<DialogDoneTaskItemMenu
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         mBinding.bindState(
+            vm.menuDialogUiState,
             vm.uiState,
             vm.accept
         )
     }
-
 
     override fun onDismiss(dialog: DialogInterface) {
         super.onDismiss(dialog)
@@ -47,6 +47,7 @@ class DoneTaskItemMenuDialogFragment : BaseDialogFragment<DialogDoneTaskItemMenu
     }
 
     private fun DialogDoneTaskItemMenuBinding.bindState(
+        menuState: StateFlow<MenuDialogUiState>,
         uiState: StateFlow<UiState>,
         accept: (UiAction) -> Unit,
     ) {
@@ -56,8 +57,20 @@ class DoneTaskItemMenuDialogFragment : BaseDialogFragment<DialogDoneTaskItemMenu
         deleteTaskBtn.setOnClickListener {
             showConfirmDeleteDialog()
         }
+
         lifecycleScope.launch {
-            uiState.collect{
+            menuState.collect {
+                if (it.isDelete) {
+                    dismiss()
+                }
+                if (!it.isShow) {
+                    dismiss()
+                }
+            }
+        }
+
+        lifecycleScope.launch {
+            uiState.collect {
                 if (it is UiState.OpenFileState) {
                     openFile(it.uri)
                 }
