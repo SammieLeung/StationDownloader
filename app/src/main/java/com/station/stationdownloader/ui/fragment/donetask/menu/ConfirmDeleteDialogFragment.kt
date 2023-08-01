@@ -7,7 +7,7 @@ import com.station.stationdownloader.databinding.DialogConfirmDeleteBinding
 import com.station.stationdownloader.ui.base.BaseDialogFragment
 import com.station.stationdownloader.ui.fragment.donetask.DownloadedTaskFragment
 import com.station.stationdownloader.ui.fragment.donetask.UiAction
-import com.station.stationdownloader.ui.fragment.downloading.menu.DoneTaskItemMenuDialogFragment.Companion.EXTRA_URL
+import com.station.stationdownloader.ui.fragment.donetask.menu.DoneTaskItemMenuDialogFragment.Companion.EXTRA_URL
 
 class ConfirmDeleteDialogFragment private constructor(): BaseDialogFragment<DialogConfirmDeleteBinding>() {
 

@@ -1,4 +1,4 @@
-package com.station.stationdownloader.ui.fragment.downloading.menu
+package com.station.stationdownloader.ui.fragment.donetask.menu
 
 import android.content.DialogInterface
 import android.content.Intent
@@ -12,10 +12,10 @@ import com.station.stationdownloader.ui.base.BaseDialogFragment
 import com.station.stationdownloader.ui.fragment.donetask.DownloadedTaskFragment
 import com.station.stationdownloader.ui.fragment.donetask.UiAction
 import com.station.stationdownloader.ui.fragment.donetask.UiState
+import com.station.stationdownloader.ui.fragment.downloading.menu.ConfirmDeleteDialogFragment
 import com.station.stationdownloader.utils.DLogger
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
 
 

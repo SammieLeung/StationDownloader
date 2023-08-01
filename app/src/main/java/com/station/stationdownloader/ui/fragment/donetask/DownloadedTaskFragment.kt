@@ -7,7 +7,7 @@ import androidx.lifecycle.lifecycleScope
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import com.station.stationdownloader.databinding.FragmentDownloadtaskBinding
 import com.station.stationdownloader.ui.base.BaseFragment
-import com.station.stationdownloader.ui.fragment.downloading.menu.DoneTaskItemMenuDialogFragment
+import com.station.stationdownloader.ui.fragment.donetask.menu.DoneTaskItemMenuDialogFragment
 import com.station.stationdownloader.utils.DLogger
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.flow.StateFlow

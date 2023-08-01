@@ -71,7 +71,7 @@ class DownloadedTaskViewModel @Inject constructor(
 
     private fun initAction(): (UiAction) -> Unit {
         val actionStateFlow: MutableSharedFlow<UiAction> = MutableSharedFlow()
-        val InitUiStateFlow = actionStateFlow.filterIsInstance<UiAction.InitUiState>()
+        val initUiStateFlow = actionStateFlow.filterIsInstance<UiAction.InitUiState>()
         val getTaskList = actionStateFlow.filterIsInstance<UiAction.GetTaskList>()
         val showTaskMenuFlow = actionStateFlow.filterIsInstance<UiAction.ShowTaskMenu>()
         val openFileFlow = actionStateFlow.filterIsInstance<UiAction.OpenFile>()
@@ -79,7 +79,7 @@ class DownloadedTaskViewModel @Inject constructor(
         val showDeleteConfirmDialogFlow =
             actionStateFlow.filterIsInstance<UiAction.ShowDeleteConfirmDialog>()
 
-        handleInitUiState(InitUiStateFlow)
+        handleInitUiState(initUiStateFlow)
         handleGetTaskList(getTaskList)
         handleShowTaskMenu(showTaskMenuFlow)
         handleOpenFile(openFileFlow)
@@ -96,6 +96,7 @@ class DownloadedTaskViewModel @Inject constructor(
     private fun handleInitUiState(initUiStateFlow: Flow<UiAction.InitUiState>) =
         viewModelScope.launch {
             initUiStateFlow.collect {
+                logger("UiState.Init")
                 _uiState.update {
                     UiState.Init
                 }
@@ -110,7 +111,6 @@ class DownloadedTaskViewModel @Inject constructor(
             }.map {
                 it.asStationDownloadTask().asDoneTaskItem()
             }.let { taskItemList ->
-                logger("taskItemList size ${taskItemList.size}")
                 _uiState.update {
                     doneTaskItemList.clear()
                     doneTaskItemList.addAll(taskItemList)
@@ -126,6 +126,7 @@ class DownloadedTaskViewModel @Inject constructor(
     private fun handleShowTaskMenu(showTaskMenu: Flow<UiAction.ShowTaskMenu>) =
         viewModelScope.launch {
             showTaskMenu.collect { action ->
+                logger("showTaskMenu")
                 _menuDialogUiState.update {
                     MenuDialogUiState(
                         url = action.url,
@@ -141,10 +142,13 @@ class DownloadedTaskViewModel @Inject constructor(
     private fun handleOpenFile(openFile: Flow<UiAction.OpenFile>) =
         viewModelScope.launch {
             openFile.collect { action ->
+                logger("openFile")
                 val xlDownloadTaskEntity = taskRepo.getTaskByUrl(action.url) ?: return@collect
-                if (xlDownloadTaskEntity.fileCount == 1) {
+                if (xlDownloadTaskEntity.torrentId<0) {
+
                 } else {
                     val fileUri = Uri.fromFile(File(xlDownloadTaskEntity.downloadPath))
+                    logger("fileUri:$fileUri")
                     _uiState.update {
                         UiState.OpenFileState(
                             uri = fileUri,

@@ -5,8 +5,8 @@ import android.os.Bundle
 import android.view.View
 import com.station.stationdownloader.databinding.DialogConfirmDeleteBinding
 import com.station.stationdownloader.ui.base.BaseDialogFragment
-import com.station.stationdownloader.ui.fragment.donetask.DownloadedTaskFragment
-import com.station.stationdownloader.ui.fragment.donetask.UiAction
+import com.station.stationdownloader.ui.fragment.downloading.DownloadingTaskFragment
+import com.station.stationdownloader.ui.fragment.downloading.UiAction
 import com.station.stationdownloader.ui.fragment.downloading.menu.TaskItemMenuDialogFragment.Companion.EXTRA_URL
 
 class ConfirmDeleteDialogFragment private constructor() :
@@ -16,7 +16,7 @@ class ConfirmDeleteDialogFragment private constructor() :
         arguments?.getString(EXTRA_URL) ?: ""
     }
     private val vm by lazy {
-        (requireParentFragment() as DownloadedTaskFragment).getViewModel()
+        (requireParentFragment() as DownloadingTaskFragment).getViewModel()
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
