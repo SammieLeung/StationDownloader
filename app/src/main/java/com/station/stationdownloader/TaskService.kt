@@ -1,31 +1,26 @@
 package com.station.stationdownloader
 
-import android.app.Application
 import android.app.Service
 import android.content.Context
 import android.content.Intent
 import android.os.IBinder
-import android.util.Log
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import com.orhanobut.logger.Logger
+import com.station.stationdownloader.contants.TaskExecuteError
 import com.station.stationdownloader.data.IResult
+import com.station.stationdownloader.data.source.IConfigurationRepository
 import com.station.stationdownloader.data.source.IDownloadTaskRepository
 import com.station.stationdownloader.data.source.IEngineRepository
 import com.station.stationdownloader.data.source.local.room.entities.XLDownloadTaskEntity
 import com.station.stationdownloader.data.source.local.room.entities.asStationDownloadTask
 import com.station.stationdownloader.di.AppCoroutineScope
-import com.station.stationdownloader.di.IoDispatcher
 import com.station.stationdownloader.utils.DLogger
-import com.station.stationdownloader.utils.TaskTools
 import com.xunlei.downloadlib.XLTaskHelper
 import dagger.hilt.android.AndroidEntryPoint
-import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.async
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -33,9 +28,6 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
-import okhttp3.internal.wait
-import java.io.File
 import javax.inject.Inject
 
 @AndroidEntryPoint
@@ -51,6 +43,9 @@ class TaskService : Service(), DLogger {
 
     @Inject
     lateinit var taskRepo: IDownloadTaskRepository
+
+    @Inject
+    lateinit var configRepo: IConfigurationRepository
 
     private val watchTaskJobMap = mutableMapOf<String, Job>()
     private var startTaskJobMap = mutableMapOf<String, Job>()
@@ -92,27 +87,7 @@ class TaskService : Service(), DLogger {
                 ACTION_DELETE_TASK -> {
                     val url = intent.getStringExtra("url") ?: return START_NOT_STICKY
                     val isDeleteFile = intent.getBooleanExtra("isDeleteFile", false)
-                    serviceScope.launch {
-                        val job = deleteTask(url, isDeleteFile).await()
-                        if (job is IResult.Error) {
-                            Logger.e(job.exception.message.toString())
-                            LocalBroadcastManager.getInstance(this@TaskService)
-                                .sendBroadcast(
-                                    Intent(ACTION_DELETE_TASK_RESULT).putExtra("url", url)
-                                        .putExtra("result", false)
-                                )
-                        } else {
-                            job as IResult.Success
-                            LocalBroadcastManager.getInstance(this@TaskService)
-                                .sendBroadcast(
-                                    Intent(ACTION_DELETE_TASK_RESULT).putExtra("url", url)
-                                        .putExtra("result", true)
-                                )
-                        }
-
-                    }
-
-
+                    deleteTask(url, isDeleteFile)
                 }
 
                 else -> {
@@ -137,12 +112,32 @@ class TaskService : Service(), DLogger {
         serviceScope.cancel()
     }
 
+
     private fun startTask(url: String) = serviceScope.launch {
         try {
-
             val xlEntity = taskRepo.getTaskByUrl(url) ?: return@launch
+            if (watchTaskJobMap.size == configRepo.getMaxThread()) {
+                sendLocalBroadcast(Intent(
+                    ACTION_START_TASK_RESULT
+                ).apply {
+                    putExtra("url", url)
+                    putExtra("result", false)
+                    putExtra("reason", TaskExecuteError.START_TASK_MAX_LIMIT.name)
+                })
+                updateTaskStatusNow(url, -1, ITaskState.STOP.code)
+                return@launch
+            }
             val taskIdResult = engineRepo.startTask(xlEntity.asStationDownloadTask())
-            if (taskIdResult is IResult.Error) return@launch
+            if (taskIdResult is IResult.Error) {
+                sendLocalBroadcast(Intent(
+                    ACTION_START_TASK_RESULT
+                ).apply {
+                    putExtra("url", url)
+                    putExtra("result", false)
+                    putExtra("reason", taskIdResult.exception.message.toString())
+                })
+                return@launch
+            }
             val taskId = (taskIdResult as IResult.Success).data
             val status = TaskStatus(
                 taskId = taskId,
@@ -159,6 +154,8 @@ class TaskService : Service(), DLogger {
             watchTaskJobMap[url] = createWatchTask(taskId, url)
         } catch (e: Exception) {
             logError(e.message.toString())
+        } finally {
+            startTaskJobMap.remove(url)
         }
     }
 
@@ -175,14 +172,29 @@ class TaskService : Service(), DLogger {
             updateTaskStatusNow(url, -1, ITaskState.STOP.code)
         } catch (e: Exception) {
             logError(e.message.toString())
+        } finally {
+            stopTaskJobMap.remove(url)
         }
 
     }
 
-    private fun deleteTask(url: String, isDeleteFile: Boolean): Deferred<IResult<Int>> =
-        serviceScope.async {
+    private fun deleteTask(url: String, isDeleteFile: Boolean) =
+        serviceScope.launch {
             stopTask(url)
-            taskRepo.deleteTask(url, isDeleteFile)
+            val deleteResult = taskRepo.deleteTask(url, isDeleteFile)
+            if (deleteResult is IResult.Error) {
+                Logger.e(deleteResult.exception.message.toString())
+                sendLocalBroadcast(
+                    Intent(ACTION_DELETE_TASK_RESULT).putExtra("url", url)
+                        .putExtra("result", false)
+                )
+            } else {
+                deleteResult as IResult.Success
+                sendLocalBroadcast(
+                    Intent(ACTION_DELETE_TASK_RESULT).putExtra("url", url)
+                        .putExtra("result", true)
+                )
+            }
         }
 
     private fun cancelJob(url: String) {
@@ -194,8 +206,8 @@ class TaskService : Service(), DLogger {
         return serviceScope.launch {
             try {
                 speedTest(taskId, url)
-            }finally {
-                Logger.d("need to cancel WatchJob, taskId: $taskId")
+            } finally {
+                logger("need to cancel WatchJob, taskId: $taskId")
             }
         }
     }
@@ -278,6 +290,7 @@ class TaskService : Service(), DLogger {
                     Logger.w("下载完成 [${taskId}]")
                     engineRepo.stopTask(taskId, task.asStationDownloadTask())
                 }
+                runningTaskMap.remove(url)
                 watchTaskJobMap.remove(url)?.cancel()
                 return
             }
@@ -341,6 +354,10 @@ class TaskService : Service(), DLogger {
         return runningTaskMap
     }
 
+    private fun sendLocalBroadcast(intent: Intent) {
+        LocalBroadcastManager.getInstance(this).sendBroadcast(intent)
+    }
+
     override fun DLogger.tag(): String {
         return TaskService.javaClass.simpleName
     }
@@ -371,6 +388,7 @@ class TaskService : Service(), DLogger {
 
         private const val ACTION_DELETE_TASK = "action.delete.task"
 
+        const val ACTION_START_TASK_RESULT = "action.start.task.result"
         const val ACTION_DELETE_TASK_RESULT = "action.delete.task.result"
 
         @JvmStatic
@@ -388,6 +406,7 @@ class TaskService : Service(), DLogger {
             intent.putExtra("url", url)
             context.startService(intent)
         }
+
 
         @JvmStatic
         fun startTask(context: Context, url: String) {

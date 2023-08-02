@@ -52,14 +52,6 @@ data class XLDownloadTaskEntity @JvmOverloads constructor(
     val createTime: Long = System.currentTimeMillis(),
 )
 
-fun XLDownloadTaskEntity.buildWorkInputData(): Data {
-    return workDataOf(
-        DownloadWorker.IN_URL to url,
-        DownloadWorker.IN_ENGINE to engine.name,
-        DownloadWorker.IN_DOWNLOAD_PATH to downloadPath
-    )
-}
-
 fun XLDownloadTaskEntity.asStationDownloadTask(): StationDownloadTask {
     return StationDownloadTask(
         id=id,

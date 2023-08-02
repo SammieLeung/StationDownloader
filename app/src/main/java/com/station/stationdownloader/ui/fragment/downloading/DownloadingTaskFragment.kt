@@ -21,7 +21,6 @@ import com.station.stationdownloader.ui.viewmodel.NewTaskState
 import com.station.stationdownloader.utils.DLogger
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
 
 @AndroidEntryPoint

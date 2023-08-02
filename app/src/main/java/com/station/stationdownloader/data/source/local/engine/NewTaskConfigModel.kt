@@ -29,7 +29,8 @@ sealed class NewTaskConfigModel(
         _downloadPath = downloadPath,
         _downloadEngine = engine,
         _fileTree = fileTree
-    )
+    ){
+    }
 
     data class TorrentTask(
         val torrentId: Long,
@@ -78,7 +79,6 @@ sealed class NewTaskConfigModel(
             }
         }
     }
-
 
 }
 
@@ -165,3 +165,4 @@ fun NewTaskConfigModel.asXLDownloadTaskEntity(): XLDownloadTaskEntity {
         }
     }
 }
+

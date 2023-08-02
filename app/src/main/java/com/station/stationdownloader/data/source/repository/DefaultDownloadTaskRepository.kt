@@ -2,6 +2,7 @@ package com.station.stationdownloader.data.source.repository
 
 import com.orhanobut.logger.Logger
 import com.station.stationdownloader.DownloadEngine
+import com.station.stationdownloader.DownloadUrlType
 import com.station.stationdownloader.contants.TaskExecuteError
 import com.station.stationdownloader.data.IResult
 import com.station.stationdownloader.data.source.IDownloadTaskDataSource
@@ -72,14 +73,81 @@ class DefaultDownloadTaskRepository(
         return localDataSource.updateTask(task)
     }
 
+
+   override suspend fun saveTask(
+       torrentId: Long,
+       originUrl: String,
+       realUrl: String,
+       taskName: String,
+       urlType: DownloadUrlType,
+       engine: DownloadEngine,
+       totalSize: Long,
+       downloadPath: String,
+       selectIndexes: List<Int>,
+       fileList: List<String>,
+       fileCount: Int
+    ): IResult<XLDownloadTaskEntity> = withContext(ioDispatcher)
+    {
+        val existsTask = getTaskByUrl(originUrl)
+        if (existsTask == null) {
+            val insertResult = insertTask(
+                XLDownloadTaskEntity(
+                    id = 0,
+                    torrentId = torrentId,
+                    url = originUrl,
+                    realUrl = realUrl,
+                    name = taskName,
+                    urlType = urlType,
+                    engine = engine,
+                    totalSize = totalSize,
+                    downloadPath = downloadPath,
+                    selectIndexes = selectIndexes,
+                    fileList = fileList,
+                    fileCount = fileCount
+                )
+            )
+            if (insertResult is IResult.Error)
+                return@withContext insertResult
+            val newTaskResult = getTaskByUrl(originUrl)
+                ?: return@withContext IResult.Error(
+                    Exception(TaskExecuteError.TASK_INSERT_ERROR.name),
+                    TaskExecuteError.TASK_INSERT_ERROR.ordinal
+                )
+            return@withContext IResult.Success(newTaskResult)
+        }
+
+        if (assertTaskConfigNotChange(existsTask, engine, downloadPath, taskName, selectIndexes)) {
+            return@withContext IResult.Error(
+                Exception(TaskExecuteError.REPEATING_TASK_NOTHING_CHANGED.name),
+                TaskExecuteError.REPEATING_TASK_NOTHING_CHANGED.ordinal
+            )
+        }
+
+
+        val updatedTask = existsTask.copy(
+            downloadPath = File(downloadPath, taskName).path,
+            engine = engine,
+            selectIndexes = selectIndexes,
+            name = taskName
+        )
+        val sqlResult = updateTask(updatedTask)
+        if (!sqlResult.succeeded) {
+            return@withContext IResult.Error(
+                Exception(TaskExecuteError.UPDATE_TASK_CONFIG_FAILED.name),
+                TaskExecuteError.UPDATE_TASK_CONFIG_FAILED.ordinal
+            )
+        }
+        return@withContext IResult.Success(
+            updatedTask
+        )
+    }
+
+
     override suspend fun saveTask(newTask: NewTaskConfigModel): IResult<XLDownloadTaskEntity> =
         withContext(ioDispatcher) {
-            val originUrl = when (newTask) {
-                is NewTaskConfigModel.NormalTask -> newTask.originUrl
-                is NewTaskConfigModel.TorrentTask -> newTask.torrentPath
-            }
-
             val rootDir = newTask._fileTree as TreeNode.Directory
+            val fileSize = rootDir.totalCheckedFileSize
+            val fileCount = rootDir.totalFileCount
             val newSelectIndexes =
                 rootDir.getSelectedFileIndexes()
 
@@ -89,52 +157,54 @@ class DefaultDownloadTaskRepository(
                     TaskExecuteError.SELECT_AT_LEAST_ONE_FILE.ordinal
                 )
 
-            val existsTask = getTaskByUrl(originUrl)
-            if (existsTask == null) {
-                val insertResult = insertTask(newTask.asXLDownloadTaskEntity())
-                if (insertResult is IResult.Error)
-                    return@withContext insertResult
-                val newTaskResult = getTaskByUrl(originUrl)
-                    ?: return@withContext IResult.Error(
-                        Exception(TaskExecuteError.TASK_INSERT_ERROR.name),
-                        TaskExecuteError.TASK_INSERT_ERROR.ordinal
+
+            return@withContext when (newTask) {
+                is NewTaskConfigModel.NormalTask -> {
+                    val (originUrl, realUrl, taskName, urlType, downloadPath, engine) = newTask
+                    val realDownloadPath = File(downloadPath, taskName).path
+                    saveTask(
+                        torrentId = -1,
+                        originUrl = originUrl,
+                        realUrl = realUrl,
+                        taskName = taskName,
+                        urlType = urlType,
+                        engine = engine,
+                        totalSize = fileSize,
+                        downloadPath = realDownloadPath,
+                        selectIndexes = newSelectIndexes,
+                        fileList = emptyList(),
+                        fileCount = fileCount
                     )
-                return@withContext IResult.Success(newTaskResult)
-            }
+                }
 
-            if (assertTaskConfigNotChange(existsTask, newTask)) {
-                return@withContext IResult.Error(
-                    Exception(TaskExecuteError.REPEATING_TASK_NOTHING_CHANGED.name),
-                    TaskExecuteError.REPEATING_TASK_NOTHING_CHANGED.ordinal
-                )
+                is NewTaskConfigModel.TorrentTask -> {
+                    val (torrentId, torrentPath, taskName, downloadPath, _,engine,_) = newTask
+                    val realDownloadPath = File(downloadPath, taskName).path
+                    saveTask(
+                        torrentId = torrentId,
+                        originUrl = torrentPath,
+                        realUrl = torrentPath,
+                        taskName = taskName,
+                        urlType = DownloadUrlType.TORRENT,
+                        engine = engine,
+                        totalSize = fileSize,
+                        downloadPath = realDownloadPath,
+                        selectIndexes = newSelectIndexes,
+                        fileList = emptyList(),
+                        fileCount = fileCount
+                    )
+                }
             }
-
-            val updatedTask = existsTask.copy(
-                downloadPath = File(newTask._downloadPath,newTask._name).path,
-                engine = newTask._downloadEngine,
-                selectIndexes = newSelectIndexes,
-                name = newTask._name
-            )
-            val sqlResult = updateTask(updatedTask)
-            if (!sqlResult.succeeded) {
-                return@withContext IResult.Error(
-                    Exception(TaskExecuteError.UPDATE_TASK_CONFIG_FAILED.name),
-                    TaskExecuteError.UPDATE_TASK_CONFIG_FAILED.ordinal
-                )
-            }
-            return@withContext IResult.Success(
-                updatedTask
-            )
         }
 
-    override suspend fun deleteTask(url: String,isDeleteFile:Boolean): IResult<Int> {
-        val xlEntity= getTaskByUrl(url)
+    override suspend fun deleteTask(url: String, isDeleteFile: Boolean): IResult<Int> {
+        val xlEntity = getTaskByUrl(url)
             ?: return IResult.Error(
                 Exception(TaskExecuteError.DELETE_TASK_FAILED.name),
                 TaskExecuteError.DELETE_TASK_FAILED.ordinal
             )
-        withContext(Dispatchers.IO){
-            if(isDeleteFile) {
+        withContext(Dispatchers.IO) {
+            if (isDeleteFile) {
                 val fileDirectory = File(xlEntity.downloadPath)
                 TaskTools.deleteFolder(fileDirectory)
             }
@@ -150,8 +220,22 @@ class DefaultDownloadTaskRepository(
         newTask: NewTaskConfigModel
     ): Boolean {
         return existsTask.engine == newTask._downloadEngine &&
-                existsTask.downloadPath == File(newTask._downloadPath,newTask._name).path &&
+                existsTask.downloadPath == File(newTask._downloadPath, newTask._name).path &&
                 existsTask.name == newTask._name &&
                 existsTask.selectIndexes == (newTask._fileTree as TreeNode.Directory).getSelectedFileIndexes()
     }
+
+    private fun assertTaskConfigNotChange(
+        existsTask: XLDownloadTaskEntity,
+        engine: DownloadEngine,
+        downloadPath: String,
+        taskName: String,
+        selectedFileIndexes: List<Int>
+    ): Boolean {
+        return existsTask.engine == engine &&
+                existsTask.downloadPath == File(downloadPath, taskName).path &&
+                existsTask.name == taskName &&
+                existsTask.selectIndexes == selectedFileIndexes
+    }
+
 }

@@ -18,7 +18,6 @@ import com.station.stationdownloader.data.source.local.engine.NewTaskConfigModel
 import com.station.stationdownloader.data.source.local.model.StationDownloadTask
 import com.station.stationdownloader.data.source.local.model.TreeNode
 import com.station.stationdownloader.data.source.local.model.filterFile
-import com.station.stationdownloader.data.source.local.room.entities.asStationDownloadTask
 import com.station.stationdownloader.ui.fragment.newtask.toHumanReading
 import com.station.stationdownloader.utils.DLogger
 import com.station.stationdownloader.utils.XLEngineTools
@@ -129,22 +128,23 @@ class MainViewModel @Inject constructor(
 
 
                 saveTaskResult as IResult.Success
-
-                val taskIdResult =
-                    engineRepo.startTask(saveTaskResult.data.asStationDownloadTask())
-                if (taskIdResult is IResult.Error) {
-                    Logger.e(taskIdResult.exception.message.toString())
-                    _toastState.update {
-                        ToastState.Toast(taskIdResult.exception.message.toString())
-                    }
-                    return@collect
-                }
-
-                TaskService.watchTask(
-                    application,
-                    saveTaskResult.data.url,
-                    (taskIdResult as IResult.Success).data
-                )
+//
+//                val taskIdResult =
+//                    engineRepo.startTask(saveTaskResult.data.asStationDownloadTask())
+//                if (taskIdResult is IResult.Error) {
+//                    Logger.e(taskIdResult.exception.message.toString())
+//                    _toastState.update {
+//                        ToastState.Toast(taskIdResult.exception.message.toString())
+//                    }
+//                    return@collect
+//                }
+//
+//                TaskService.watchTask(
+//                    application,
+//                    saveTaskResult.data.url,
+//                    (taskIdResult as IResult.Success).data
+//                )
+                TaskService.startTask(application, saveTaskResult.data.url)
 
                 _toastState.update {
                     ToastState.Toast(application.getString(R.string.start_to_download))

@@ -1,9 +1,7 @@
 package com.station.stationdownloader
 
 import android.content.Context
-import androidx.room.Database
 import androidx.work.CoroutineWorker
-import androidx.work.Operation.State.FAILURE
 import androidx.work.WorkerParameters
 import androidx.work.workDataOf
 import com.orhanobut.logger.Logger
@@ -11,19 +9,12 @@ import com.station.stationdownloader.contants.TaskExecuteError
 import com.station.stationdownloader.data.IResult
 import com.station.stationdownloader.data.source.IDownloadTaskRepository
 import com.station.stationdownloader.data.source.IEngineRepository
-import com.station.stationdownloader.data.source.local.room.entities.asStationDownloadTask
 import com.station.stationdownloader.utils.DLogger
-import com.xunlei.downloadlib.XLTaskHelper
-import com.xunlei.downloadlib.parameter.XLTaskInfo
 import dagger.hilt.EntryPoint
 import dagger.hilt.InstallIn
 import dagger.hilt.android.EntryPointAccessors
 import dagger.hilt.components.SingletonComponent
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 
 class DownloadWorker(
     context: Context, workerParameters: WorkerParameters
