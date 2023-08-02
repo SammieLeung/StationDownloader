@@ -180,7 +180,7 @@ class TaskService : Service(), DLogger {
     }
 
     private fun deleteTask(url: String, isDeleteFile: Boolean): Deferred<IResult<Int>> =
-        serviceScope.async<IResult<Int>> {
+        serviceScope.async {
             stopTask(url)
             taskRepo.deleteTask(url, isDeleteFile)
         }
@@ -192,7 +192,11 @@ class TaskService : Service(), DLogger {
 
     private fun createWatchTask(taskId: Long, url: String): Job {
         return serviceScope.launch {
-            speedTest(taskId, url)
+            try {
+                speedTest(taskId, url)
+            }finally {
+                Logger.d("need to cancel WatchJob, taskId: $taskId")
+            }
         }
     }
 

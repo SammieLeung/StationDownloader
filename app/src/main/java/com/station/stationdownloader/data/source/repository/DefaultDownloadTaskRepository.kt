@@ -135,7 +135,7 @@ class DefaultDownloadTaskRepository(
             )
         withContext(Dispatchers.IO){
             if(isDeleteFile) {
-                val fileDirectory = File(xlEntity.downloadPath, xlEntity.name)
+                val fileDirectory = File(xlEntity.downloadPath)
                 TaskTools.deleteFolder(fileDirectory)
             }
         }

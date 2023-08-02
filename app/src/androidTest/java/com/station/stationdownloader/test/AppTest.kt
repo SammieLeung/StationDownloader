@@ -10,6 +10,11 @@ import com.station.stationdownloader.utils.TaskTools.toHumanReading
 import com.station.stationdownloader.utils.asMB
 import dagger.hilt.android.testing.HiltAndroidRule
 import dagger.hilt.android.testing.HiltAndroidTest
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import okhttp3.internal.notifyAll
 import org.json.JSONObject
 import org.junit.Assert.*
@@ -34,6 +39,7 @@ class AppTest {
     @Before
     fun init() {
         hiltRule.inject()
+        Logger.addLogAdapter(AndroidLogAdapter())
     }
 
     @Test
@@ -45,12 +51,10 @@ class AppTest {
 
     @Test
     fun testToHumanReading() {
-        Logger.addLogAdapter(AndroidLogAdapter())
+
         Logger.d(String.format("%.2f", 1024 * 1024.asMB))
 
     }
-
-
 
 
     var re: InternalResponse? = null
@@ -135,8 +139,23 @@ class AppTest {
         return toHumanReading(this)
     }
 
-}
 
+    var job:Job?=null
+    @Test
+    fun testCancelJob() {
+        runBlocking {
+            val scope = CoroutineScope(Dispatchers.Default)
+            job=scope.launch {
+                Logger.d("job 1 =$job")
+                Logger.d("job 3=$this")
+            }
+            Logger.d("job 2 =$job")
+        }
+
+
+    }
+
+}
 
 
 fun Any.wait(timeout: Long) = (this as Object).wait(timeout)
