@@ -28,6 +28,7 @@ import com.station.stationdownloader.utils.TaskTools
 import com.xunlei.downloadlib.XLDownloadManager
 import com.xunlei.downloadlib.XLTaskHelper
 import com.xunlei.downloadlib.parameter.TorrentInfo
+import com.xunlei.downloadlib.parameter.XLTaskInfo
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -183,6 +184,8 @@ class XLEngine internal constructor(
         }
         return IResult.Success(Unit)
     }
+
+    suspend fun getTaskInfo(taskId: Long):XLTaskInfo = XLTaskHelper.instance().getTaskInfo(taskId)
 
     private suspend fun autoDownloadTorrent(
         magnetUrl: String, downloadPath: String, torrentFileName: String

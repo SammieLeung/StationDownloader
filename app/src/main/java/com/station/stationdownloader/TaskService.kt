@@ -91,9 +91,9 @@ class TaskService : Service(), DLogger {
 
                 ACTION_DELETE_TASK -> {
                     val url = intent.getStringExtra("url") ?: return START_NOT_STICKY
-                    val isDeleteFile = intent.getBooleanExtra("isDeleteFile",false)
+                    val isDeleteFile = intent.getBooleanExtra("isDeleteFile", false)
                     serviceScope.launch {
-                        val job = deleteTask(url,isDeleteFile).await()
+                        val job = deleteTask(url, isDeleteFile).await()
                         if (job is IResult.Error) {
                             Logger.e(job.exception.message.toString())
                             LocalBroadcastManager.getInstance(this@TaskService)
@@ -179,10 +179,11 @@ class TaskService : Service(), DLogger {
 
     }
 
-    private fun deleteTask(url: String,isDeleteFile: Boolean): Deferred<IResult<Int>> = serviceScope.async<IResult<Int>> {
-        stopTask(url)
-        taskRepo.deleteTask(url,isDeleteFile)
-    }
+    private fun deleteTask(url: String, isDeleteFile: Boolean): Deferred<IResult<Int>> =
+        serviceScope.async<IResult<Int>> {
+            stopTask(url)
+            taskRepo.deleteTask(url, isDeleteFile)
+        }
 
     private fun cancelJob(url: String) {
         startTaskJobMap[url]?.cancel()
@@ -269,6 +270,10 @@ class TaskService : Service(), DLogger {
             }
 
             if (status == ITaskState.DONE.code || status == ITaskState.STOP.code) {
+                if (status == ITaskState.DONE.code) {
+                    Logger.w("下载完成 [${taskId}]")
+                    engineRepo.stopTask(taskId, task.asStationDownloadTask())
+                }
                 watchTaskJobMap.remove(url)?.cancel()
                 return
             }
@@ -362,7 +367,7 @@ class TaskService : Service(), DLogger {
 
         private const val ACTION_DELETE_TASK = "action.delete.task"
 
-         const val ACTION_DELETE_TASK_RESULT = "action.delete.task.result"
+        const val ACTION_DELETE_TASK_RESULT = "action.delete.task.result"
 
         @JvmStatic
         fun watchTask(context: Context, url: String, taskId: Long = -1) {
@@ -395,10 +400,10 @@ class TaskService : Service(), DLogger {
         }
 
         @JvmStatic
-        fun deleteTask(context: Context, url: String,isDeleteFile:Boolean) {
+        fun deleteTask(context: Context, url: String, isDeleteFile: Boolean) {
             val intent = Intent(context, TaskService::class.java).setAction(ACTION_DELETE_TASK)
             intent.putExtra("url", url)
-            intent.putExtra("isDeleteFile",isDeleteFile)
+            intent.putExtra("isDeleteFile", isDeleteFile)
             context.startService(intent)
         }
     }

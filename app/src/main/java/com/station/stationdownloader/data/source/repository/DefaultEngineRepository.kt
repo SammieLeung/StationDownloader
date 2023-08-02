@@ -3,13 +3,17 @@ package com.station.stationdownloader.data.source.repository
 import com.station.stationdownloader.DownloadEngine
 import com.station.stationdownloader.DownloadTaskStatus
 import com.station.stationdownloader.DownloadUrlType
+import com.station.stationdownloader.ITaskState
 import com.station.stationdownloader.data.IResult
 import com.station.stationdownloader.data.source.IDownloadTaskRepository
 import com.station.stationdownloader.data.source.IEngineRepository
 import com.station.stationdownloader.data.source.local.engine.IEngine
 import com.station.stationdownloader.data.source.local.engine.NewTaskConfigModel
+import com.station.stationdownloader.data.source.local.engine.xl.XLEngine
 import com.station.stationdownloader.data.source.local.model.StationDownloadTask
 import com.station.stationdownloader.data.source.local.model.asXLDownloadTaskEntity
+import com.xunlei.downloadlib.XLTaskHelper
+import com.xunlei.downloadlib.parameter.XLTaskInfo
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -74,14 +78,24 @@ class DefaultEngineRepository(
             }
         }
 
-    override suspend fun stopTask(currentTaskId:Long,stationDownloadTask: StationDownloadTask) {
+    override suspend fun stopTask(currentTaskId: Long, stationDownloadTask: StationDownloadTask) {
+        xlEngine as XLEngine
+        val taskInfo = xlEngine.getTaskInfo(currentTaskId) ?: return
+        val taskStatus =
+            when (taskInfo.mTaskStatus) {
+                ITaskState.DONE.code -> DownloadTaskStatus.COMPLETED
+                else -> DownloadTaskStatus.PAUSE
+            }
         xlEngine.stopTask(currentTaskId)
         downloadTaskRepo.updateTask(
-            stationDownloadTask.copy(status = DownloadTaskStatus.PAUSE).asXLDownloadTaskEntity()
+            stationDownloadTask.copy(status = taskStatus).asXLDownloadTaskEntity()
         )
     }
 
-    override suspend fun restartTask(currentTaskId:Long,stationDownloadTask: StationDownloadTask): IResult<Long> {
+    override suspend fun restartTask(
+        currentTaskId: Long,
+        stationDownloadTask: StationDownloadTask
+    ): IResult<Long> {
         xlEngine.stopTask(currentTaskId)
         downloadTaskRepo.updateTask(
             stationDownloadTask.copy(status = DownloadTaskStatus.DOWNLOADING)
