@@ -2,18 +2,18 @@ package com.station.stationdownloader.ui.fragment
 
 import android.content.DialogInterface
 import android.os.Bundle
-import android.util.Base64
 import android.view.View
 import android.widget.Toast
 import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.lifecycleScope
 import com.orhanobut.logger.Logger
 import com.station.stationdownloader.R
+import com.station.stationdownloader.StationDownloaderApp
 import com.station.stationdownloader.data.source.local.model.StationDownloadTask
 import com.station.stationdownloader.databinding.DialogFragmentAddUriBinding
 import com.station.stationdownloader.ui.base.BaseDialogFragment
-import com.station.stationdownloader.ui.contract.SelectFileActivityResultContract
-import com.station.stationdownloader.ui.contract.SelectType
+import com.station.stationdownloader.ui.contract.OpenFileManagerV1Contract
+import com.station.stationdownloader.ui.contract.OpenFileManagerV2Contract
 import com.station.stationdownloader.ui.viewmodel.AddUriUiState
 import com.station.stationdownloader.ui.viewmodel.DialogAction
 import com.station.stationdownloader.ui.viewmodel.MainViewModel
@@ -23,14 +23,16 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import javax.inject.Inject
+
 
 @AndroidEntryPoint
 class AddUriDialogFragment : BaseDialogFragment<DialogFragmentAddUriBinding>() {
+    val app: StationDownloaderApp by lazy {
+        requireActivity().application as StationDownloaderApp
+    }
     val vm: MainViewModel by activityViewModels<MainViewModel>()
-    private val stationPickerContract = SelectFileActivityResultContract(
-        selectType = SelectType.SELECT_TYPE_FILE, showConfirmDialog = true
-    )
-    private val openStationPicker = registerForActivityResult(stationPickerContract) {
+    private val openStationV1Picker = registerForActivityResult(OpenFileManagerV1Contract()) {
         if (it != null) {
             if (vm.assertTorrentFile(it.toString())) {
                 mBinding.inputView.setText(it.toString())
@@ -40,8 +42,24 @@ class AddUriDialogFragment : BaseDialogFragment<DialogFragmentAddUriBinding>() {
             }
 
         }
-
     }
+
+    private val openStationV2Picker =
+        registerForActivityResult(OpenFileManagerV2Contract()) {
+            it?.let { intent ->
+                val dataType = intent.getIntExtra("data_type", -1)
+                if (dataType == 1) {
+                    val uri = intent.getStringExtra("path") ?: return@registerForActivityResult
+                    if (vm.assertTorrentFile(uri)) {
+                        mBinding.inputView.setText(uri)
+                    } else {
+                        mBinding.inputView.text = null
+                        Toast.makeText(context, R.string.assert_torrent_file, Toast.LENGTH_SHORT)
+                            .show()
+                    }
+                }
+            }
+        }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
@@ -63,7 +81,11 @@ class AddUriDialogFragment : BaseDialogFragment<DialogFragmentAddUriBinding>() {
             dismiss()
         }
         selectTorrentBtn.setOnClickListener {
-            openStationPicker.launch(null)
+            if (app.useV2FileManager) {
+                openFileWithV2FileManager()
+            } else {
+                openFileWithV1FileManager()
+            }
         }
 
         lifecycleScope.launch {
@@ -81,6 +103,25 @@ class AddUriDialogFragment : BaseDialogFragment<DialogFragmentAddUriBinding>() {
                 }
             }
         }
+    }
+
+
+    private fun openFileWithV1FileManager() {
+        openStationV1Picker.launch(Bundle().apply {
+            putInt(
+                OpenFileManagerV1Contract.EXTRA_SELECT_TYPE,
+                OpenFileManagerV1Contract.SelectType.SELECT_TYPE_FILE.ordinal
+            )
+            putString(OpenFileManagerV1Contract.EXTRA_TITLE, getString(R.string.title_select_torrent_file))
+            putBoolean(OpenFileManagerV1Contract.EXTRA_SUPPORT_NET, false)
+            putBoolean(OpenFileManagerV1Contract.EXTRA_CONFIRM_DIALOG, true)
+        })
+    }
+
+    private fun openFileWithV2FileManager() {
+       openStationV2Picker.launch(Bundle().apply {
+           putString(OpenFileManagerV2Contract.EXTRA_MIME_TYPE,"application/x-bittorrent")
+        })
     }
 
     override fun onDismiss(dialog: DialogInterface) {

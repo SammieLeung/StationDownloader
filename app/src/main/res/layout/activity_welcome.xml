@@ -2,12 +2,6 @@
 <layout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto">
 
-    <data>
-
-        <variable
-            name="tips"
-            type="String" />
-    </data>
 
     <RelativeLayout
         android:layout_width="match_parent"
@@ -21,7 +15,7 @@
             android:layout_centerInParent="true"
             android:drawableTop="@mipmap/ic_launcher"
             android:drawablePadding="24dp"
-            android:text="@{tips}"
+            android:text="@string/welcome_message"
             android:textColor="@color/title_text_color"
             android:textSize="21sp" />
 

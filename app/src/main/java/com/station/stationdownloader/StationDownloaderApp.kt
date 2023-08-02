@@ -4,14 +4,17 @@ import android.app.Application
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import android.util.Log
 import com.facebook.stetho.Stetho
 import com.orhanobut.logger.AndroidLogAdapter
 import com.orhanobut.logger.Logger
 import com.station.stationdownloader.data.source.local.engine.IEngine
 import com.station.stationdownloader.di.XLEngineAnnotation
+import com.station.stationdownloader.utils.DLogger
 import com.station.stationkitkt.DimenUtils
 import com.station.stationkitkt.MimeTypeHelper
 import com.station.stationkitkt.MoshiHelper
+import com.station.stationkitkt.PackageTools
 import dagger.hilt.android.HiltAndroidApp
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
@@ -28,33 +31,22 @@ import javax.inject.Inject
 @HiltAndroidApp
 class StationDownloaderApp : Application() {
     val mApplicationScope = CoroutineScope(SupervisorJob())
+    val useV2FileManager: Boolean by lazy {
+        PackageTools.isAppInstalled(applicationContext, FILE_MANAGER_V2_PACKAGE)
+    }
 
     @Inject
     @XLEngineAnnotation
     lateinit var mXLEngine: IEngine
-
-    override fun onCreate() {
-        super.onCreate()
-
-        mApplicationScope.launch {
-            Logger.addLogAdapter(AndroidLogAdapter())
-            DimenUtils.init(context = applicationContext)
-            mXLEngine.init()
-            Stetho.initializeWithDefaults(applicationContext)
-            MoshiHelper.init()
-            MimeTypeHelper.init(applicationContext)
-        }
-
-    }
 
     override fun onTerminate() {
         super.onTerminate()
         Logger.d("onTerminate")
         Logger.clearLogAdapters()
         mApplicationScope.launch {
+            Stetho.initializeWithDefaults(applicationContext)
             mXLEngine.unInit()
         }
-
     }
 
 
@@ -63,4 +55,10 @@ class StationDownloaderApp : Application() {
 
         }
     }
+
+    companion object {
+        const val FILE_MANAGER_V2_PACKAGE = "com.firefly.resourcemanager"
+    }
+
+
 }

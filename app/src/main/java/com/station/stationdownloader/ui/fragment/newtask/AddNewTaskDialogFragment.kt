@@ -10,12 +10,13 @@ import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.lifecycleScope
 import com.station.stationdownloader.FileType
 import com.station.stationdownloader.R
+import com.station.stationdownloader.StationDownloaderApp
 import com.station.stationdownloader.data.source.local.model.TreeNode
 import com.station.stationdownloader.databinding.DialogFragmentAddNewTaskBinding
 import com.station.stationdownloader.ui.base.BaseDialogFragment
 import com.station.stationdownloader.ui.contract.OpenDocumentTreeActivityResultContract
-import com.station.stationdownloader.ui.contract.SelectFileActivityResultContract
-import com.station.stationdownloader.ui.contract.SelectType
+import com.station.stationdownloader.ui.contract.OpenFileManagerV1Contract
+import com.station.stationdownloader.ui.contract.OpenFileManagerV2Contract
 import com.station.stationdownloader.ui.viewmodel.DialogAction
 import com.station.stationdownloader.ui.viewmodel.MainViewModel
 import com.station.stationdownloader.ui.viewmodel.NewTaskState
@@ -30,11 +31,10 @@ import kotlinx.coroutines.launch
 
 
 class AddNewTaskDialogFragment : BaseDialogFragment<DialogFragmentAddNewTaskBinding>(), DLogger {
-
+    private val app by lazy {
+        requireActivity().application as StationDownloaderApp
+    }
     private val vm: MainViewModel by activityViewModels<MainViewModel>()
-    private val stationPickerContract = SelectFileActivityResultContract(
-        selectType = SelectType.SELECT_TYPE_FOLDER, showConfirmDialog = true
-    )
     private val openDocumentTree = registerForActivityResult(
         OpenDocumentTreeActivityResultContract()
     ) {
@@ -48,13 +48,22 @@ class AddNewTaskDialogFragment : BaseDialogFragment<DialogFragmentAddNewTaskBind
     }
 
 
-    private val openStationPicker = registerForActivityResult(stationPickerContract) {
+    private val openFolderV1 = registerForActivityResult(OpenFileManagerV1Contract()) {
         if (it != null) {
             val base64Id: String = it.pathSegments[1] //dir id
             val decodeData = String(Base64.decode(base64Id, Base64.DEFAULT))
             vm.dialogAccept(DialogAction.SetDownloadPath(decodeData))
         }
+    }
 
+    private val openFolderV2 = registerForActivityResult(OpenFileManagerV2Contract()) {
+        it?.let { intent ->
+            val dataType = intent.getIntExtra("data_type", -1)
+            if (dataType == 2) {
+                val uri = intent.getStringExtra("path") ?: return@registerForActivityResult
+                vm.dialogAccept(DialogAction.SetDownloadPath(uri))
+            }
+        }
     }
 
 
@@ -64,7 +73,6 @@ class AddNewTaskDialogFragment : BaseDialogFragment<DialogFragmentAddNewTaskBind
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-        stationPickerContract.setPickerDialogTitle(getString(R.string.title_select_download_path))
         if (savedInstanceState == null) {
             mBinding.initRecyclerView()
             mBinding.initSpinner()
@@ -87,7 +95,7 @@ class AddNewTaskDialogFragment : BaseDialogFragment<DialogFragmentAddNewTaskBind
             ) // 设置下拉菜单的样式
         // 将适配器绑定到spinner上
         engineSpinner.adapter = adapter
-        engineSpinner.isEnabled=false
+        engineSpinner.isEnabled = false
     }
 
     private fun DialogFragmentAddNewTaskBinding.bindState(
@@ -193,7 +201,33 @@ class AddNewTaskDialogFragment : BaseDialogFragment<DialogFragmentAddNewTaskBind
     }
 
     private fun openFilePicker() {
-        openStationPicker.launch(null)
+        if(app.useV2FileManager){
+            openFileManagerV2()
+        }else{
+            openFileManagerV2()
+        }
+    }
+
+
+    private fun openFileManagerV1() {
+        openFolderV1.launch(Bundle().apply {
+            putInt(
+                OpenFileManagerV1Contract.EXTRA_SELECT_TYPE,
+                OpenFileManagerV1Contract.SelectType.SELECT_TYPE_FOLDER.ordinal
+            )
+            putBoolean(OpenFileManagerV1Contract.EXTRA_SUPPORT_NET, false)
+            putString(
+                OpenFileManagerV1Contract.EXTRA_TITLE,
+                getString(R.string.title_select_download_path)
+            )
+            putBoolean(OpenFileManagerV1Contract.EXTRA_CONFIRM_DIALOG, true)
+        })
+    }
+
+    private fun openFileManagerV2() {
+        openFolderV2.launch(Bundle().apply {
+            putString(OpenFileManagerV2Contract.EXTRA_MIME_TYPE, "folder/*")
+        })
     }
 
     private fun unBindCheckBox(vararg checkBoxes: CheckBox) {

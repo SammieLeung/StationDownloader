@@ -1,5 +1,6 @@
 package com.station.stationdownloader.data.source.repository
 
+import com.orhanobut.logger.Logger
 import com.station.stationdownloader.DownloadEngine
 import com.station.stationdownloader.DownloadTaskStatus
 import com.station.stationdownloader.DownloadUrlType
@@ -88,7 +89,11 @@ class DefaultEngineRepository(
             }
         xlEngine.stopTask(currentTaskId)
         downloadTaskRepo.updateTask(
-            stationDownloadTask.copy(status = taskStatus).asXLDownloadTaskEntity()
+            stationDownloadTask.copy(
+                status = taskStatus,
+                downloadSize = taskInfo.mDownloadSize,
+                totalSize = taskInfo.mFileSize
+            ).asXLDownloadTaskEntity()
         )
     }
 

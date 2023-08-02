@@ -39,7 +39,6 @@ open class PermissionActivity<VDB : ViewDataBinding>(val permissions: Array<Stri
         super.onCreate(savedInstanceState)
         if (checkPermissions()) {
             grantAllPermissions()
-            Log.w("Welcome", "grantAllPermissions: ")
         } else
             mRequestMultiplePermissionsLauncher.launch(permissions)
     }

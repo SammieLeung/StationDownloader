@@ -1,5 +1,7 @@
 package com.station.stationdownloader.di
 
+import android.app.Application
+import android.util.Log
 import com.station.stationdownloader.StationDownloaderApp
 import dagger.Module
 import dagger.Provides
@@ -37,18 +39,8 @@ object CoroutinesModule {
     @Provides
     @AppCoroutineScope
     fun provideApplicationScope(
-        application: StationDownloaderApp
+        application: Application
     ): CoroutineScope {
-        return application.mApplicationScope
-    }
-}
-
-@Module
-@InstallIn(SingletonComponent::class)
-object AppModule {
-    @Provides
-    @Singleton
-    fun providesApp(): StationDownloaderApp {
-        return StationDownloaderApp()
+        return (application as StationDownloaderApp).mApplicationScope
     }
 }

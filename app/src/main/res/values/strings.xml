@@ -3,6 +3,8 @@
     <string name="menu_title">资源下载器</string>
     <string name="add_uri">添加</string>
 
+    <string name="welcome_message">正在初始化...</string>
+
     <string name="menu_downloading">下载中</string>
     <string name="menu_downloaded">下载完成</string>
     <string name="menu_setting">设置</string>
@@ -18,6 +20,7 @@
 
     <string name="title_select_device">选择下载的设备</string>
     <string name="title_select_download_path">选择下载目录</string>
+    <string name="title_select_torrent_file">选择一个种子文件</string>
 
     <string name="start_to_download">开始下载</string>
     <string name="assert_torrent_file">这不是一个种子文件，请重新选择！</string>

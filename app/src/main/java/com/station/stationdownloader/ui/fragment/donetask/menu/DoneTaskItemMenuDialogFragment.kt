@@ -14,6 +14,7 @@ import com.station.stationdownloader.ui.fragment.donetask.MenuDialogUiState
 import com.station.stationdownloader.ui.fragment.donetask.UiAction
 import com.station.stationdownloader.ui.fragment.donetask.UiState
 import com.station.stationdownloader.utils.DLogger
+import com.station.stationkitkt.PackageTools
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
@@ -72,11 +73,29 @@ class DoneTaskItemMenuDialogFragment : BaseDialogFragment<DialogDoneTaskItemMenu
         lifecycleScope.launch {
             uiState.collect {
                 if (it is UiState.OpenFileState) {
-                    openFile(it.uri)
+//                    openFile(it.uri)
+
+                    if (PackageTools.isAppInstalled(
+                            requireContext(),
+                            FIREFLY_FILE_MANAGER
+                        )
+                    ) {
+                        openFileWithFirefly(it.uri)
+                    } else {
+                        openFile(it.uri)
+                    }
+                    dismiss()
                 }
             }
         }
 
+    }
+
+    private fun openFileWithFirefly(uri: Uri) {
+        val action = "$FIREFLY_FILE_MANAGER.OPEN"
+        startActivity(Intent(action).apply {
+            putExtra("path", uri.path)
+        })
     }
 
     private fun openFile(uri: Uri) {
@@ -104,6 +123,7 @@ class DoneTaskItemMenuDialogFragment : BaseDialogFragment<DialogDoneTaskItemMenu
     }
 
     companion object {
+        const val FIREFLY_FILE_MANAGER = "com.firefly.resourcemanager"
         const val EXTRA_URL = "url"
         fun newInstance(url: String): DoneTaskItemMenuDialogFragment {
             val args = Bundle()
@@ -117,4 +137,5 @@ class DoneTaskItemMenuDialogFragment : BaseDialogFragment<DialogDoneTaskItemMenu
     override fun DLogger.tag(): String {
         return DoneTaskItemMenuDialogFragment.javaClass.simpleName
     }
+
 }
