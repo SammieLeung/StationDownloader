@@ -384,6 +384,7 @@ sealed class UiState {
     object Init : UiState()
     data class FillTaskList(val taskList: List<TaskItem>) : UiState()
     data class UpdateProgress(val taskItem: TaskItem) : UiState()
+
     data class DeleteTaskResultState(
         val isSuccess: Boolean,
         val deleteItem: TaskItem,

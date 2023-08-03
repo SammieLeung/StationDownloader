@@ -8,11 +8,14 @@ import com.orhanobut.logger.Logger
 import com.station.stationdownloader.utils.TaskTools
 import com.station.stationdownloader.utils.TaskTools.toHumanReading
 import com.station.stationdownloader.utils.asMB
+import com.xunlei.downloadlib.XLTaskHelper
+import com.xunlei.downloadlib.parameter.XLTaskInfo
 import dagger.hilt.android.testing.HiltAndroidRule
 import dagger.hilt.android.testing.HiltAndroidTest
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import okhttp3.internal.notifyAll
@@ -152,6 +155,22 @@ class AppTest {
             Logger.d("job 2 =$job")
         }
 
+
+    }
+
+    @Test
+    fun testTaskInfo(){
+        runBlocking {
+            XLTaskHelper.init(InstrumentationRegistry.getInstrumentation().targetContext)
+            val taskId=XLTaskHelper.instance().addTorrentTask("/storage/emulated/0/Station/movie.torrent","/storage/emulated/0/Station/Download",
+                intArrayOf())
+            Logger.d("taskId=$taskId")
+            val taskInfo=XLTaskHelper.instance().getTaskInfo(taskId)
+            Logger.d("taskInfo=$taskInfo")
+
+            val fakeTaskInfo=XLTaskHelper.instance().getTaskInfo(-1)
+            Logger.d("fakeTaskInfo=$fakeTaskInfo")
+        }
 
     }
 

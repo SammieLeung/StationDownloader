@@ -7,6 +7,7 @@ import androidx.lifecycle.lifecycleScope
 import com.facebook.stetho.Stetho
 import com.orhanobut.logger.AndroidLogAdapter
 import com.orhanobut.logger.Logger
+import com.station.stationdownloader.data.source.IEngineRepository
 import com.station.stationdownloader.data.source.local.engine.IEngine
 import com.station.stationdownloader.databinding.ActivityWelcomeBinding
 import com.station.stationdownloader.di.XLEngineAnnotation
@@ -29,8 +30,7 @@ class WelcomeActivity : PermissionActivity<ActivityWelcomeBinding>(
 ) {
 
     @Inject
-    @XLEngineAnnotation
-    lateinit var mXLEngine: IEngine
+    lateinit var engineRepo: IEngineRepository
     override fun grantAllPermissions() {
         super.grantAllPermissions()
         lifecycleScope.launch {
@@ -39,7 +39,7 @@ class WelcomeActivity : PermissionActivity<ActivityWelcomeBinding>(
                 DimenUtils.init(context = applicationContext)
                 MoshiHelper.init()
                 MimeTypeHelper.init(applicationContext)
-                mXLEngine.init()
+                engineRepo.init()
                 startActivity(Intent(this@WelcomeActivity, MainActivity::class.java))
                 finish()
             }

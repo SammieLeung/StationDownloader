@@ -2,8 +2,11 @@ package com.station.stationdownloader
 
 import android.os.Parcel
 import android.os.Parcelable
+import java.util.concurrent.atomic.AtomicInteger
+import java.util.concurrent.atomic.AtomicLong
 
 data class TaskStatus(
+    val msgId:Long=msgIdGenerator.incrementAndGet(),
     val taskId: Long,
     val url: String,
     val speed: Long,
@@ -13,6 +16,7 @@ data class TaskStatus(
 ):Parcelable {
     constructor(parcel: Parcel) : this(
         parcel.readLong(),
+        parcel.readLong(),
         parcel.readString()?:"",
         parcel.readLong(),
         parcel.readLong(),
@@ -21,6 +25,7 @@ data class TaskStatus(
     )
 
     override fun writeToParcel(parcel: Parcel, flags: Int) {
+        parcel.writeLong(msgId)
         parcel.writeLong(taskId)
         parcel.writeString(url)
         parcel.writeLong(speed)
@@ -34,6 +39,7 @@ data class TaskStatus(
     }
 
     companion object CREATOR : Parcelable.Creator<TaskStatus> {
+        val msgIdGenerator = AtomicLong(0)
         override fun createFromParcel(parcel: Parcel): TaskStatus {
             return TaskStatus(parcel)
         }

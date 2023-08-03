@@ -22,5 +22,6 @@ interface IEngineRepository {
     ): IResult<Long>
 
     suspend fun configure(key: String, value: String): IResult<Unit>
+
 }
 

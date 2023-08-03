@@ -120,7 +120,7 @@ class XLEngine internal constructor(
         when (urlType) {
             DownloadUrlType.NORMAL, DownloadUrlType.THUNDER, DownloadUrlType.HTTP, DownloadUrlType.ED2k, DownloadUrlType.DIRECT -> {
                 val taskId = XLTaskHelper.instance().addThunderTask(url, downloadPath, name)
-                if (taskId == 0L) {
+                if (taskId == -1L) {
                     printCodeLine()
                     return@withContext IResult.Error(
                         Exception("${TaskExecuteError.START_TASK_FAILED.name}:Error Url is [${url}]"),
@@ -135,7 +135,8 @@ class XLEngine internal constructor(
                 val taskId = XLTaskHelper.instance().addTorrentTask(
                     url, downloadPath, deselectIndexes
                 )
-                Logger.d("taskId:$taskId")
+               logger("开始任务【$url】")
+                logger("taskId【$taskId】")
                 if (taskId == -1L) {
                     return@withContext IResult.Error(
                         Exception("${TaskExecuteError.START_TASK_FAILED.name}:Error Url is [${url}]"),
@@ -162,19 +163,15 @@ class XLEngine internal constructor(
         when (key) {
             SPEED_LIMIT -> {
                 XLDownloadManager.getInstance().setSpeedLimit(value.toLong(), value.toLong())
-                configurationDataSource.setSpeedLimit(value.toLong())
             }
 
             MAX_THREAD -> {
-                configurationDataSource.setMaxThread(value.toInt())
             }
 
             DOWNLOAD_ENGINE -> {
-                configurationDataSource.setDefaultEngine(DownloadEngine.valueOf(value))
             }
 
             DOWNLOAD_PATH -> {
-                configurationDataSource.setDownloadPath(value)
             }
 
             else -> return IResult.Error(

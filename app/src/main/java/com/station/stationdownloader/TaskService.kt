@@ -6,9 +6,7 @@ import android.content.Intent
 import android.os.IBinder
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import com.orhanobut.logger.Logger
-import com.station.stationdownloader.contants.TaskExecuteError
 import com.station.stationdownloader.data.IResult
-import com.station.stationdownloader.data.source.IConfigurationRepository
 import com.station.stationdownloader.data.source.IDownloadTaskRepository
 import com.station.stationdownloader.data.source.IEngineRepository
 import com.station.stationdownloader.data.source.local.room.entities.XLDownloadTaskEntity
@@ -28,7 +26,6 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import java.util.concurrent.atomic.AtomicBoolean
 import javax.inject.Inject
 
 @AndroidEntryPoint
@@ -45,17 +42,20 @@ class TaskService : Service(), DLogger {
     @Inject
     lateinit var taskRepo: IDownloadTaskRepository
 
-    @Inject
-    lateinit var configRepo: IConfigurationRepository
-
     private val watchTaskJobMap = mutableMapOf<String, Job>()
     private var startTaskJobMap = mutableMapOf<String, Job>()
     private var stopTaskJobMap = mutableMapOf<String, Job>()
-
-    private val taskAtomMap= mutableMapOf<String,AtomicBoolean>()
-
     private val taskStatusFlow: MutableStateFlow<TaskStatus> =
-        MutableStateFlow(TaskStatus(0, "", 0, 0, 0, 0))
+        MutableStateFlow(
+            TaskStatus(
+                taskId = 0,
+                url = "",
+                speed = 0,
+                downloadSize = 0,
+                totalSize = 0,
+                status = 0
+            )
+        )
 
     private val runningTaskMap: MutableMap<String, TaskStatus> = mutableMapOf()
 
@@ -77,22 +77,11 @@ class TaskService : Service(), DLogger {
 
                 ACTION_START_TASK -> {
                     val url = intent.getStringExtra("url") ?: return START_NOT_STICKY
-                    if(taskAtomMap[url]?.get() == true){
-                        logger("double click start task $url")
-                        return START_NOT_STICKY
-                    }
-                    taskAtomMap[url]=AtomicBoolean(true)
-                    logger("startTas taskAtomMap=${taskAtomMap[url]}")
-
                     startTaskJobMap[url] = startTask(url)
                 }
 
                 ACTION_STOP_TASK -> {
                     val url = intent.getStringExtra("url") ?: return START_NOT_STICKY
-                    if(taskAtomMap[url]?.get() == true) {
-                        logger("double click stop task $url")
-                        return START_NOT_STICKY
-                    }
                     stopTaskJobMap[url] = stopTask(url)
                 }
 
@@ -127,21 +116,11 @@ class TaskService : Service(), DLogger {
 
     private fun startTask(url: String) = serviceScope.launch {
         try {
-            logger("startTask $url")
             val xlEntity = taskRepo.getTaskByUrl(url) ?: return@launch
-            if (watchTaskJobMap.size == configRepo.getMaxThread()) {
-                sendLocalBroadcast(Intent(
-                    ACTION_START_TASK_RESULT
-                ).apply {
-                    putExtra("url", url)
-                    putExtra("result", false)
-                    putExtra("reason", TaskExecuteError.START_TASK_MAX_LIMIT.name)
-                })
-                updateTaskStatusNow(url, -1, ITaskState.STOP.code)
-                return@launch
-            }
             val taskIdResult = engineRepo.startTask(xlEntity.asStationDownloadTask())
+
             if (taskIdResult is IResult.Error) {
+                Logger.e(taskIdResult.exception.message.toString())
                 sendLocalBroadcast(Intent(
                     ACTION_START_TASK_RESULT
                 ).apply {
@@ -149,6 +128,7 @@ class TaskService : Service(), DLogger {
                     putExtra("result", false)
                     putExtra("reason", taskIdResult.exception.message.toString())
                 })
+                updateTaskStatusNow(url, -1, ITaskState.STOP.code)
                 return@launch
             }
             val taskId = (taskIdResult as IResult.Success).data
@@ -165,36 +145,33 @@ class TaskService : Service(), DLogger {
 
             watchTaskJobMap[url]?.apply { cancel() }
             watchTaskJobMap[url] = createWatchTask(taskId, url)
-            logger("startTask over $url")
         } catch (e: Exception) {
             logError(e.message.toString())
         } finally {
-
             startTaskJobMap.remove(url)
-            taskAtomMap[url]?.set(false)
-            logger("startTask finallly $url")
         }
     }
 
     private fun stopTask(url: String) = serviceScope.launch {
         try {
-            logger("stopTask $url")
             watchTaskJobMap.remove(url)?.apply { cancel() }
             val entity = taskRepo.getTaskByUrl(url) ?: return@launch
-            val taskId = runningTaskMap.remove(url)?.taskId
+            val taskId = runningTaskMap[url]?.taskId
             if (taskId == null) {
                 taskRepo.updateTask(entity.copy(status = DownloadTaskStatus.PAUSE))
             } else {
                 engineRepo.stopTask(taskId, entity.asStationDownloadTask())
             }
             updateTaskStatusNow(url, -1, ITaskState.STOP.code)
-            logger("stopTask over $url")
         } catch (e: Exception) {
             logError(e.message.toString())
         } finally {
             stopTaskJobMap.remove(url)
-            taskAtomMap[url]?.set(false)
-            logger("stopTask finallly $url" )
+            runningTaskMap.remove(url)
+            if(runningTaskMap[url]==null&&watchTaskJobMap[url]==null&&stopTaskJobMap[url]==null){
+                logger("stopTask finally clear!")
+            }
+
         }
 
     }
@@ -218,17 +195,14 @@ class TaskService : Service(), DLogger {
             }
         }
 
-    private fun cancelJob(url: String) {
-        startTaskJobMap[url]?.cancel()
-        stopTaskJobMap[url]?.cancel()
-    }
 
     private fun createWatchTask(taskId: Long, url: String): Job {
         return serviceScope.launch {
             try {
                 speedTest(taskId, url)
             } finally {
-                logger("need to cancel WatchJob, taskId: $taskId")
+                logger("【$url】")
+                logger("need to cancel WatchJob")
             }
         }
     }
@@ -250,9 +224,10 @@ class TaskService : Service(), DLogger {
         var noSpeedCount = 0
         var startSpeedTest = false
         var retryFailedCount = failedCount
-        val isStopRetry = retryFailedCount > 10
         var isRestart = false
-        if (isStopRetry) return
+        val isStopRetry = retryFailedCount >= 1
+
+
 
         while (true) {
             val taskInfo = XLTaskHelper.instance().getTaskInfo(taskId)
@@ -329,15 +304,24 @@ class TaskService : Service(), DLogger {
         }
 
         delay(1000)
-
-        if (isRestart) restartTask(taskId, url, retryFailedCount)
+        if (isStopRetry) {
+            Logger.e("重试次数过多，停止重试")
+            stopTask(url)
+            return
+        }
+        if (isRestart) retryDownload(taskId, url, retryFailedCount)
     }
 
-    private suspend fun restartTask(oldTaskId: Long, url: String, retryCount: Int) {
+    private suspend fun retryDownload(oldTaskId: Long, url: String, retryCount: Int) {
+        logger("重试下载【$url】")
+        Logger.e("重试下载 原[$oldTaskId] 第[${retryCount + 1}]次重试 下次重试间隔【${(retryCount + 1) * 5}】")
         val xlTaskEntity = taskRepo.getTaskByUrl(url) ?: return
         val stationDownloadTask = xlTaskEntity.asStationDownloadTask()
         val result = engineRepo.restartTask(oldTaskId, stationDownloadTask)
-        if (result is IResult.Error) return
+        if (result is IResult.Error) {
+            Logger.e(result.exception.message.toString())
+            return
+        }
         val taskId = (result as IResult.Success).data
         speedTest(taskId, url, retryCount + 1, (retryCount + 1) * 5)
     }

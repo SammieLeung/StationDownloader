@@ -62,7 +62,7 @@ object ConfigurationModule {
         defaultMMKV: MMKV,
         @IoDispatcher ioDispatcher: CoroutineDispatcher
     ): IConfigurationDataSource {
-        return ConfigurationLocalDataSource(defaultMMKV,ioDispatcher)
+        return ConfigurationLocalDataSource(defaultMMKV, ioDispatcher)
     }
 }
 
@@ -95,13 +95,19 @@ object EngineModule {
         @XLEngineAnnotation xlEngine: IEngine,
         @Aria2EngineAnnotation aria2Engine: IEngine,
         downloadTaskRepo: IDownloadTaskRepository,
+        @LocalConfigurationDataSource configurationDataSource: IConfigurationDataSource,
+        configRepo: IConfigurationRepository,
+        @DefaultDispatcher defaultDispatcher: CoroutineDispatcher,
         @IoDispatcher ioDispatcher: CoroutineDispatcher
     ): IEngineRepository {
         return DefaultEngineRepository(
             xlEngine = xlEngine,
             aria2Engine = aria2Engine,
             downloadTaskRepo = downloadTaskRepo,
-            ioDispatcher = ioDispatcher
+            configurationDataSource = configurationDataSource,
+            configRepo = configRepo,
+            defaultDispatcher = defaultDispatcher,
+            ioDispatcher=ioDispatcher
         )
     }
 
