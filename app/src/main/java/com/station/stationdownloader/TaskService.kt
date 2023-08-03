@@ -28,6 +28,8 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
+import com.station.stationdownloader.ITaskStatusService
+
 @AndroidEntryPoint
 class TaskService : Service(), DLogger {
     val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
@@ -371,17 +373,70 @@ class TaskService : Service(), DLogger {
     // Binder 类用于提供任务状态信息给绑定的组件
     inner class TaskBinder : ITaskStatusService.Stub() {
         fun getService(): TaskService = this@TaskService
-        override fun getTaskStatus(): MutableMap<String, TaskStatus> {
-            val statusMap = mutableMapOf<String, TaskStatus>()
-            runningTaskMap.forEach { (url, status) ->
-                statusMap[url] = status.copy()
-            }
-            return statusMap
+        override fun getTaskStatus(): MutableMap<String, String> {
+            TODO("Not yet implemented")
         }
 
-        override fun getTaskStatusByUrl(url: String?): TaskStatus? {
-            return runningTaskMap[url]?.copy()
+        override fun getTaskStatusByUrl(url: String?): String {
+            TODO("Not yet implemented")
         }
+
+        override fun startTask(url: String?, path: String?, selectIndexes: IntArray?): String {
+            TODO("Not yet implemented")
+        }
+
+        override fun stopTask(url: String?): String {
+            TODO("Not yet implemented")
+        }
+
+        override fun startAllTasks(): String {
+            TODO("Not yet implemented")
+        }
+
+        override fun stopAllTask(): String {
+            TODO("Not yet implemented")
+        }
+
+        override fun getDownloadPath(): String {
+            TODO("Not yet implemented")
+        }
+
+        override fun getTorrentList(): String {
+            TODO("Not yet implemented")
+        }
+
+        override fun uploadTorrentNotify(url: String?): String {
+            TODO("Not yet implemented")
+        }
+
+        override fun initMagnetUri(url: String?, torrentName: String?): String {
+            TODO("Not yet implemented")
+        }
+
+        override fun dumpTorrentInfo(torrentPath: String?): String {
+            TODO("Not yet implemented")
+        }
+
+        override fun deleteTask(url: String?, isDeleteFile: Boolean): String {
+            TODO("Not yet implemented")
+        }
+
+        override fun getTaskList(): String {
+            TODO("Not yet implemented")
+        }
+
+        override fun getDownloadingTasksStatus(): String {
+            TODO("Not yet implemented")
+        }
+
+        override fun setConfig(speedLimit: Long, maxThread: Int, downloadPath: String?): String {
+            TODO("Not yet implemented")
+        }
+
+        override fun getConfigSet(): String {
+            TODO("Not yet implemented")
+        }
+
     }
 
     companion object {
