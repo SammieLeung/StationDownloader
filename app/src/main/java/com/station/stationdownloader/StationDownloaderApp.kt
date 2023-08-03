@@ -8,6 +8,7 @@ import android.util.Log
 import com.facebook.stetho.Stetho
 import com.orhanobut.logger.AndroidLogAdapter
 import com.orhanobut.logger.Logger
+import com.station.stationdownloader.data.source.IEngineRepository
 import com.station.stationdownloader.data.source.local.engine.IEngine
 import com.station.stationdownloader.di.XLEngineAnnotation
 import com.station.stationdownloader.utils.DLogger
@@ -34,10 +35,10 @@ class StationDownloaderApp : Application() {
     val useV2FileManager: Boolean by lazy {
         PackageTools.isAppInstalled(applicationContext, FILE_MANAGER_V2_PACKAGE)
     }
+    private var initialized = false
 
     @Inject
-    @XLEngineAnnotation
-    lateinit var mXLEngine: IEngine
+    lateinit var engineRepo: IEngineRepository
 
     override fun onTerminate() {
         super.onTerminate()
@@ -45,10 +46,21 @@ class StationDownloaderApp : Application() {
         Logger.clearLogAdapters()
         mApplicationScope.launch {
             Stetho.initializeWithDefaults(applicationContext)
-            mXLEngine.unInit()
         }
     }
 
+    suspend fun initAction() {
+        Logger.addLogAdapter(AndroidLogAdapter())
+        DimenUtils.init(context = applicationContext)
+        MoshiHelper.init()
+        MimeTypeHelper.init(context = applicationContext)
+        engineRepo.init()
+        initialized = true
+    }
+
+    fun isInitialized(): Boolean {
+        return initialized
+    }
 
     val mBroadCastReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {

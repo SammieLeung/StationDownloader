@@ -7,6 +7,7 @@ import androidx.lifecycle.lifecycleScope
 import com.facebook.stetho.Stetho
 import com.orhanobut.logger.AndroidLogAdapter
 import com.orhanobut.logger.Logger
+import com.station.stationdownloader.StationDownloaderApp
 import com.station.stationdownloader.data.source.IEngineRepository
 import com.station.stationdownloader.data.source.local.engine.IEngine
 import com.station.stationdownloader.databinding.ActivityWelcomeBinding
@@ -29,17 +30,15 @@ class WelcomeActivity : PermissionActivity<ActivityWelcomeBinding>(
     arrayOf(android.Manifest.permission.WRITE_EXTERNAL_STORAGE)
 ) {
 
-    @Inject
-    lateinit var engineRepo: IEngineRepository
+
     override fun grantAllPermissions() {
         super.grantAllPermissions()
         lifecycleScope.launch {
             withContext(Dispatchers.Default) {
-                Logger.addLogAdapter(AndroidLogAdapter())
-                DimenUtils.init(context = applicationContext)
-                MoshiHelper.init()
-                MimeTypeHelper.init(applicationContext)
-                engineRepo.init()
+                val app = application as StationDownloaderApp
+                if (!app.isInitialized()) {
+                    app.initAction()
+                }
                 startActivity(Intent(this@WelcomeActivity, MainActivity::class.java))
                 finish()
             }
