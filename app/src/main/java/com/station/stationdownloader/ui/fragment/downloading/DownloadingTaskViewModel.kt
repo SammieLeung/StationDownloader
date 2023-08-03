@@ -151,7 +151,6 @@ class DownloadingTaskViewModel @Inject constructor(
                 val index = runningTaskItemList.indexOf(taskItem)
                 runningTaskItemList[index] = taskItem.copy(
                     status = ITaskState.LOADING.code,
-                    speed = formatSpeed(0L)
                 )
                 _uiState.update {
                     UiState.UpdateProgress(runningTaskItemList[index])

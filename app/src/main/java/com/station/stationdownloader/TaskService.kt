@@ -28,6 +28,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import java.util.concurrent.atomic.AtomicBoolean
 import javax.inject.Inject
 
 @AndroidEntryPoint
@@ -50,6 +51,8 @@ class TaskService : Service(), DLogger {
     private val watchTaskJobMap = mutableMapOf<String, Job>()
     private var startTaskJobMap = mutableMapOf<String, Job>()
     private var stopTaskJobMap = mutableMapOf<String, Job>()
+
+    private val taskAtomMap= mutableMapOf<String,AtomicBoolean>()
 
     private val taskStatusFlow: MutableStateFlow<TaskStatus> =
         MutableStateFlow(TaskStatus(0, "", 0, 0, 0, 0))
@@ -74,13 +77,22 @@ class TaskService : Service(), DLogger {
 
                 ACTION_START_TASK -> {
                     val url = intent.getStringExtra("url") ?: return START_NOT_STICKY
-                    cancelJob(url)
+                    if(taskAtomMap[url]?.get() == true){
+                        logger("double click start task $url")
+                        return START_NOT_STICKY
+                    }
+                    taskAtomMap[url]=AtomicBoolean(true)
+                    logger("startTas taskAtomMap=${taskAtomMap[url]}")
+
                     startTaskJobMap[url] = startTask(url)
                 }
 
                 ACTION_STOP_TASK -> {
                     val url = intent.getStringExtra("url") ?: return START_NOT_STICKY
-                    cancelJob(url)
+                    if(taskAtomMap[url]?.get() == true) {
+                        logger("double click stop task $url")
+                        return START_NOT_STICKY
+                    }
                     stopTaskJobMap[url] = stopTask(url)
                 }
 
@@ -115,6 +127,7 @@ class TaskService : Service(), DLogger {
 
     private fun startTask(url: String) = serviceScope.launch {
         try {
+            logger("startTask $url")
             val xlEntity = taskRepo.getTaskByUrl(url) ?: return@launch
             if (watchTaskJobMap.size == configRepo.getMaxThread()) {
                 sendLocalBroadcast(Intent(
@@ -152,15 +165,20 @@ class TaskService : Service(), DLogger {
 
             watchTaskJobMap[url]?.apply { cancel() }
             watchTaskJobMap[url] = createWatchTask(taskId, url)
+            logger("startTask over $url")
         } catch (e: Exception) {
             logError(e.message.toString())
         } finally {
+
             startTaskJobMap.remove(url)
+            taskAtomMap[url]?.set(false)
+            logger("startTask finallly $url")
         }
     }
 
     private fun stopTask(url: String) = serviceScope.launch {
         try {
+            logger("stopTask $url")
             watchTaskJobMap.remove(url)?.apply { cancel() }
             val entity = taskRepo.getTaskByUrl(url) ?: return@launch
             val taskId = runningTaskMap.remove(url)?.taskId
@@ -170,10 +188,13 @@ class TaskService : Service(), DLogger {
                 engineRepo.stopTask(taskId, entity.asStationDownloadTask())
             }
             updateTaskStatusNow(url, -1, ITaskState.STOP.code)
+            logger("stopTask over $url")
         } catch (e: Exception) {
             logError(e.message.toString())
         } finally {
             stopTaskJobMap.remove(url)
+            taskAtomMap[url]?.set(false)
+            logger("stopTask finallly $url" )
         }
 
     }
