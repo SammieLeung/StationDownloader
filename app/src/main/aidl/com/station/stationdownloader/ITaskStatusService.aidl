@@ -1,28 +1,24 @@
 // ITaskStatusService.aidl
 package com.station.stationdownloader;
 // Declare any non-default types here with import statements
-
+import com.station.stationdownloader.ITaskServiceCallback;
 interface ITaskStatusService {
     /**
      * Demonstrates some basic types that you can use as parameters
      * and return values in AIDL.
      */
-   Map<String,String> getTaskStatus();
-   String getTaskStatusByUrl(String url);
-   String startTask(String url,String path,in int[] selectIndexes);
-   String stopTask(String url);
-   String startAllTasks();
-   String stopAllTask();
-   String getDownloadPath();
-   String getTorrentList();
-   String uploadTorrentNotify(String url);
-   String initMagnetUri(String url,String torrentName);
-   String dumpTorrentInfo(String torrentPath);
-   String deleteTask(String url,boolean isDeleteFile);
-   String getTaskList();
-   String getDownloadingTasksStatus();
-   String setConfig(long speedLimit,int maxThread,String downloadPath);
-   String getConfigSet();
-
-
+   void startTask(String url,String path,in int[] selectIndexes,ITaskServiceCallback callback);
+   void stopTask(String url,ITaskServiceCallback callback);
+   void startAllTasks(ITaskServiceCallback callback);
+   void stopAllTask(ITaskServiceCallback callback);
+   void getDownloadPath(ITaskServiceCallback callback);
+   void getTorrentList(ITaskServiceCallback callback);
+   void uploadTorrentNotify(String url,ITaskServiceCallback callback);
+   void initMagnetUri(String url,String torrentName,ITaskServiceCallback callback);
+   void dumpTorrentInfo(String torrentPath,ITaskServiceCallback callback);
+   void deleteTask(String url,boolean isDeleteFile,ITaskServiceCallback callback);
+   void getTaskList(ITaskServiceCallback callback);
+   void getDownloadStatus(String url,ITaskServiceCallback callback);
+   void setConfig(long speedLimit,int maxThread,String downloadPath,ITaskServiceCallback callback);
+   void getConfigSet(ITaskServiceCallback callback);
 }

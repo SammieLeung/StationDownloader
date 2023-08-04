@@ -11,8 +11,10 @@ import com.station.stationdownloader.data.source.IDownloadTaskRepository
 import com.station.stationdownloader.data.source.IEngineRepository
 import com.station.stationdownloader.data.source.local.room.entities.XLDownloadTaskEntity
 import com.station.stationdownloader.data.source.local.room.entities.asStationDownloadTask
+import com.station.stationdownloader.data.source.remote.json.RemoteTask
 import com.station.stationdownloader.di.AppCoroutineScope
 import com.station.stationdownloader.utils.DLogger
+import com.station.stationkitkt.MoshiHelper
 import com.xunlei.downloadlib.XLTaskHelper
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
@@ -27,8 +29,6 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
-
-import com.station.stationdownloader.ITaskStatusService
 
 @AndroidEntryPoint
 class TaskService : Service(), DLogger {
@@ -170,7 +170,7 @@ class TaskService : Service(), DLogger {
         } finally {
             stopTaskJobMap.remove(url)
             runningTaskMap.remove(url)
-            if(runningTaskMap[url]==null&&watchTaskJobMap[url]==null&&stopTaskJobMap[url]==null){
+            if (runningTaskMap[url] == null && watchTaskJobMap[url] == null && stopTaskJobMap[url] == null) {
                 logger("stopTask finally clear!")
             }
 
@@ -373,69 +373,87 @@ class TaskService : Service(), DLogger {
     // Binder 类用于提供任务状态信息给绑定的组件
     inner class TaskBinder : ITaskStatusService.Stub() {
         fun getService(): TaskService = this@TaskService
-        override fun getTaskStatus(): MutableMap<String, String> {
+        override fun startTask(
+            url: String?,
+            path: String?,
+            selectIndexes: IntArray?,
+            callback: ITaskServiceCallback?
+        ) {
             TODO("Not yet implemented")
         }
 
-        override fun getTaskStatusByUrl(url: String?): String {
+        override fun stopTask(url: String?, callback: ITaskServiceCallback?) {
             TODO("Not yet implemented")
         }
 
-        override fun startTask(url: String?, path: String?, selectIndexes: IntArray?): String {
+        override fun startAllTasks(callback: ITaskServiceCallback?) {
             TODO("Not yet implemented")
         }
 
-        override fun stopTask(url: String?): String {
+        override fun stopAllTask(callback: ITaskServiceCallback?) {
             TODO("Not yet implemented")
         }
 
-        override fun startAllTasks(): String {
+        override fun getDownloadPath(callback: ITaskServiceCallback?) {
             TODO("Not yet implemented")
         }
 
-        override fun stopAllTask(): String {
+        override fun getTorrentList(callback: ITaskServiceCallback?) {
             TODO("Not yet implemented")
         }
 
-        override fun getDownloadPath(): String {
+        override fun uploadTorrentNotify(url: String?, callback: ITaskServiceCallback?) {
             TODO("Not yet implemented")
         }
 
-        override fun getTorrentList(): String {
+        override fun initMagnetUri(
+            url: String?,
+            torrentName: String?,
+            callback: ITaskServiceCallback?
+        ) {
             TODO("Not yet implemented")
         }
 
-        override fun uploadTorrentNotify(url: String?): String {
+        override fun dumpTorrentInfo(torrentPath: String?, callback: ITaskServiceCallback?) {
             TODO("Not yet implemented")
         }
 
-        override fun initMagnetUri(url: String?, torrentName: String?): String {
+        override fun deleteTask(
+            url: String?,
+            isDeleteFile: Boolean,
+            callback: ITaskServiceCallback?
+        ) {
             TODO("Not yet implemented")
         }
 
-        override fun dumpTorrentInfo(torrentPath: String?): String {
+        override fun getTaskList(callback: ITaskServiceCallback?) {
+            serviceScope.launch {
+                val taskList = taskRepo.getTasks()
+                taskList.map {
+                    RemoteTask(it.id)
+                }.let {
+                    callback?.onResult(MoshiHelper.toJson(it))
+                }
+            }
+        }
+
+        override fun getDownloadStatus(url: String?, callback: ITaskServiceCallback?) {
             TODO("Not yet implemented")
         }
 
-        override fun deleteTask(url: String?, isDeleteFile: Boolean): String {
+        override fun setConfig(
+            speedLimit: Long,
+            maxThread: Int,
+            downloadPath: String?,
+            callback: ITaskServiceCallback?
+        ) {
             TODO("Not yet implemented")
         }
 
-        override fun getTaskList(): String {
+        override fun getConfigSet(callback: ITaskServiceCallback?) {
             TODO("Not yet implemented")
         }
 
-        override fun getDownloadingTasksStatus(): String {
-            TODO("Not yet implemented")
-        }
-
-        override fun setConfig(speedLimit: Long, maxThread: Int, downloadPath: String?): String {
-            TODO("Not yet implemented")
-        }
-
-        override fun getConfigSet(): String {
-            TODO("Not yet implemented")
-        }
 
     }
 
