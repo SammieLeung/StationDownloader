@@ -141,7 +141,6 @@ class DefaultEngineRepository(
     private suspend fun loadConfig(): IResult<Boolean> {
         val speedLimit = configurationDataSource.getSpeedLimit()
         maxThread = configurationDataSource.getMaxThread()
-        Logger.d("maxThread: $maxThread")
         val downloadPath = configurationDataSource.getDownloadPath()
         val defaultEngine = configurationDataSource.getDefaultEngine()
         val xlConfigResult = xlEngine.configure(SPEED_LIMIT, speedLimit.toString())

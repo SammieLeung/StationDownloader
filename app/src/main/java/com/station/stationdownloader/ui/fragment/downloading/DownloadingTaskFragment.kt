@@ -13,6 +13,7 @@ import androidx.lifecycle.lifecycleScope
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import com.orhanobut.logger.Logger
 import com.station.stationdownloader.TaskService
+import com.station.stationdownloader.TaskStatusServiceImpl
 import com.station.stationdownloader.databinding.FragmentDownloadtaskBinding
 import com.station.stationdownloader.ui.base.BaseFragment
 import com.station.stationdownloader.ui.fragment.downloading.menu.TaskItemMenuDialogFragment
@@ -34,7 +35,7 @@ class DownloadingTaskFragment : BaseFragment<FragmentDownloadtaskBinding>(), DLo
     private val serviceConnection: ServiceConnection = object : ServiceConnection {
         override fun onServiceConnected(name: ComponentName?, service: IBinder?) {
             Logger.w("onServiceConnected")
-            service as TaskService.TaskBinder
+            service as TaskStatusServiceImpl
             vm.setTaskStatus(service.getService().getStatusFlow())
         }
 

@@ -22,6 +22,7 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import javax.inject.Inject
 
 /**
@@ -30,7 +31,7 @@ import javax.inject.Inject
  */
 
 @HiltAndroidApp
-class StationDownloaderApp : Application() {
+class StationDownloaderApp : Application(),DLogger {
     val mApplicationScope = CoroutineScope(SupervisorJob())
     val useV2FileManager: Boolean by lazy {
         PackageTools.isAppInstalled(applicationContext, FILE_MANAGER_V2_PACKAGE)
@@ -40,22 +41,31 @@ class StationDownloaderApp : Application() {
     @Inject
     lateinit var engineRepo: IEngineRepository
 
+    override fun onCreate() {
+        super.onCreate()
+    }
+
     override fun onTerminate() {
         super.onTerminate()
         Logger.d("onTerminate")
         Logger.clearLogAdapters()
-        mApplicationScope.launch {
-            Stetho.initializeWithDefaults(applicationContext)
-        }
+
     }
 
-    suspend fun initAction() {
-        Logger.addLogAdapter(AndroidLogAdapter())
-        DimenUtils.init(context = applicationContext)
-        MoshiHelper.init()
-        MimeTypeHelper.init(context = applicationContext)
-        engineRepo.init()
-        initialized = true
+     fun initAction() {
+        synchronized(this){
+            if(!initialized) {
+                initialized = true
+                DimenUtils.init(context = applicationContext)
+                mApplicationScope.launch {
+                    engineRepo.init()
+                    Logger.addLogAdapter(AndroidLogAdapter())
+                    Stetho.initializeWithDefaults(applicationContext)
+                    MoshiHelper.init()
+                    MimeTypeHelper.init(context = applicationContext)
+                }
+            }
+        }
     }
 
     fun isInitialized(): Boolean {
@@ -72,5 +82,8 @@ class StationDownloaderApp : Application() {
         const val FILE_MANAGER_V2_PACKAGE = "com.firefly.resourcemanager"
     }
 
+    override fun DLogger.tag(): String {
+        return "StationApp"
+    }
 
 }
