@@ -86,7 +86,7 @@ class TaskStatusServiceImpl(
         }
     }
 
-    private fun handleTaskStatus(url: String?, callback: ITaskServiceCallback?) {
+    private suspend fun handleTaskStatus(url: String?, callback: ITaskServiceCallback?) {
         if (url == null)
             return
         service.getRunningTaskMap()[url]?.let {
@@ -101,6 +101,34 @@ class TaskStatusServiceImpl(
             ).let {
                 callback?.onResult(MoshiHelper.toJson(it))
             }
+        }?:run {
+            taskRepo.getTaskByUrl(url)?.let {
+                RemoteTaskStatus(
+                    download_size = it.downloadSize,
+                    speed = 0,
+                    status = when(it.status){
+                        DownloadTaskStatus.DOWNLOADING->{
+                            ITaskState.RUNNING.code
+                        }
+
+                        DownloadTaskStatus.COMPLETED->{
+                            ITaskState.DONE.code
+                        }
+
+                        else->{
+                            ITaskState.STOP.code
+                        }
+                    },
+                    url = it.url,
+                    is_done = it.status == DownloadTaskStatus.COMPLETED,
+                    total_size = it.totalSize,
+                    task_id = -1L
+                ).let {
+                    callback?.onResult(MoshiHelper.toJson(it))
+                    return@run
+                }
+            }
+            callback?.onFailed("task not found", TaskExecuteError.TASK_NOT_FOUND.ordinal)
         }
     }
 

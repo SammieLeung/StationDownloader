@@ -2,6 +2,7 @@ package com.station.stationdownloader.data.source.repository
 
 import com.orhanobut.logger.Logger
 import com.station.stationdownloader.DownloadEngine
+import com.station.stationdownloader.DownloadTaskStatus
 import com.station.stationdownloader.DownloadUrlType
 import com.station.stationdownloader.contants.TaskExecuteError
 import com.station.stationdownloader.data.IResult
@@ -117,6 +118,11 @@ class DefaultDownloadTaskRepository(
         }
 
         if (assertTaskConfigNotChange(existsTask, engine, downloadPath, taskName, selectIndexes)) {
+            if(existsTask.status==DownloadTaskStatus.COMPLETED)
+                return@withContext IResult.Error(
+                    Exception(TaskExecuteError.TASK_COMPLETED.name),
+                    TaskExecuteError.TASK_COMPLETED.ordinal
+                )
             return@withContext IResult.Error(
                 Exception(originUrl),
                 TaskExecuteError.REPEATING_TASK_NOTHING_CHANGED.ordinal
