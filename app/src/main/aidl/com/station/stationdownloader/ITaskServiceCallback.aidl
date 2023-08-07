@@ -5,4 +5,5 @@ package com.station.stationdownloader;
 
 interface ITaskServiceCallback {
       void onResult(String result);
+      void onFailed(String reason);
 }

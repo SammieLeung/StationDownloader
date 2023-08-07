@@ -16,6 +16,16 @@ package com.station.stationdownloader.data.source.remote.json
 ],
 "url":"/storage/emulated/0/Download/TvRemote/torrent/station_test.torrent"
  */
+data class RemoteUploadTorrent(
+    val torrent_info: RemoteTorrentInfo,
+    val torrent_url: String
+)
+
+data class RemoteMagnetUri(
+    val torrent_info: RemoteTorrentInfo,
+    val magnet_uri: String
+)
+
 data class RemoteTorrentInfo(
     val file_count: Int,
     val info_hash: String,

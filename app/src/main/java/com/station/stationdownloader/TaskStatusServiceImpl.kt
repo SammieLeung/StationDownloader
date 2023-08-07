@@ -1,9 +1,18 @@
 package com.station.stationdownloader
 
+import com.orhanobut.logger.Logger
+import com.station.stationdownloader.data.IResult
+import com.station.stationdownloader.data.source.IConfigurationRepository
 import com.station.stationdownloader.data.source.IDownloadTaskRepository
 import com.station.stationdownloader.data.source.IEngineRepository
+import com.station.stationdownloader.data.source.local.engine.NewTaskConfigModel
+import com.station.stationdownloader.data.source.local.engine.asStationDownloadTask
+import com.station.stationdownloader.data.source.local.model.StationDownloadTask
+import com.station.stationdownloader.data.source.local.model.TreeNode
+import com.station.stationdownloader.data.source.local.model.setSelectFileIndexes
 import com.station.stationdownloader.data.source.remote.json.RemoteTask
 import com.station.stationdownloader.data.source.remote.json.RemoteTaskStatus
+import com.station.stationdownloader.ui.fragment.newtask.printFileTree
 import com.station.stationkitkt.MoshiHelper
 import dagger.hilt.EntryPoint
 import dagger.hilt.InstallIn
@@ -11,6 +20,7 @@ import dagger.hilt.android.EntryPointAccessors
 import dagger.hilt.components.SingletonComponent
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
+import okhttp3.internal.concurrent.Task
 
 class TaskStatusServiceImpl(
     private val service: TaskService,
@@ -31,12 +41,16 @@ class TaskStatusServiceImpl(
     private val engineRepo: IEngineRepository by lazy {
         entryPoint.getEngineRepo()
     }
+    private val configRepo: IConfigurationRepository by lazy {
+        entryPoint.getConfigRepo()
+    }
 
     @EntryPoint
     @InstallIn(SingletonComponent::class)
     interface TaskStatusServiceEntryPoint {
         fun getEngineRepo(): IEngineRepository
         fun getTaskRepo(): IDownloadTaskRepository
+        fun getConfigRepo(): IConfigurationRepository
     }
 
     fun getService(): TaskService = service
@@ -76,7 +90,7 @@ class TaskStatusServiceImpl(
         }
     }
 
-    private  fun handleTaskStatus(url: String?, callback: ITaskServiceCallback?) {
+    private fun handleTaskStatus(url: String?, callback: ITaskServiceCallback?) {
         if (url == null)
             return
         service.getRunningTaskMap()[url]?.let {
@@ -94,13 +108,67 @@ class TaskStatusServiceImpl(
         }
     }
 
+    private suspend fun handleStartTask(
+        url: String?,
+        path: String?,
+        selectIndexes: IntArray?,
+        callback: ITaskServiceCallback?
+    ) {
+        if (url == null)
+            return
+        //TODO 初始化url，检查selectIndexes是否为空，为空则使用默认的
+        val newTaskResult = engineRepo.initUrl(url)
+        if (newTaskResult is IResult.Error) {
+            Logger.e(newTaskResult.exception.message.toString())
+            callback?.onFailed(newTaskResult.exception.message)
+            return
+        }
+        newTaskResult as IResult.Success
+        var newTaskConfig = newTaskResult.data
+        selectIndexes?.let {
+            if (it.isNotEmpty()) {
+                newTaskConfig.updateSelectIndexes(it.toList())
+            }
+        }
+        path?.let {
+            newTaskConfig = newTaskConfig.update(
+                downloadPath = it
+            )
+        }
+
+        val saveTaskResult = taskRepo.saveTask(
+            newTaskConfig
+        )
+
+        if (saveTaskResult is IResult.Error) {
+            Logger.e(saveTaskResult.exception.message.toString())
+            callback?.onFailed(saveTaskResult.exception.message)
+            return
+        }
+
+        saveTaskResult as IResult.Success
+
+        TaskService.startTask(
+            service.applicationContext,
+            saveTaskResult.data.url
+        )
+
+
+//        callback?.let {
+//            it.onResult()
+//        }
+
+    }
+
     override fun startTask(
         url: String?,
         path: String?,
         selectIndexes: IntArray?,
         callback: ITaskServiceCallback?
     ) {
-        TODO("Not yet implemented")
+        serviceScope.launch {
+            handleStartTask(url, path, selectIndexes, callback)
+        }
     }
 
     override fun stopTask(url: String?, callback: ITaskServiceCallback?) {
@@ -151,7 +219,7 @@ class TaskStatusServiceImpl(
 
     override fun getDownloadStatus(url: String?, callback: ITaskServiceCallback?) {
         serviceScope.launch {
-            handleTaskStatus(url,callback)
+            handleTaskStatus(url, callback)
         }
     }
 

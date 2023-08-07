@@ -263,7 +263,7 @@ sealed class TreeNode(
     }
 }
 
-public fun TreeNode.Directory.getChildrenCount(): Int {
+ fun TreeNode.Directory.getChildrenCount(): Int {
     var count = 0;
     _children?.forEach {
         if (it is TreeNode.File)
@@ -277,7 +277,7 @@ public fun TreeNode.Directory.getChildrenCount(): Int {
 }
 
 
-public fun TreeNode.Directory.findNodeByIndexRecursive(position: Int): TreeNode? {
+ fun TreeNode.Directory.findNodeByIndexRecursive(position: Int): TreeNode? {
     var currentPos = position
     for (child in children) {
         if (currentPos == 0) {
@@ -295,7 +295,7 @@ public fun TreeNode.Directory.findNodeByIndexRecursive(position: Int): TreeNode?
     return null
 }
 
-public fun TreeNode.Directory.getChildAbsolutionPosition(treeNode: TreeNode): Int {
+ fun TreeNode.Directory.getChildAbsolutionPosition(treeNode: TreeNode): Int {
     var currentPos = -1
     for (idx in 0 until getChildrenCount()) {
         val child = children[idx]
@@ -313,7 +313,7 @@ public fun TreeNode.Directory.getChildAbsolutionPosition(treeNode: TreeNode): In
     return currentPos
 }
 
-public fun TreeNode.getParenPosition(pos: Int): Int {
+ fun TreeNode.getParenPosition(pos: Int): Int {
     if (_parent != null) {
         if (_parent._children != null)
             return pos - _parent._children.indexOf(this) - 1
@@ -321,7 +321,7 @@ public fun TreeNode.getParenPosition(pos: Int): Int {
     return -1
 }
 
-public fun TreeNode.Directory.filterFile(fileType: FileType, isSelect: Boolean) {
+ fun TreeNode.Directory.filterFile(fileType: FileType, isSelect: Boolean) {
 
     children.forEach {
         when (it) {
@@ -361,7 +361,7 @@ public fun TreeNode.Directory.filterFile(fileType: FileType, isSelect: Boolean) 
 
 }
 
-public fun TreeNode.Directory.getSelectedFileIndexes(): List<Int> {
+fun TreeNode.Directory.getSelectedFileIndexes(): List<Int> {
     val selectedList = mutableListOf<Int>()
     _children?.forEach {
         if (it is TreeNode.File && it.isChecked) {
@@ -372,4 +372,14 @@ public fun TreeNode.Directory.getSelectedFileIndexes(): List<Int> {
     }
     selectedList.sort()
     return selectedList
+}
+
+fun TreeNode.Directory.setSelectFileIndexes(indexes: List<Int>) {
+    _children?.forEach {
+        if (it is TreeNode.File) {
+           it.autoSelect(indexes.contains(it.fileIndex))
+        } else if (it is TreeNode.Directory) {
+            it.setSelectFileIndexes(indexes)
+        }
+    }
 }

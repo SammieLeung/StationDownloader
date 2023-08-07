@@ -1,10 +1,12 @@
 package com.station.stationdownloader.data.source.local.engine
 
+import android.provider.ContactsContract.Directory
 import com.station.stationdownloader.DownloadEngine
 import com.station.stationdownloader.DownloadUrlType
 import com.station.stationdownloader.data.source.local.model.StationDownloadTask
 import com.station.stationdownloader.data.source.local.model.TreeNode
 import com.station.stationdownloader.data.source.local.model.getSelectedFileIndexes
+import com.station.stationdownloader.data.source.local.model.setSelectFileIndexes
 import com.station.stationdownloader.data.source.local.room.entities.XLDownloadTaskEntity
 import java.io.File
 
@@ -29,7 +31,7 @@ sealed class NewTaskConfigModel(
         _downloadPath = downloadPath,
         _downloadEngine = engine,
         _fileTree = fileTree
-    ){
+    ) {
     }
 
     data class TorrentTask(
@@ -52,11 +54,11 @@ sealed class NewTaskConfigModel(
         name: String = this._name,
         downloadPath: String = this._downloadPath,
         downloadEngine: DownloadEngine = this._downloadEngine,
-        fileTree: TreeNode= this._fileTree
+        fileTree: TreeNode = this._fileTree
     ): NewTaskConfigModel {
         return when (this) {
             is NormalTask -> {
-              NormalTask(
+                NormalTask(
                     originUrl = originUrl,
                     url = url,
                     taskName = name,
@@ -68,16 +70,22 @@ sealed class NewTaskConfigModel(
             }
 
             is TorrentTask -> {
-               TorrentTask(
+                TorrentTask(
                     torrentId = torrentId,
                     torrentPath = torrentPath,
                     taskName = name,
                     downloadPath = downloadPath,
                     fileCount = fileCount,
                     engine = downloadEngine,
-                    fileTree = fileTree,)
+                    fileTree = fileTree,
+                )
             }
         }
+    }
+
+    fun updateSelectIndexes(selectIndexes: List<Int>) {
+        _fileTree as TreeNode.Directory
+        _fileTree.setSelectFileIndexes(selectIndexes)
     }
 
 }
