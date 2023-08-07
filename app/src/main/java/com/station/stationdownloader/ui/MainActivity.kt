@@ -1,7 +1,11 @@
 package com.station.stationdownloader.ui
 
+import android.content.ComponentName
 import android.content.Context
+import android.content.Intent
+import android.content.ServiceConnection
 import android.os.Bundle
+import android.os.IBinder
 import android.view.View
 import android.view.View.OnFocusChangeListener
 import android.widget.Toast
@@ -12,6 +16,8 @@ import androidx.lifecycle.repeatOnLifecycle
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
 import com.orhanobut.logger.Logger
+import com.station.stationdownloader.TaskService
+import com.station.stationdownloader.TaskStatusServiceImpl
 import com.station.stationdownloader.data.IResult
 import com.station.stationdownloader.databinding.ActivityMainBinding
 import com.station.stationdownloader.navgator.AppNavigator
@@ -38,7 +44,7 @@ import javax.inject.Inject
 @AndroidEntryPoint
 class MainActivity : BaseActivity<ActivityMainBinding>(), DLogger {
 
-    val vm: MainViewModel by viewModels<MainViewModel>()
+    val vm: MainViewModel by viewModels()
     var toast: Toast? = null
 
 
@@ -46,6 +52,16 @@ class MainActivity : BaseActivity<ActivityMainBinding>(), DLogger {
     lateinit var navigator: AppNavigator
 
     val tabViewList: MutableList<View> = mutableListOf()
+
+    val serviceConnection=object :ServiceConnection{
+        override fun onServiceConnected(name: ComponentName?, service: IBinder?) {
+            val binder= service as TaskStatusServiceImpl
+            vm.taskService=binder.getService()
+        }
+
+        override fun onServiceDisconnected(name: ComponentName?) {
+        }
+    }
 
     init {
         lifecycleScope.launch {
@@ -88,6 +104,16 @@ class MainActivity : BaseActivity<ActivityMainBinding>(), DLogger {
         super.onCreate(savedInstanceState)
         initTabLayout()
         mBinding.bindState()
+    }
+
+    override fun onResume() {
+        super.onResume()
+        bindService(Intent(this, TaskService::class.java),serviceConnection,Context.BIND_AUTO_CREATE)
+    }
+
+    override fun onPause() {
+        super.onPause()
+        unbindService(serviceConnection)
     }
 
     private fun ActivityMainBinding.bindState() {

@@ -6,6 +6,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.orhanobut.logger.Logger
 import com.station.stationdownloader.FileType
+import com.station.stationdownloader.ITaskState
 import com.station.stationdownloader.R
 import com.station.stationdownloader.TaskService
 import com.station.stationdownloader.contants.TaskExecuteError
@@ -66,7 +67,7 @@ class MainViewModel @Inject constructor(
 
     val accept: (UiAction) -> Unit
     val dialogAccept: (DialogAction) -> Unit
-
+    var taskService: TaskService? = null
 
     init {
         accept = initAcceptAction()
@@ -98,17 +99,21 @@ class MainViewModel @Inject constructor(
 
     private fun handleStartTaskAction(startTaskFlow: Flow<UiAction.StartDownloadTask>) =
         viewModelScope.launch {
-            startTaskFlow.collect {action->
+            startTaskFlow.collect { action ->
                 logger("startTaskFlow collect")
                 if (_newTaskState.value !is NewTaskState.PreparingData)
                     return@collect
+                val preparingData=   _newTaskState.value as NewTaskState.PreparingData
                 val saveTaskResult =
-                    taskRepo.saveTask((_newTaskState.value as NewTaskState.PreparingData).task)
+                    taskRepo.saveTask(preparingData.task)
                 if (saveTaskResult is IResult.Error) {
                     when (saveTaskResult.code) {
                         TaskExecuteError.REPEATING_TASK_NOTHING_CHANGED.ordinal -> {
                             saveTaskResult.exception.message?.let {
-                                TaskService.startTask(application, it)
+                                val status=taskService?.getRunningTaskMap()?.get(it)
+                                if(status==null||status.taskId<0L||status.status== ITaskState.STOP.code){
+                                    TaskService.startTask(application, it)
+                                }
                             }
                             _toastState.update {
                                 ToastState.Toast(application.getString(R.string.repeating_task_nothing_changed))
@@ -303,6 +308,7 @@ class MainViewModel @Inject constructor(
     override fun DLogger.tag(): String {
         return MainViewModel::class.java.simpleName
     }
+
 }
 
 sealed class UiAction {
