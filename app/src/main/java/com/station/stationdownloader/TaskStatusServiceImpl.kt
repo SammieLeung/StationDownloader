@@ -1,26 +1,22 @@
 package com.station.stationdownloader
 
 import com.orhanobut.logger.Logger
+import com.station.stationdownloader.contants.TaskExecuteError
 import com.station.stationdownloader.data.IResult
 import com.station.stationdownloader.data.source.IConfigurationRepository
 import com.station.stationdownloader.data.source.IDownloadTaskRepository
 import com.station.stationdownloader.data.source.IEngineRepository
-import com.station.stationdownloader.data.source.local.engine.NewTaskConfigModel
-import com.station.stationdownloader.data.source.local.engine.asStationDownloadTask
-import com.station.stationdownloader.data.source.local.model.StationDownloadTask
-import com.station.stationdownloader.data.source.local.model.TreeNode
-import com.station.stationdownloader.data.source.local.model.setSelectFileIndexes
+import com.station.stationdownloader.data.source.remote.json.RemoteStartTask
 import com.station.stationdownloader.data.source.remote.json.RemoteTask
 import com.station.stationdownloader.data.source.remote.json.RemoteTaskStatus
-import com.station.stationdownloader.ui.fragment.newtask.printFileTree
 import com.station.stationkitkt.MoshiHelper
 import dagger.hilt.EntryPoint
 import dagger.hilt.InstallIn
 import dagger.hilt.android.EntryPointAccessors
 import dagger.hilt.components.SingletonComponent
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import okhttp3.internal.concurrent.Task
 
 class TaskStatusServiceImpl(
     private val service: TaskService,
@@ -116,20 +112,25 @@ class TaskStatusServiceImpl(
     ) {
         if (url == null)
             return
-        //TODO 初始化url，检查selectIndexes是否为空，为空则使用默认的
         val newTaskResult = engineRepo.initUrl(url)
         if (newTaskResult is IResult.Error) {
             Logger.e(newTaskResult.exception.message.toString())
-            callback?.onFailed(newTaskResult.exception.message)
+            callback?.onFailed(newTaskResult.exception.message, newTaskResult.code)
             return
         }
         newTaskResult as IResult.Success
         var newTaskConfig = newTaskResult.data
-        selectIndexes?.let {
-            if (it.isNotEmpty()) {
-                newTaskConfig.updateSelectIndexes(it.toList())
+
+        if (selectIndexes == null || selectIndexes.isEmpty()) {
+            taskRepo.getTaskByUrl(url)?.let {
+                if (it.selectIndexes.isNotEmpty()) {
+                    newTaskConfig.updateSelectIndexes(it.selectIndexes)
+                }
             }
+        } else {
+            newTaskConfig.updateSelectIndexes(selectIndexes.toList())
         }
+
         path?.let {
             newTaskConfig = newTaskConfig.update(
                 downloadPath = it
@@ -141,23 +142,49 @@ class TaskStatusServiceImpl(
         )
 
         if (saveTaskResult is IResult.Error) {
-            Logger.e(saveTaskResult.exception.message.toString())
-            callback?.onFailed(saveTaskResult.exception.message)
+            when (saveTaskResult.code) {
+                TaskExecuteError.REPEATING_TASK_NOTHING_CHANGED.ordinal -> {
+                    saveTaskResult.exception.message?.let {
+                        val status = service.getRunningTaskMap()[url]
+                        if (status == null || status.taskId < 0 || status.status == ITaskState.STOP.code) {
+                            startTaskAndWaitTaskId(url, callback)
+                        } else {
+                            callback?.onResult(
+                                MoshiHelper.toJson(
+                                    RemoteStartTask(
+                                        url,
+                                        service.getRunningTaskMap()[url]?.taskId ?: -1L
+                                    )
+                                )
+                            )
+                        }
+                    }
+                    Logger.e(service.getString(R.string.repeating_task_nothing_changed))
+                }
+
+                else -> {
+                    Logger.e(saveTaskResult.exception.message.toString())
+                    callback?.onFailed(saveTaskResult.exception.message, saveTaskResult.code)
+                }
+            }
             return
         }
 
         saveTaskResult as IResult.Success
+        startTaskAndWaitTaskId(saveTaskResult.data.url, callback)
+    }
 
+    private suspend fun startTaskAndWaitTaskId(url: String, callback: ITaskServiceCallback?) {
         TaskService.startTask(
             service.applicationContext,
-            saveTaskResult.data.url
+            url
         )
-
-
-//        callback?.let {
-//            it.onResult()
-//        }
-
+        while (service.getRunningTaskMap()[url] == null) {
+            delay(10)
+        }
+        service.getRunningTaskMap()[url]?.let {
+            callback?.onResult(MoshiHelper.toJson(RemoteStartTask(url, it.taskId)))
+        }
     }
 
     override fun startTask(
@@ -235,4 +262,5 @@ class TaskStatusServiceImpl(
     override fun getConfigSet(callback: ITaskServiceCallback?) {
         TODO("Not yet implemented")
     }
+
 }

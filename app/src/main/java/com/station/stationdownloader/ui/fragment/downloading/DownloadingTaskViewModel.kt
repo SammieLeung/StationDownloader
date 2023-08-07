@@ -266,7 +266,7 @@ class DownloadingTaskViewModel @Inject constructor(
         }
     }
 
-    fun setTaskStatus(taskStatus: StateFlow<TaskStatus>) {
+    fun collectTaskStatus(taskStatus: StateFlow<TaskStatus>) {
         viewModelScope.launch {
             taskStatus.collect { taskStatus ->
                 val url = taskStatus.url

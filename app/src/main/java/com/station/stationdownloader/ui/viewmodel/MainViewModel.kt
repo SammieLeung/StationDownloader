@@ -67,8 +67,6 @@ class MainViewModel @Inject constructor(
     val accept: (UiAction) -> Unit
     val dialogAccept: (DialogAction) -> Unit
 
-    val isInitTaskList = AtomicBoolean(false)
-
 
     init {
         accept = initAcceptAction()
@@ -100,7 +98,7 @@ class MainViewModel @Inject constructor(
 
     private fun handleStartTaskAction(startTaskFlow: Flow<UiAction.StartDownloadTask>) =
         viewModelScope.launch {
-            startTaskFlow.collect { it ->
+            startTaskFlow.collect {action->
                 logger("startTaskFlow collect")
                 if (_newTaskState.value !is NewTaskState.PreparingData)
                     return@collect
@@ -109,6 +107,9 @@ class MainViewModel @Inject constructor(
                 if (saveTaskResult is IResult.Error) {
                     when (saveTaskResult.code) {
                         TaskExecuteError.REPEATING_TASK_NOTHING_CHANGED.ordinal -> {
+                            saveTaskResult.exception.message?.let {
+                                TaskService.startTask(application, it)
+                            }
                             _toastState.update {
                                 ToastState.Toast(application.getString(R.string.repeating_task_nothing_changed))
                             }
@@ -122,28 +123,11 @@ class MainViewModel @Inject constructor(
                             ToastState.Toast(saveTaskResult.exception.message.toString())
                         }
                     }
-
                     return@collect
                 }
 
-
                 saveTaskResult as IResult.Success
-//
-//                val taskIdResult =
-//                    engineRepo.startTask(saveTaskResult.data.asStationDownloadTask())
-//                if (taskIdResult is IResult.Error) {
-//                    Logger.e(taskIdResult.exception.message.toString())
-//                    _toastState.update {
-//                        ToastState.Toast(taskIdResult.exception.message.toString())
-//                    }
-//                    return@collect
-//                }
-//
-//                TaskService.watchTask(
-//                    application,
-//                    saveTaskResult.data.url,
-//                    (taskIdResult as IResult.Success).data
-//                )
+
                 TaskService.startTask(application, saveTaskResult.data.url)
 
                 _toastState.update {

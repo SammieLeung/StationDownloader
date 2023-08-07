@@ -23,7 +23,6 @@
     <string name="title_select_torrent_file">选择一个种子文件</string>
 
     <string name="start_to_download">开始下载</string>
-    <string name="assert_torrent_file">这不是一个种子文件，请重新选择！</string>
 
     <string name="title_task_item_menu">任务菜单</string>
 

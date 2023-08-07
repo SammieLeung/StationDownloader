@@ -118,7 +118,7 @@ class DefaultDownloadTaskRepository(
 
         if (assertTaskConfigNotChange(existsTask, engine, downloadPath, taskName, selectIndexes)) {
             return@withContext IResult.Error(
-                Exception(TaskExecuteError.REPEATING_TASK_NOTHING_CHANGED.name),
+                Exception(originUrl),
                 TaskExecuteError.REPEATING_TASK_NOTHING_CHANGED.ordinal
             )
         }

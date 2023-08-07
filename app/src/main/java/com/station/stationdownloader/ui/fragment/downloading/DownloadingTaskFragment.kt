@@ -36,7 +36,7 @@ class DownloadingTaskFragment : BaseFragment<FragmentDownloadtaskBinding>(), DLo
         override fun onServiceConnected(name: ComponentName?, service: IBinder?) {
             Logger.w("onServiceConnected")
             service as TaskStatusServiceImpl
-            vm.setTaskStatus(service.getService().getStatusFlow())
+            vm.collectTaskStatus(service.getService().getStatusFlow())
         }
 
         override fun onServiceDisconnected(name: ComponentName?) {
