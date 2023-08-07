@@ -131,8 +131,9 @@ class TaskService : Service(), DLogger {
     private fun startTask(url: String) = serviceScope.launch {
         try {
             val xlEntity = taskRepo.getTaskByUrl(url) ?: return@launch
+            if(runningTaskMap[url]!=null)
+                stopTask(url).join()
             val taskIdResult = engineRepo.startTask(xlEntity.asStationDownloadTask())
-
             if (taskIdResult is IResult.Error) {
                 Logger.e(taskIdResult.exception.message.toString())
                 sendLocalBroadcast(Intent(
@@ -239,7 +240,7 @@ class TaskService : Service(), DLogger {
         var startSpeedTest = false
         var retryFailedCount = failedCount
         var isRestart = false
-        val isStopRetry = retryFailedCount >= 1
+        val isStopRetry = retryFailedCount >= 5
 
 
 
