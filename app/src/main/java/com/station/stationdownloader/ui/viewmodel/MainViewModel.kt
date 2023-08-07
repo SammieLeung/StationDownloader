@@ -5,6 +5,7 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.orhanobut.logger.Logger
+import com.station.stationdownloader.FreeSpaceState
 import com.station.stationdownloader.FileType
 import com.station.stationdownloader.ITaskState
 import com.station.stationdownloader.R
@@ -21,6 +22,7 @@ import com.station.stationdownloader.data.source.local.model.TreeNode
 import com.station.stationdownloader.data.source.local.model.filterFile
 import com.station.stationdownloader.ui.fragment.newtask.toHumanReading
 import com.station.stationdownloader.utils.DLogger
+import com.station.stationdownloader.utils.MB
 import com.station.stationdownloader.utils.XLEngineTools
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.Flow
@@ -33,7 +35,7 @@ import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import java.util.concurrent.atomic.AtomicBoolean
+import java.io.File
 import javax.inject.Inject
 
 @HiltViewModel
@@ -103,15 +105,15 @@ class MainViewModel @Inject constructor(
                 logger("startTaskFlow collect")
                 if (_newTaskState.value !is NewTaskState.PreparingData)
                     return@collect
-                val preparingData=   _newTaskState.value as NewTaskState.PreparingData
+                val preparingData = _newTaskState.value as NewTaskState.PreparingData
                 val saveTaskResult =
                     taskRepo.saveTask(preparingData.task)
                 if (saveTaskResult is IResult.Error) {
                     when (saveTaskResult.code) {
                         TaskExecuteError.REPEATING_TASK_NOTHING_CHANGED.ordinal -> {
                             saveTaskResult.exception.message?.let {
-                                val status=taskService?.getRunningTaskMap()?.get(it)
-                                if(status==null||status.taskId<0L||status.status== ITaskState.STOP.code){
+                                val status = taskService?.getRunningTaskMap()?.get(it)
+                                if (status == null || status.taskId < 0L || status.status == ITaskState.STOP.code) {
                                     TaskService.startTask(application, it)
                                 }
                             }
@@ -284,12 +286,34 @@ class MainViewModel @Inject constructor(
     private fun handleCalculateSizeInfo(calculateSizeInfoFlow: Flow<DialogAction.CalculateSizeInfo>) =
         viewModelScope.launch {
             calculateSizeInfoFlow.collect {
-
                 _newTaskState.update {
                     it as NewTaskState.PreparingData
                     val totalCheckedFileSize =
                         (it.task._fileTree as TreeNode.Directory).totalCheckedFileSize
                     val checkedFileCount = it.task._fileTree.checkedFileCount
+                    val downloadPathFile = File(it.task._downloadPath)
+                    val freeSpace = downloadPathFile.freeSpace
+                    val totalSpace = downloadPathFile.totalSpace
+                    var downloadPathSizeInfo = application.getString(
+                        R.string.download_size_info,
+                        freeSpace.toHumanReading()
+                    )
+                    var freeSpaceState = FreeSpaceState.ENOUGH
+
+                    if (freeSpace < 100.MB||freeSpace / totalSpace < 0.02) {
+                        downloadPathSizeInfo = application.getString(
+                            R.string.download_size_info,
+                            freeSpace.toHumanReading()
+                        )
+                    }
+
+                    if (freeSpace < totalCheckedFileSize) {
+                        downloadPathSizeInfo = application.getString(
+                            R.string.download_size_info,
+                            freeSpace.toHumanReading()
+                        )
+                    }
+
                     it.copy(
                         taskSizeInfo = TaskSizeInfo(
                             taskSizeInfo = application.getString(
@@ -297,7 +321,8 @@ class MainViewModel @Inject constructor(
                                 checkedFileCount,
                                 totalCheckedFileSize.toHumanReading()
                             ),
-                            downloadPathSizeInfo = "可用:1000.00GB/1050.00GB"
+                            downloadPathSizeInfo = application.getString(R.string.free_space_shortage),
+                            freeSpaceState = freeSpaceState
                         )
                     )
                 }
@@ -350,7 +375,8 @@ sealed class NewTaskState {
 
 data class TaskSizeInfo(
     val taskSizeInfo: String = "",
-    val downloadPathSizeInfo: String = ""
+    val downloadPathSizeInfo: String = "",
+    val freeSpaceState: FreeSpaceState = FreeSpaceState.ENOUGH
 )
 
 data class fileFilterGroup(

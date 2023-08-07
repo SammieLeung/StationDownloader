@@ -3,6 +3,9 @@ package com.station.stationdownloader.ui.fragment.newtask
 import android.content.DialogInterface
 import android.content.Intent
 import android.os.Bundle
+import android.text.Html
+import android.text.Html.FROM_HTML_MODE_LEGACY
+import android.text.Html.FROM_HTML_OPTION_USE_CSS_COLORS
 import android.util.Base64
 import android.view.View
 import android.widget.CheckBox
@@ -167,7 +170,7 @@ class AddNewTaskDialogFragment : BaseDialogFragment<DialogFragmentAddNewTaskBind
                 (it as NewTaskState.PreparingData).taskSizeInfo
             }.distinctUntilChanged().collect {
                 taskSizeInfo = it.taskSizeInfo
-                downloadSpace = it.downloadPathSizeInfo
+                downloadSpaceView.setText(Html.fromHtml(it.downloadPathSizeInfo,FROM_HTML_OPTION_USE_CSS_COLORS))
             }
         }
     }

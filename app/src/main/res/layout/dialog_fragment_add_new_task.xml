@@ -13,9 +13,6 @@
             name="downloadPath"
             type="String" />
 
-        <variable
-            name="downloadSpace"
-            type="String" />
 
         <variable
             name="taskSizeInfo"
@@ -151,7 +148,6 @@
                     android:layout_alignParentEnd="true"
                     android:layout_centerVertical="true"
                     android:paddingHorizontal="15dp"
-                    android:text="@{downloadSpace}"
                     android:textColor="#CCCCCC"
                     android:textSize="16sp" />
 

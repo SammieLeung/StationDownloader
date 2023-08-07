@@ -25,6 +25,7 @@ import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
+import java.io.File
 
 /**
  * Instrumented test, which will execute on an Android device.
@@ -171,6 +172,13 @@ class AppTest {
             val fakeTaskInfo=XLTaskHelper.instance().getTaskInfo(-1)
             Logger.d("fakeTaskInfo=$fakeTaskInfo")
         }
+
+    }
+
+    @Test
+    fun  testStorageSpace(){
+        Logger.d("totalSpace ${File("/storage/emulated/0/Station/Download").totalSpace.toHumanReading()}")
+        Logger.d("freeSpace ${File("/storage/emulated/0/Station/Download").freeSpace.toHumanReading()}")
 
     }
 

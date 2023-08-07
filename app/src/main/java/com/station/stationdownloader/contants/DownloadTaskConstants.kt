@@ -51,3 +51,8 @@ enum class ITaskState(val code: Int) {
     LOADING(-3)//任务加载中
 }
 
+enum class FreeSpaceState{
+    ENOUGH,
+    FREE_SPACE_SHORTAGE,
+    NOT_ENOUGH_SPACE
+}

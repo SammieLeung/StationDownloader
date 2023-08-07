@@ -2,5 +2,7 @@
 <resources>
     <string name="repeating_task_nothing_changed">任务已存在，并且配置没有改变</string>
     <string name="assert_torrent_file">这不是一个种子文件，请重新选择！</string>
+    <string name="free_space_not_enough">剩余空间不足</string>
+    <string name="free_space_shortage"><font color="yellow">空间不足100M</font></string>
 
 </resources>
