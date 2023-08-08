@@ -68,7 +68,6 @@ class DataBaseTest {
                 File("sdcard/Station/Download", taskName.substringAfterLast(".")).path
             val fileCount = torrentInfo.mFileCount
 
-            val torrentId = torrentDataRepo.saveTorrentInfo(torrentInfo)
 
             Logger.d(torrentInfo.mInfoHash)
 

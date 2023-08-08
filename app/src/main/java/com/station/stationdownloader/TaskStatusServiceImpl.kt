@@ -11,9 +11,11 @@ import com.station.stationdownloader.data.source.ITorrentInfoRepository
 import com.station.stationdownloader.data.source.local.engine.NewTaskConfigModel
 import com.station.stationdownloader.data.source.remote.json.RemoteStartTask
 import com.station.stationdownloader.data.source.remote.json.RemoteStopTask
+import com.station.stationdownloader.data.source.remote.json.RemoteSubFileInfo
 import com.station.stationdownloader.data.source.remote.json.RemoteTask
 import com.station.stationdownloader.data.source.remote.json.RemoteTaskStatus
 import com.station.stationdownloader.data.source.remote.json.RemoteTorrentInfo
+import com.station.stationdownloader.utils.TaskTools
 import com.station.stationkitkt.MoshiHelper
 import dagger.hilt.EntryPoint
 import dagger.hilt.InstallIn
@@ -22,6 +24,7 @@ import dagger.hilt.components.SingletonComponent
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import java.io.File
 
 class TaskStatusServiceImpl(
     private val service: TaskService,
@@ -217,8 +220,32 @@ class TaskStatusServiceImpl(
 
         if (newTaskConfigModel.data is NewTaskConfigModel.TorrentTask) {
             val torrentId = newTaskConfigModel.data.torrentId
-            torrentRepo.getTorrentByHash()
-
+            val mapResult = torrentRepo.getTorrentById(torrentId)
+            if (mapResult is IResult.Error) {
+                callback?.onFailed(
+                    mapResult.exception.message,
+                    mapResult.code
+                )
+            }
+            val torrentMap = (mapResult as IResult.Success).data
+            torrentMap.keys.firstOrNull()?.let {
+                val remoteTorrentInfo = RemoteTorrentInfo(
+                    file_count = it.fileCount,
+                    info_hash = it.hash,
+                    is_multi_files = it.isMultiFiles,
+                    name = File(it.torrentPath).nameWithoutExtension,
+                    sub_fileinfo = torrentMap[it]?.map {
+                        RemoteSubFileInfo(
+                            file_index = it.fileIndex,
+                            file_name = it.fileName,
+                            file_size = it.fileSize,
+                            is_selected = TaskTools.isVideoFile(it.fileName)
+                        )
+                    } ?: emptyList(),
+                    url = it.torrentPath
+                )
+                callback?.onResult(MoshiHelper.toJson(remoteTorrentInfo))
+            }
         }
 
     }
@@ -227,7 +254,11 @@ class TaskStatusServiceImpl(
         TODO("Not yet implemented")
     }
 
-    override fun deleteTask(url: String?, isDeleteFile: Boolean, callback: ITaskServiceCallback?) {
+    override fun deleteTask(
+        url: String?,
+        isDeleteFile: Boolean,
+        callback: ITaskServiceCallback?
+    ) {
         TODO("Not yet implemented")
     }
 

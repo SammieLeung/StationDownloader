@@ -10,14 +10,14 @@ data class StationTorrentInfo(
     var multiFileBaseFolder: String = "",
     var subFileInfo: List<StationTorrentFileInfo> = emptyList()
 ): Serializable
-
-fun StationTorrentInfo.asTorrentInfoEntity(): TorrentInfoEntity {
-    return TorrentInfoEntity(
-        id = 0,
-        fileCount = this.fileCount,
-        hash = this.hash,
-        isMultiFiles = this.isMultiFiles,
-        multiFileBaseFolder = this.multiFileBaseFolder
-    )
-}
+//
+//fun StationTorrentInfo.asTorrentInfoEntity(): TorrentInfoEntity {
+//    return TorrentInfoEntity(
+//        id = 0,
+//        fileCount = this.fileCount,
+//        hash = this.hash,
+//        isMultiFiles = this.isMultiFiles,
+//        multiFileBaseFolder = this.multiFileBaseFolder
+//    )
+//}
 

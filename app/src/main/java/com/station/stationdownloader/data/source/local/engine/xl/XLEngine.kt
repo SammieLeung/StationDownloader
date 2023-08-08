@@ -1,8 +1,6 @@
 package com.station.stationdownloader.data.source.local.engine.xl
 
 import android.content.Context
-import com.orhanobut.logger.Logger
-import com.station.stationdownloader.DownloadEngine
 import com.station.stationdownloader.DownloadUrlType
 import com.station.stationdownloader.ITaskState
 import com.station.stationdownloader.contants.ConfigureError
@@ -337,9 +335,7 @@ class XLEngine internal constructor(
         val downloadPath =
             File(configurationDataSource.getDownloadPath()).path
         val fileCount = torrentInfo.mFileCount
-        var torrentId = checkTorrentHash(torrentInfo.mInfoHash)
-        if (torrentId == null)
-            torrentId = torrentInfoRepo.saveTorrentInfo(torrentInfo)
+        val torrentId = torrentInfoRepo.saveTorrentInfo(torrentInfo, torrentUrl)
         return IResult.Success(
             NewTaskConfigModel.TorrentTask(
                 torrentId = torrentId,
@@ -416,21 +412,6 @@ class XLEngine internal constructor(
             }
             delay(10)
         }
-    }
-
-    private suspend fun checkTorrentHash(hash: String): Long? {
-        return when (val result = torrentInfoRepo.getTorrentByHash(hash)) {
-            is IResult.Error -> {
-                null
-            }
-
-            is IResult.Success -> {
-                result.data.firstNotNullOfOrNull {
-                    it.key.id
-                }
-            }
-        }
-        return null
     }
 
     override fun DLogger.tag(): String = "XLEngine"

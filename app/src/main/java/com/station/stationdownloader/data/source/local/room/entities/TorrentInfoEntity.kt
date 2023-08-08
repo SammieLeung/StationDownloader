@@ -17,17 +17,20 @@ data class TorrentInfoEntity @JvmOverloads constructor(
     @ColumnInfo(name = "file_count", defaultValue = "0")
     var fileCount: Int = 0,
     var hash: String,
+    @ColumnInfo(name = "torrent_path")
+    var torrentPath:String,
     @ColumnInfo(name = "is_multi_files")
     var isMultiFiles: Boolean = false,
     @ColumnInfo(name = "multi_file_base_folder")
     var multiFileBaseFolder: String = "",
 )
 
-fun TorrentInfo.asTorrentInfoEntity(): TorrentInfoEntity {
+fun TorrentInfo.asTorrentInfoEntity(torrentPath:String): TorrentInfoEntity {
     return TorrentInfoEntity(
         id = 0,
         fileCount = this.mFileCount,
         hash = this.mInfoHash,
+        torrentPath = torrentPath,
         isMultiFiles = this.mIsMultiFiles,
         multiFileBaseFolder = this.mMultiFileBaseFolder
     )

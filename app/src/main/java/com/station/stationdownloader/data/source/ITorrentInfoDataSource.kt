@@ -8,8 +8,8 @@ import com.xunlei.downloadlib.parameter.TorrentFileInfo
 interface ITorrentInfoDataSource {
     suspend fun saveTorrentInfo(torrentInfo: TorrentInfoEntity):Long
     suspend fun saveTorrentFileInfo(torrentFileInfo: TorrentFileInfoEntity):Long
-    suspend fun getTorrentId(hash:String):IResult<Long>
+    suspend fun getTorrentId(hash:String,torrentPath:String):IResult<Long>
     suspend fun getTorrentFileInfo(torrentId:Long,realIndex:Int):IResult<TorrentFileInfoEntity>
-    suspend fun getTorrentByHash(hash: String): IResult<Map<TorrentInfoEntity, List<TorrentFileInfoEntity>>>
+    suspend fun getTorrentByHash(hash: String,torrentPath:String): IResult<Map<TorrentInfoEntity, List<TorrentFileInfoEntity>>>
     suspend fun getTorrentById(torrentId: Long): IResult<Map<TorrentInfoEntity, List<TorrentFileInfoEntity>>>
 }

@@ -26,8 +26,8 @@ class TorrentInfoLocalDataSource internal constructor(
         }
 
 
-    override suspend fun getTorrentId(hash: String): IResult<Long> = withContext(ioDispatcher) {
-        val tId = torrentInfoDao.getTorrentId(hash)
+    override suspend fun getTorrentId(hash: String,torrentPath:String): IResult<Long> = withContext(ioDispatcher) {
+        val tId = torrentInfoDao.getTorrentId(hash,torrentPath)
         if (tId > 0L) {
             return@withContext IResult.Success(tId)
         }
@@ -47,9 +47,9 @@ class TorrentInfoLocalDataSource internal constructor(
             }
         }
 
-    override suspend fun getTorrentByHash(hash: String): IResult<Map<TorrentInfoEntity, List<TorrentFileInfoEntity>>> =
+    override suspend fun getTorrentByHash(hash: String,torrentPath:String): IResult<Map<TorrentInfoEntity, List<TorrentFileInfoEntity>>> =
         withContext(ioDispatcher) {
-            val result = torrentInfoDao.getTorrentByHash(hash)
+            val result = torrentInfoDao.getTorrentByHash(hash,torrentPath)
             IResult.Success(result)
         }
 

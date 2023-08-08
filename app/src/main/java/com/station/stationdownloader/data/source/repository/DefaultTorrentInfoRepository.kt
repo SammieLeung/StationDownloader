@@ -19,9 +19,9 @@ class DefaultTorrentInfoRepository(
     private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO
 ) : ITorrentInfoRepository {
 
-    override suspend fun saveTorrentInfo(torrentInfo: TorrentInfo): Long {
+    override suspend fun saveTorrentInfo(torrentInfo: TorrentInfo, downloadPath: String): Long {
         return when (
-            val result = localDataSource.getTorrentId(torrentInfo.mInfoHash)
+            val result = localDataSource.getTorrentId(torrentInfo.mInfoHash,downloadPath)
         ) {
             is IResult.Success -> {
                 result.data
@@ -30,7 +30,7 @@ class DefaultTorrentInfoRepository(
             is IResult.Error -> {
                 val result = externalScope.async {
                     val torrentId =
-                        localDataSource.saveTorrentInfo(torrentInfo.asTorrentInfoEntity())
+                        localDataSource.saveTorrentInfo(torrentInfo.asTorrentInfoEntity(downloadPath))
                     if (torrentId > 0) {
                         saveTorrentFileInfos(torrentInfo, torrentId)
                     }
@@ -42,8 +42,8 @@ class DefaultTorrentInfoRepository(
         }
     }
 
-    override suspend fun getTorrentByHash(hash: String): IResult<Map<TorrentInfoEntity, List<TorrentFileInfoEntity>>> {
-        return localDataSource.getTorrentByHash(hash)
+    override suspend fun getTorrentByHash(hash: String,torrentPath:String): IResult<Map<TorrentInfoEntity, List<TorrentFileInfoEntity>>> {
+        return localDataSource.getTorrentByHash(hash,torrentPath)
     }
 
     override suspend fun getTorrentById(torrentId: Long): IResult<Map<TorrentInfoEntity, List<TorrentFileInfoEntity>>> {
