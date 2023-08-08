@@ -97,6 +97,7 @@ object EngineModule {
         downloadTaskRepo: IDownloadTaskRepository,
         @LocalConfigurationDataSource configurationDataSource: IConfigurationDataSource,
         configRepo: IConfigurationRepository,
+        torrentInfoRepo: ITorrentInfoRepository,
         @DefaultDispatcher defaultDispatcher: CoroutineDispatcher,
         @IoDispatcher ioDispatcher: CoroutineDispatcher
     ): IEngineRepository {
@@ -106,6 +107,7 @@ object EngineModule {
             downloadTaskRepo = downloadTaskRepo,
             configurationDataSource = configurationDataSource,
             configRepo = configRepo,
+            torrentInfoRepo= torrentInfoRepo,
             defaultDispatcher = defaultDispatcher,
             ioDispatcher=ioDispatcher
         )

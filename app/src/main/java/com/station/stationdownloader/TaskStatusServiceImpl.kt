@@ -9,6 +9,7 @@ import com.station.stationdownloader.data.source.IDownloadTaskRepository
 import com.station.stationdownloader.data.source.IEngineRepository
 import com.station.stationdownloader.data.source.ITorrentInfoRepository
 import com.station.stationdownloader.data.source.local.engine.NewTaskConfigModel
+import com.station.stationdownloader.data.source.local.room.entities.asRemoteTorrentInfo
 import com.station.stationdownloader.data.source.remote.json.RemoteStartTask
 import com.station.stationdownloader.data.source.remote.json.RemoteStopTask
 import com.station.stationdownloader.data.source.remote.json.RemoteSubFileInfo
@@ -17,6 +18,7 @@ import com.station.stationdownloader.data.source.remote.json.RemoteTaskStatus
 import com.station.stationdownloader.data.source.remote.json.RemoteTorrentInfo
 import com.station.stationdownloader.utils.TaskTools
 import com.station.stationkitkt.MoshiHelper
+import com.xunlei.downloadlib.parameter.TorrentInfo
 import dagger.hilt.EntryPoint
 import dagger.hilt.InstallIn
 import dagger.hilt.android.EntryPointAccessors
@@ -229,29 +231,34 @@ class TaskStatusServiceImpl(
             }
             val torrentMap = (mapResult as IResult.Success).data
             torrentMap.keys.firstOrNull()?.let {
-                val remoteTorrentInfo = RemoteTorrentInfo(
-                    file_count = it.fileCount,
-                    info_hash = it.hash,
-                    is_multi_files = it.isMultiFiles,
-                    name = File(it.torrentPath).nameWithoutExtension,
-                    sub_fileinfo = torrentMap[it]?.map {
-                        RemoteSubFileInfo(
-                            file_index = it.fileIndex,
-                            file_name = it.fileName,
-                            file_size = it.fileSize,
-                            is_selected = TaskTools.isVideoFile(it.fileName)
-                        )
-                    } ?: emptyList(),
-                    url = it.torrentPath
-                )
-                callback?.onResult(MoshiHelper.toJson(remoteTorrentInfo))
+                callback?.onResult(MoshiHelper.toJson(it.asRemoteTorrentInfo(torrentMap[it])))
             }
         }
 
     }
 
+
     override fun dumpTorrentInfo(torrentPath: String?, callback: ITaskServiceCallback?) {
-        TODO("Not yet implemented")
+        serviceScope.launch {
+            getTorrentInfo(torrentPath, callback)
+        }
+    }
+
+    suspend fun getTorrentInfo(torrentPath: String?, callback: ITaskServiceCallback?) {
+        if (torrentPath == null) {
+            callback?.onFailed("torrentPath is null", TaskExecuteError.NOT_SUPPORT_URL.ordinal)
+            return
+        }
+        val result = engineRepo.getTorrentInfo(torrentPath)
+        if (result is IResult.Error) {
+            callback?.onFailed(result.exception.message, result.code)
+            return
+        }
+        val dataMap = (result as IResult.Success).data
+        dataMap.keys.firstOrNull()?.let {
+            callback?.onResult(MoshiHelper.toJson(it.asRemoteTorrentInfo(dataMap[it])))
+        }
+
     }
 
     override fun deleteTask(

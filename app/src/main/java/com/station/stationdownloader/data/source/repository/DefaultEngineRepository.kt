@@ -1,6 +1,5 @@
 package com.station.stationdownloader.data.source.repository
 
-import com.orhanobut.logger.Logger
 import com.station.stationdownloader.DownloadEngine
 import com.station.stationdownloader.DownloadTaskStatus
 import com.station.stationdownloader.DownloadUrlType
@@ -16,16 +15,20 @@ import com.station.stationdownloader.data.source.IConfigurationDataSource
 import com.station.stationdownloader.data.source.IConfigurationRepository
 import com.station.stationdownloader.data.source.IDownloadTaskRepository
 import com.station.stationdownloader.data.source.IEngineRepository
+import com.station.stationdownloader.data.source.ITorrentInfoRepository
 import com.station.stationdownloader.data.source.local.engine.IEngine
 import com.station.stationdownloader.data.source.local.engine.NewTaskConfigModel
 import com.station.stationdownloader.data.source.local.engine.xl.XLEngine
 import com.station.stationdownloader.data.source.local.model.StationDownloadTask
 import com.station.stationdownloader.data.source.local.model.asXLDownloadTaskEntity
+import com.station.stationdownloader.data.source.local.room.entities.TorrentFileInfoEntity
+import com.station.stationdownloader.data.source.local.room.entities.TorrentInfoEntity
 import com.station.stationdownloader.data.source.local.room.entities.asStationDownloadTask
 import com.xunlei.downloadlib.XLDownloadManager
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import java.io.File
 import java.util.concurrent.atomic.AtomicInteger
 
 class DefaultEngineRepository(
@@ -34,6 +37,7 @@ class DefaultEngineRepository(
     private val downloadTaskRepo: IDownloadTaskRepository,
     private val configurationDataSource: IConfigurationDataSource,
     private val configRepo: IConfigurationRepository,
+    private val torrentInfoRepo: ITorrentInfoRepository,
     private val defaultDispatcher: CoroutineDispatcher = Dispatchers.Default,
     private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO,
 
@@ -65,6 +69,48 @@ class DefaultEngineRepository(
     override suspend fun initUrl(url: String): IResult<NewTaskConfigModel> {
         return xlEngine.initUrl(url)
     }
+
+    override suspend fun getTorrentInfo(torrentPath: String): IResult<Map<TorrentInfoEntity, List<TorrentFileInfoEntity>>> =
+        withContext(defaultDispatcher) {
+            if (torrentPath.isEmpty()) {
+                return@withContext IResult.Error(
+                    Exception(TaskExecuteError.NOT_SUPPORT_URL.name),
+                    TaskExecuteError.NOT_SUPPORT_URL.ordinal
+                )
+            }
+            if (!File(torrentPath).exists()) {
+                return@withContext IResult.Error(
+                    Exception(TaskExecuteError.TORRENT_FILE_NOT_FOUND.name),
+                    TaskExecuteError.TORRENT_FILE_NOT_FOUND.ordinal
+                )
+            }
+            xlEngine as XLEngine
+            val torrentInfoEntityResult = torrentInfoRepo.getTorrentByPath(torrentPath)
+            if (torrentInfoEntityResult is IResult.Success) {
+                val torrentInfoMap = torrentInfoEntityResult.data
+                if (torrentInfoMap.isNotEmpty()) {
+                    return@withContext IResult.Success(torrentInfoMap)
+                }
+            }
+
+            val torrentInfoResult = xlEngine.getTorrentInfo(torrentPath)
+            if (torrentInfoResult is IResult.Error) {
+                return@withContext torrentInfoResult
+            }
+
+            val torrentInfo = (torrentInfoResult as IResult.Success).data
+            val torrentIdResult =
+                torrentInfoRepo.saveTorrentInfo(
+                    torrentInfo = torrentInfo,
+                    torrentPath = torrentPath
+                )
+            if (torrentIdResult is IResult.Error) {
+                return@withContext torrentIdResult
+            }
+
+            val torrentId = (torrentIdResult as IResult.Success).data
+            return@withContext torrentInfoRepo.getTorrentById(torrentId)
+        }
 
     override suspend fun startTask(stationDownloadTask: StationDownloadTask): IResult<Long> =
         withContext(defaultDispatcher) {

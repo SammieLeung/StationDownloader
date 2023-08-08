@@ -19,35 +19,41 @@ class DefaultTorrentInfoRepository(
     private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO
 ) : ITorrentInfoRepository {
 
-    override suspend fun saveTorrentInfo(torrentInfo: TorrentInfo, downloadPath: String): Long {
-        return when (
-            val result = localDataSource.getTorrentId(torrentInfo.mInfoHash,downloadPath)
-        ) {
-            is IResult.Success -> {
-                result.data
-            }
-
-            is IResult.Error -> {
-                val result = externalScope.async {
-                    val torrentId =
-                        localDataSource.saveTorrentInfo(torrentInfo.asTorrentInfoEntity(downloadPath))
-                    if (torrentId > 0) {
-                        saveTorrentFileInfos(torrentInfo, torrentId)
-                    }
-                    torrentId
-                }
-
-                return result.await()
-            }
+    override suspend fun saveTorrentInfo(
+        torrentInfo: TorrentInfo,
+        torrentPath: String
+    ): IResult<Long> {
+        val result = localDataSource.getTorrentId(torrentInfo.mInfoHash, torrentPath)
+        if (result is IResult.Success) {
+            return result
         }
+
+        val deferred = externalScope.async {
+            val torrentIdResult =
+                localDataSource.saveTorrentInfo(torrentInfo.asTorrentInfoEntity(torrentPath))
+            val torrentId = (torrentIdResult as IResult.Success).data
+            if (torrentId > 0) {
+                saveTorrentFileInfos(torrentInfo, torrentId)
+            }
+            torrentIdResult
+        }
+
+        return deferred.await()
     }
 
-    override suspend fun getTorrentByHash(hash: String,torrentPath:String): IResult<Map<TorrentInfoEntity, List<TorrentFileInfoEntity>>> {
-        return localDataSource.getTorrentByHash(hash,torrentPath)
+    override suspend fun getTorrentByHash(
+        hash: String,
+        torrentPath: String
+    ): IResult<Map<TorrentInfoEntity, List<TorrentFileInfoEntity>>> {
+        return localDataSource.getTorrentByHash(hash, torrentPath)
     }
 
     override suspend fun getTorrentById(torrentId: Long): IResult<Map<TorrentInfoEntity, List<TorrentFileInfoEntity>>> {
         return localDataSource.getTorrentById(torrentId)
+    }
+
+    override suspend fun getTorrentByPath(torrentPath: String): IResult<Map<TorrentInfoEntity, List<TorrentFileInfoEntity>>> {
+       return localDataSource.getTorrentByPath(torrentPath)
     }
 
     /**

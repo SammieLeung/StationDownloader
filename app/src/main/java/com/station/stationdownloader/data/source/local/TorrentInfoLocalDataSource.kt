@@ -1,5 +1,6 @@
 package com.station.stationdownloader.data.source.local
 
+import com.station.stationdownloader.contants.TaskExecuteError
 import com.station.stationdownloader.data.IResult
 import com.station.stationdownloader.data.source.ITorrentInfoDataSource
 import com.station.stationdownloader.data.source.local.room.dao.TorrentFileInfoDao
@@ -17,22 +18,42 @@ class TorrentInfoLocalDataSource internal constructor(
 ) : ITorrentInfoDataSource {
     override suspend fun saveTorrentInfo(torrentInfo: TorrentInfoEntity) =
         withContext(ioDispatcher) {
-            torrentInfoDao.insertTorrentInfo(torrentInfo)
+            val torrentId = torrentInfoDao.insertTorrentInfo(torrentInfo)
+            if (torrentId > 0) {
+                return@withContext IResult.Success(torrentId)
+            } else {
+                return@withContext IResult.Error(
+                    Exception(TaskExecuteError.INSERT_TORRENT_INFO_FAILED.name),
+                    TaskExecuteError.INSERT_TORRENT_INFO_FAILED.ordinal
+                )
+            }
         }
 
     override suspend fun saveTorrentFileInfo(torrentFileInfo: TorrentFileInfoEntity) =
         withContext(ioDispatcher) {
-            torrentFileInfoDao.insertTorrentFileInfo(torrentFileInfo)
+            val torrentFileInfoId = torrentFileInfoDao.insertTorrentFileInfo(torrentFileInfo)
+            if (torrentFileInfoId > 0) {
+                return@withContext IResult.Success(torrentFileInfoId)
+            } else {
+                return@withContext IResult.Error(
+                    Exception(TaskExecuteError.INSERT_TORRENT_FILE_INFO_FAILED.name),
+                    TaskExecuteError.INSERT_TORRENT_FILE_INFO_FAILED.ordinal
+                )
+            }
         }
 
 
-    override suspend fun getTorrentId(hash: String,torrentPath:String): IResult<Long> = withContext(ioDispatcher) {
-        val tId = torrentInfoDao.getTorrentId(hash,torrentPath)
-        if (tId > 0L) {
-            return@withContext IResult.Success(tId)
+    override suspend fun getTorrentId(hash: String, torrentPath: String): IResult<Long> =
+        withContext(ioDispatcher) {
+            val tId = torrentInfoDao.getTorrentId(hash, torrentPath)
+            if (tId > 0L) {
+                return@withContext IResult.Success(tId)
+            }
+            return@withContext IResult.Error(
+                Exception(TaskExecuteError.QUERY_TORRENT_ID_FAILED.name),
+                TaskExecuteError.QUERY_TORRENT_ID_FAILED.ordinal
+            )
         }
-        return@withContext IResult.Error(Exception("torrentId Error"))
-    }
 
     override suspend fun getTorrentFileInfo(
         torrentId: Long,
@@ -43,13 +64,19 @@ class TorrentInfoLocalDataSource internal constructor(
             if (fileInfo != null) {
                 IResult.Success(fileInfo)
             } else {
-                IResult.Error(Exception("TorrentFileInfo not found!"))
+                IResult.Error(
+                    Exception(TaskExecuteError.QUERY_TORRENT_FILE_INFO_FAILED.name),
+                    TaskExecuteError.QUERY_TORRENT_FILE_INFO_FAILED.ordinal
+                )
             }
         }
 
-    override suspend fun getTorrentByHash(hash: String,torrentPath:String): IResult<Map<TorrentInfoEntity, List<TorrentFileInfoEntity>>> =
+    override suspend fun getTorrentByHash(
+        hash: String,
+        torrentPath: String
+    ): IResult<Map<TorrentInfoEntity, List<TorrentFileInfoEntity>>> =
         withContext(ioDispatcher) {
-            val result = torrentInfoDao.getTorrentByHash(hash,torrentPath)
+            val result = torrentInfoDao.getTorrentByHash(hash, torrentPath)
             IResult.Success(result)
         }
 
@@ -59,7 +86,23 @@ class TorrentInfoLocalDataSource internal constructor(
             if (result.isNotEmpty()) {
                 return@withContext IResult.Success(result)
             } else {
-                return@withContext IResult.Error(Exception("TorrentInfo not found!"))
+                return@withContext IResult.Error(
+                    Exception(TaskExecuteError.QUERY_TORRENT_FAILED.name),
+                    TaskExecuteError.QUERY_TORRENT_FAILED.ordinal
+                )
+            }
+        }
+
+    override suspend fun getTorrentByPath(torrentPath: String): IResult<Map<TorrentInfoEntity, List<TorrentFileInfoEntity>>> =
+        withContext(ioDispatcher) {
+            val result = torrentInfoDao.getTorrentByPath(torrentPath)
+            if (result.isNotEmpty()) {
+                return@withContext IResult.Success(result)
+            } else {
+                return@withContext IResult.Error(
+                    Exception(TaskExecuteError.QUERY_TORRENT_FAILED.name),
+                    TaskExecuteError.QUERY_TORRENT_FAILED.ordinal
+                )
             }
         }
 

@@ -4,8 +4,6 @@ import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.Index
 import androidx.room.PrimaryKey
-import com.station.stationdownloader.data.source.local.model.StationTorrentFileInfo
-import com.station.stationdownloader.data.source.remote.json.RemoteSubFileInfo
 import com.xunlei.downloadlib.parameter.TorrentFileInfo
 
 @Entity(
@@ -41,12 +39,3 @@ fun TorrentFileInfo.asTorrentFileInfoEntity(torrentId: Long): TorrentFileInfoEnt
     )
 }
 
-fun TorrentFileInfo.asStationTorrentFileInfo(): StationTorrentFileInfo {
-    return StationTorrentFileInfo(
-        fileIndex = this.mFileIndex,
-        fileName = this.mFileName,
-        fileSize = this.mFileSize,
-        realIndex = this.mRealIndex,
-        subPath = this.mSubPath
-    )
-}

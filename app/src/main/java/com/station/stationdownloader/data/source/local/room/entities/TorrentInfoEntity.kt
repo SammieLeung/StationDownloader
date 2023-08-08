@@ -4,8 +4,11 @@ import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.Index
 import androidx.room.PrimaryKey
-import com.station.stationdownloader.data.source.local.model.StationTorrentInfo
+import com.station.stationdownloader.data.source.remote.json.RemoteSubFileInfo
+import com.station.stationdownloader.data.source.remote.json.RemoteTorrentInfo
+import com.station.stationdownloader.utils.TaskTools
 import com.xunlei.downloadlib.parameter.TorrentInfo
+import java.io.File
 
 @Entity(
     tableName = "torrent_info",
@@ -36,12 +39,20 @@ fun TorrentInfo.asTorrentInfoEntity(torrentPath:String): TorrentInfoEntity {
     )
 }
 
- fun TorrentInfo.asStationTorrentInfo(): StationTorrentInfo {
-    return StationTorrentInfo(
-        fileCount = this.mFileCount,
-        hash = this.mInfoHash,
-        isMultiFiles = this.mIsMultiFiles,
-        multiFileBaseFolder = this.mMultiFileBaseFolder,
-        subFileInfo = this.mSubFileInfo.map { it.asStationTorrentFileInfo() }
+fun TorrentInfoEntity.asRemoteTorrentInfo(torrentFileInfoEntityList:List<TorrentFileInfoEntity>?):RemoteTorrentInfo{
+    return RemoteTorrentInfo(
+        file_count = this.fileCount,
+        info_hash = this.hash,
+        is_multi_files = this.isMultiFiles,
+        name = File(this.torrentPath).nameWithoutExtension,
+        sub_fileinfo = torrentFileInfoEntityList?.map {
+            RemoteSubFileInfo(
+                file_index = it.fileIndex,
+                file_name = it.fileName,
+                file_size = it.fileSize,
+                is_selected = TaskTools.isVideoFile(it.fileName)
+            )
+        } ?: emptyList(),
+        url = this.torrentPath
     )
 }

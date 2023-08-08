@@ -180,7 +180,18 @@ class XLEngine internal constructor(
         return IResult.Success(Unit)
     }
 
-    suspend fun getTaskInfo(taskId: Long): XLTaskInfo = XLTaskHelper.instance().getTaskInfo(taskId)
+    suspend fun getTaskInfo(taskId: Long): XLTaskInfo =
+        withContext(defaultDispatcher) { XLTaskHelper.instance().getTaskInfo(taskId) }
+
+    suspend fun getTorrentInfo(torrentPath: String): IResult<TorrentInfo> =
+        withContext(defaultDispatcher) {
+            val torrentInfo = XLTaskHelper.instance().getTorrentInfo(torrentPath)
+                ?: return@withContext IResult.Error(
+                    Exception(TaskExecuteError.TORRENT_INFO_IS_NULL.name),
+                    TaskExecuteError.TORRENT_INFO_IS_NULL.ordinal
+                )
+            return@withContext IResult.Success(torrentInfo)
+        }
 
     private suspend fun autoDownloadTorrent(
         magnetUrl: String, downloadPath: String, torrentFileName: String
@@ -335,10 +346,13 @@ class XLEngine internal constructor(
         val downloadPath =
             File(configurationDataSource.getDownloadPath()).path
         val fileCount = torrentInfo.mFileCount
-        val torrentId = torrentInfoRepo.saveTorrentInfo(torrentInfo, torrentUrl)
+        val torrentIdResult = torrentInfoRepo.saveTorrentInfo(torrentInfo, torrentUrl)
+        if (torrentIdResult is IResult.Error) {
+            return torrentIdResult
+        }
         return IResult.Success(
             NewTaskConfigModel.TorrentTask(
-                torrentId = torrentId,
+                torrentId = (torrentIdResult as IResult.Success).data,
                 torrentPath = torrentUrl,
                 taskName = taskName,
                 downloadPath = downloadPath,

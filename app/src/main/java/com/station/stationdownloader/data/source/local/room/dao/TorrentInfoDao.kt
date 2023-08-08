@@ -40,4 +40,10 @@ interface TorrentInfoDao {
     )
     suspend fun getTorrentId(hash: String,torrentPath:String): Long
 
+    @Query(
+        "SELECT * FROM torrent_info AS TI " +
+                "JOIN torrent_file_info AS TFI ON TFI.torrent_id = TI.id WHERE TI.torrent_path=:torrentPath"
+    )
+    suspend fun getTorrentByPath(torrentPath: String): Map<TorrentInfoEntity, List<TorrentFileInfoEntity>>
+
 }
