@@ -2,6 +2,7 @@ package com.station.stationdownloader
 
 import android.provider.ContactsContract.Directory
 import com.orhanobut.logger.Logger
+import com.squareup.moshi.Json
 import com.station.stationdownloader.contants.TaskExecuteError
 import com.station.stationdownloader.data.IResult
 import com.station.stationdownloader.data.source.IConfigurationRepository
@@ -10,6 +11,7 @@ import com.station.stationdownloader.data.source.IEngineRepository
 import com.station.stationdownloader.data.source.ITorrentInfoRepository
 import com.station.stationdownloader.data.source.local.engine.NewTaskConfigModel
 import com.station.stationdownloader.data.source.local.room.entities.asRemoteTorrentInfo
+import com.station.stationdownloader.data.source.remote.json.RemoteDeviceStorage
 import com.station.stationdownloader.data.source.remote.json.RemoteStartTask
 import com.station.stationdownloader.data.source.remote.json.RemoteStopTask
 import com.station.stationdownloader.data.source.remote.json.RemoteSubFileInfo
@@ -26,6 +28,7 @@ import dagger.hilt.components.SingletonComponent
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import org.json.JSONArray
 import java.io.File
 
 class TaskStatusServiceImpl(
@@ -180,7 +183,17 @@ class TaskStatusServiceImpl(
     }
 
     override fun getDownloadPath(callback: ITaskServiceCallback?) {
-        TODO("Not yet implemented")
+        serviceScope.launch {
+            callback?.onResult(
+                MoshiHelper.toJson(
+                    RemoteDeviceStorage(
+                        configRepo.getDownloadPath(),
+                        File(configRepo.getDownloadPath()).freeSpace,
+                        File(configRepo.getDownloadPath()).totalSpace
+                    )
+                )
+            )
+        }
     }
 
     override fun getTorrentList(callback: ITaskServiceCallback?) {
