@@ -8,6 +8,7 @@ import com.station.stationdownloader.data.source.local.model.TreeNode
 import com.station.stationdownloader.data.source.local.model.getSelectedFileIndexes
 import com.station.stationdownloader.data.source.local.model.setSelectFileIndexes
 import com.station.stationdownloader.data.source.local.room.entities.XLDownloadTaskEntity
+import com.station.stationdownloader.data.source.remote.json.RemoteTorrentInfo
 import java.io.File
 
 sealed class NewTaskConfigModel(

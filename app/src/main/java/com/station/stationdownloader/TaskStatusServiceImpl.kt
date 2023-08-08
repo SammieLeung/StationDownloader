@@ -1,14 +1,19 @@
 package com.station.stationdownloader
 
+import android.provider.ContactsContract.Directory
 import com.orhanobut.logger.Logger
 import com.station.stationdownloader.contants.TaskExecuteError
 import com.station.stationdownloader.data.IResult
 import com.station.stationdownloader.data.source.IConfigurationRepository
 import com.station.stationdownloader.data.source.IDownloadTaskRepository
 import com.station.stationdownloader.data.source.IEngineRepository
+import com.station.stationdownloader.data.source.ITorrentInfoRepository
+import com.station.stationdownloader.data.source.local.engine.NewTaskConfigModel
 import com.station.stationdownloader.data.source.remote.json.RemoteStartTask
+import com.station.stationdownloader.data.source.remote.json.RemoteStopTask
 import com.station.stationdownloader.data.source.remote.json.RemoteTask
 import com.station.stationdownloader.data.source.remote.json.RemoteTaskStatus
+import com.station.stationdownloader.data.source.remote.json.RemoteTorrentInfo
 import com.station.stationkitkt.MoshiHelper
 import dagger.hilt.EntryPoint
 import dagger.hilt.InstallIn
@@ -40,6 +45,9 @@ class TaskStatusServiceImpl(
     private val configRepo: IConfigurationRepository by lazy {
         entryPoint.getConfigRepo()
     }
+    private val torrentRepo: ITorrentInfoRepository by lazy {
+        entryPoint.getTorrentRepo()
+    }
 
     @EntryPoint
     @InstallIn(SingletonComponent::class)
@@ -47,88 +55,20 @@ class TaskStatusServiceImpl(
         fun getEngineRepo(): IEngineRepository
         fun getTaskRepo(): IDownloadTaskRepository
         fun getConfigRepo(): IConfigurationRepository
+        fun getTorrentRepo(): ITorrentInfoRepository
     }
 
     fun getService(): TaskService = service
 
-    private suspend fun handleGetTaskList(callback: ITaskServiceCallback?) {
-        val taskList = taskRepo.getTasks()
-        taskList.map {
-            val taskId = service.getRunningTaskMap()[it.url]?.taskId ?: -1L
-            RemoteTask(
-                id = it.id,
-                down_size = it.downloadSize,
-                download_path = it.downloadPath,
-                file_count = it.fileCount,
-                is_multifile = it.fileCount > 1,
-                is_torrent_task = it.torrentId > 0,
-                status = when (it.status) {
-                    DownloadTaskStatus.DOWNLOADING -> {
-                        ITaskState.RUNNING.code
-                    }
 
-                    DownloadTaskStatus.COMPLETED -> {
-                        ITaskState.DONE.code
-                    }
-
-                    else -> {
-                        ITaskState.STOP.code
-                    }
-                },
-                task_id = taskId,
-                task_name = it.name,
-                total_size = it.totalSize,
-                url = it.url,
-                create_time = it.createTime
-            )
-        }.let {
-            callback?.onResult(MoshiHelper.toJson(it))
-        }
-    }
-
-    private suspend fun handleTaskStatus(url: String?, callback: ITaskServiceCallback?) {
-        if (url == null)
-            return
-        service.getRunningTaskMap()[url]?.let {
-            RemoteTaskStatus(
-                download_size = it.downloadSize,
-                speed = it.speed,
-                status = it.status,
-                url = it.url,
-                is_done = it.status == ITaskState.DONE.code,
-                total_size = it.totalSize,
-                task_id = it.taskId
-            ).let {
-                callback?.onResult(MoshiHelper.toJson(it))
-            }
-        }?:run {
-            taskRepo.getTaskByUrl(url)?.let {
-                RemoteTaskStatus(
-                    download_size = it.downloadSize,
-                    speed = 0,
-                    status = when(it.status){
-                        DownloadTaskStatus.DOWNLOADING->{
-                            ITaskState.RUNNING.code
-                        }
-
-                        DownloadTaskStatus.COMPLETED->{
-                            ITaskState.DONE.code
-                        }
-
-                        else->{
-                            ITaskState.STOP.code
-                        }
-                    },
-                    url = it.url,
-                    is_done = it.status == DownloadTaskStatus.COMPLETED,
-                    total_size = it.totalSize,
-                    task_id = -1L
-                ).let {
-                    callback?.onResult(MoshiHelper.toJson(it))
-                    return@run
-                }
-            }
-            callback?.onFailed("task not found", TaskExecuteError.TASK_NOT_FOUND.ordinal)
+    override fun startTask(
+        url: String?,
+        path: String?,
+        selectIndexes: IntArray?,
+        callback: ITaskServiceCallback?
+    ) {
+        serviceScope.launch {
+            handleStartTask(url, path, selectIndexes, callback)
         }
     }
 
@@ -138,8 +78,10 @@ class TaskStatusServiceImpl(
         selectIndexes: IntArray?,
         callback: ITaskServiceCallback?
     ) {
-        if (url == null)
+        if (url == null) {
+            callback?.onFailed("url is null", TaskExecuteError.NOT_SUPPORT_URL.ordinal)
             return
+        }
         val newTaskResult = engineRepo.initUrl(url)
         if (newTaskResult is IResult.Error) {
             Logger.e(newTaskResult.exception.message.toString())
@@ -215,19 +157,13 @@ class TaskStatusServiceImpl(
         }
     }
 
-    override fun startTask(
-        url: String?,
-        path: String?,
-        selectIndexes: IntArray?,
-        callback: ITaskServiceCallback?
-    ) {
-        serviceScope.launch {
-            handleStartTask(url, path, selectIndexes, callback)
-        }
-    }
-
     override fun stopTask(url: String?, callback: ITaskServiceCallback?) {
-        TODO("Not yet implemented")
+        serviceScope.launch {
+            url?.let {
+                TaskService.stopTask(service.applicationContext, it)
+                callback?.onResult(MoshiHelper.toJson(RemoteStopTask(it)))
+            }
+        }
     }
 
     override fun startAllTasks(callback: ITaskServiceCallback?) {
@@ -255,7 +191,36 @@ class TaskStatusServiceImpl(
         torrentName: String?,
         callback: ITaskServiceCallback?
     ) {
-        TODO("Not yet implemented")
+        serviceScope.launch {
+            handleInitMagnetUri(url, torrentName, callback)
+        }
+    }
+
+    private suspend fun handleInitMagnetUri(
+        url: String?,
+        torrentName: String?,
+        callback: ITaskServiceCallback?
+    ) {
+        if (url == null) {
+            callback?.onFailed("url is null", TaskExecuteError.NOT_SUPPORT_URL.ordinal)
+            return
+        }
+        val newTaskConfigModelResult = engineRepo.initUrl(url)
+        if (newTaskConfigModelResult is IResult.Error) {
+            callback?.onFailed(
+                newTaskConfigModelResult.exception.message,
+                newTaskConfigModelResult.code
+            )
+            return
+        }
+        val newTaskConfigModel = newTaskConfigModelResult as IResult.Success
+
+        if (newTaskConfigModel.data is NewTaskConfigModel.TorrentTask) {
+            val torrentId = newTaskConfigModel.data.torrentId
+            torrentRepo.getTorrentByHash()
+
+        }
+
     }
 
     override fun dumpTorrentInfo(torrentPath: String?, callback: ITaskServiceCallback?) {
@@ -272,9 +237,90 @@ class TaskStatusServiceImpl(
         }
     }
 
+    private suspend fun handleGetTaskList(callback: ITaskServiceCallback?) {
+        val taskList = taskRepo.getTasks()
+        taskList.map {
+            val taskId = service.getRunningTaskMap()[it.url]?.taskId ?: -1L
+            RemoteTask(
+                id = it.id,
+                down_size = it.downloadSize,
+                download_path = it.downloadPath,
+                file_count = it.fileCount,
+                is_multifile = it.fileCount > 1,
+                is_torrent_task = it.torrentId > 0,
+                status = when (it.status) {
+                    DownloadTaskStatus.DOWNLOADING -> {
+                        ITaskState.RUNNING.code
+                    }
+
+                    DownloadTaskStatus.COMPLETED -> {
+                        ITaskState.DONE.code
+                    }
+
+                    else -> {
+                        ITaskState.STOP.code
+                    }
+                },
+                task_id = taskId,
+                task_name = it.name,
+                total_size = it.totalSize,
+                url = it.url,
+                create_time = it.createTime
+            )
+        }.let {
+            callback?.onResult(MoshiHelper.toJson(it))
+        }
+    }
+
     override fun getDownloadStatus(url: String?, callback: ITaskServiceCallback?) {
         serviceScope.launch {
             handleTaskStatus(url, callback)
+        }
+    }
+
+    private suspend fun handleTaskStatus(url: String?, callback: ITaskServiceCallback?) {
+        if (url == null)
+            return
+        service.getRunningTaskMap()[url]?.let {
+            RemoteTaskStatus(
+                download_size = it.downloadSize,
+                speed = it.speed,
+                status = it.status,
+                url = it.url,
+                is_done = it.status == ITaskState.DONE.code,
+                total_size = it.totalSize,
+                task_id = it.taskId
+            ).let {
+                callback?.onResult(MoshiHelper.toJson(it))
+            }
+        } ?: run {
+            taskRepo.getTaskByUrl(url)?.let {
+                RemoteTaskStatus(
+                    download_size = it.downloadSize,
+                    speed = 0,
+                    status = when (it.status) {
+                        DownloadTaskStatus.DOWNLOADING -> {
+                            ITaskState.RUNNING.code
+                        }
+
+                        DownloadTaskStatus.COMPLETED -> {
+                            ITaskState.DONE.code
+                        }
+
+                        else -> {
+                            ITaskState.STOP.code
+                        }
+                    },
+                    url = it.url,
+                    is_done = it.status == DownloadTaskStatus.COMPLETED,
+                    total_size = it.totalSize,
+                    task_id = -1L
+                ).let {
+                    callback?.onResult(MoshiHelper.toJson(it))
+                    return@run
+                }
+            }
+            callback?.onFailed("task not found", TaskExecuteError.TASK_NOT_FOUND.ordinal)
         }
     }
 

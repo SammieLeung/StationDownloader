@@ -11,21 +11,33 @@ import com.station.stationdownloader.data.source.local.room.entities.TorrentInfo
 @Dao
 interface TorrentInfoDao {
     @Insert(onConflict = OnConflictStrategy.IGNORE)
-    suspend fun insertTorrentInfo(torrentInfo: TorrentInfoEntity):Long
+    suspend fun insertTorrentInfo(torrentInfo: TorrentInfoEntity): Long
 
     @Update
-    suspend fun updateTorrentInfo(torrentInfo: TorrentInfoEntity):Int
+    suspend fun updateTorrentInfo(torrentInfo: TorrentInfoEntity): Int
 
-    @Query("SELECT * FROM torrent_info AS TI " +
-            "JOIN torrent_file_info AS TFI ON TFI.torrent_id = TI.id ")
-    suspend fun getTorrentInfo():Map<TorrentInfoEntity,List<TorrentFileInfoEntity>>
+    @Query(
+        "SELECT * FROM torrent_info AS TI " +
+                "JOIN torrent_file_info AS TFI ON TFI.torrent_id = TI.id "
+    )
+    suspend fun getTorrentInfo(): Map<TorrentInfoEntity, List<TorrentFileInfoEntity>>
 
-    @Query("SELECT * FROM torrent_info AS TI " +
-            "JOIN torrent_file_info AS TFI ON TFI.torrent_id = TI.id WHERE TI.hash=:hash")
-    suspend fun getTorrentByHash(hash:String):Map<TorrentInfoEntity,List<TorrentFileInfoEntity>>
+    @Query(
+        "SELECT * FROM torrent_info AS TI " +
+                "JOIN torrent_file_info AS TFI ON TFI.torrent_id = TI.id WHERE TI.hash=:hash"
+    )
+    suspend fun getTorrentByHash(hash: String): Map<TorrentInfoEntity, List<TorrentFileInfoEntity>>
 
-    @Query("SELECT id FROM torrent_info " +
-            "WHERE hash=:hash ")
-    suspend fun getTorrentId(hash:String):Long
+    @Query(
+        "SELECT * FROM torrent_info AS TI " +
+                "JOIN torrent_file_info AS TFI ON TFI.torrent_id = TI.id WHERE TI.id=:torrentId"
+    )
+    suspend fun getTorrentById(torrentId: Long): Map<TorrentInfoEntity, List<TorrentFileInfoEntity>>
+
+    @Query(
+        "SELECT id FROM torrent_info " +
+                "WHERE hash=:hash "
+    )
+    suspend fun getTorrentId(hash: String): Long
 
 }

@@ -46,6 +46,10 @@ class DefaultTorrentInfoRepository(
         return localDataSource.getTorrentByHash(hash)
     }
 
+    override suspend fun getTorrentById(torrentId: Long): IResult<Map<TorrentInfoEntity, List<TorrentFileInfoEntity>>> {
+        return localDataSource.getTorrentById(torrentId)
+    }
+
     /**
      * 保存TorrentFileInfo
      */

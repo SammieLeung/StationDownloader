@@ -52,4 +52,15 @@ class TorrentInfoLocalDataSource internal constructor(
             val result = torrentInfoDao.getTorrentByHash(hash)
             IResult.Success(result)
         }
+
+    override suspend fun getTorrentById(torrentId: Long): IResult<Map<TorrentInfoEntity, List<TorrentFileInfoEntity>>> =
+        withContext(ioDispatcher) {
+            val result = torrentInfoDao.getTorrentById(torrentId)
+            if (result.isNotEmpty()) {
+                return@withContext IResult.Success(result)
+            } else {
+                return@withContext IResult.Error(Exception("TorrentInfo not found!"))
+            }
+        }
+
 }

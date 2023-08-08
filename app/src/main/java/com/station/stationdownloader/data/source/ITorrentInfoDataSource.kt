@@ -11,4 +11,5 @@ interface ITorrentInfoDataSource {
     suspend fun getTorrentId(hash:String):IResult<Long>
     suspend fun getTorrentFileInfo(torrentId:Long,realIndex:Int):IResult<TorrentFileInfoEntity>
     suspend fun getTorrentByHash(hash: String): IResult<Map<TorrentInfoEntity, List<TorrentFileInfoEntity>>>
+    suspend fun getTorrentById(torrentId: Long): IResult<Map<TorrentInfoEntity, List<TorrentFileInfoEntity>>>
 }

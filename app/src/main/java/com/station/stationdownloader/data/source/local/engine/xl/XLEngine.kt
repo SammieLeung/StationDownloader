@@ -135,7 +135,7 @@ class XLEngine internal constructor(
                 val taskId = XLTaskHelper.instance().addTorrentTask(
                     url, downloadPath, deselectIndexes
                 )
-               logger("开始任务【$url】")
+                logger("开始任务【$url】")
                 logger("taskId【$taskId】")
                 if (taskId == -1L) {
                     return@withContext IResult.Error(
@@ -182,7 +182,7 @@ class XLEngine internal constructor(
         return IResult.Success(Unit)
     }
 
-    suspend fun getTaskInfo(taskId: Long):XLTaskInfo = XLTaskHelper.instance().getTaskInfo(taskId)
+    suspend fun getTaskInfo(taskId: Long): XLTaskInfo = XLTaskHelper.instance().getTaskInfo(taskId)
 
     private suspend fun autoDownloadTorrent(
         magnetUrl: String, downloadPath: String, torrentFileName: String
