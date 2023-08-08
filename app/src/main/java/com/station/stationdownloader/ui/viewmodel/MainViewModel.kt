@@ -299,19 +299,16 @@ class MainViewModel @Inject constructor(
                         freeSpace.toHumanReading()
                     )
                     var freeSpaceState = FreeSpaceState.ENOUGH
-
-                    if (freeSpace < 100.MB||freeSpace / totalSpace < 0.02) {
-                        downloadPathSizeInfo = application.getString(
-                            R.string.download_size_info,
-                            freeSpace.toHumanReading()
-                        )
+                    if (freeSpace < 100.MB || freeSpace.toDouble() / totalSpace.toDouble() < 0.02) {
+                        downloadPathSizeInfo =
+                            "<font color=\"#FF9800\">${application.getString(R.string.free_space_shortage)}</font>"
+                        freeSpaceState = FreeSpaceState.FREE_SPACE_SHORTAGE
                     }
 
                     if (freeSpace < totalCheckedFileSize) {
-                        downloadPathSizeInfo = application.getString(
-                            R.string.download_size_info,
-                            freeSpace.toHumanReading()
-                        )
+                        downloadPathSizeInfo =
+                            "<font color=\"#FF1200\">${application.getString(R.string.free_space_not_enough)}</font>"
+                        freeSpaceState = FreeSpaceState.NOT_ENOUGH_SPACE
                     }
 
                     it.copy(
@@ -321,12 +318,11 @@ class MainViewModel @Inject constructor(
                                 checkedFileCount,
                                 totalCheckedFileSize.toHumanReading()
                             ),
-                            downloadPathSizeInfo = application.getString(R.string.free_space_shortage),
+                            downloadPathSizeInfo = downloadPathSizeInfo,
                             freeSpaceState = freeSpaceState
                         )
                     )
                 }
-
             }
         }
 
