@@ -354,6 +354,10 @@ sealed class TreeNode(
                             it.autoSelect(isSelect)
                         }
                     }
+
+                    FileType.ALL -> {
+                        it.autoSelect(isSelect)
+                    }
                 }
             }
         }

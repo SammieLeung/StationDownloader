@@ -61,10 +61,18 @@
                 android:theme="@style/AppTheme.CheckBox">
 
                 <CheckBox
+                    android:id="@+id/allCBox"
+                    style="@style/VideoTypeCheckBoxStyle"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/filter_all" />
+
+                <CheckBox
                     android:id="@+id/videoCBox"
                     style="@style/VideoTypeCheckBoxStyle"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
+                    android:layout_marginStart="22dp"
                     android:text="@string/filter_video" />
 
                 <CheckBox
@@ -93,8 +101,6 @@
             </LinearLayout>
 
             <TextView
-                android:textFontWeight="300"
-                android:textSize="@dimen/t4"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_below="@id/taskFileList"
@@ -102,7 +108,9 @@
                 android:layout_marginTop="15dp"
                 android:layout_toEndOf="@id/filterSets"
                 android:gravity="end|center_vertical"
-                android:text="@{taskSizeInfo}"/>
+                android:text="@{taskSizeInfo}"
+                android:textFontWeight="300"
+                android:textSize="@dimen/t4" />
 
             <Spinner
                 android:id="@+id/engineSpinner"

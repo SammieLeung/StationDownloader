@@ -148,13 +148,15 @@ class AddNewTaskDialogFragment : BaseDialogFragment<DialogFragmentAddNewTaskBind
             newTaskState.filter { it is NewTaskState.PreparingData }.map {
                 (it as NewTaskState.PreparingData).fileFilterGroup
             }.distinctUntilChanged().collect {
-                unBindCheckBox(videoCBox, audioCBox, otherCBox, pictureCBox)
+                unBindCheckBox(allCBox,videoCBox, audioCBox, otherCBox, pictureCBox)
 
+                allCBox.isChecked = it.selectAll
                 videoCBox.isChecked = it.selectVideo
                 audioCBox.isChecked = it.selectAudio
                 otherCBox.isChecked = it.selectOther
                 pictureCBox.isChecked = it.selectImage
 
+                bindCheckBox(allCBox, FileType.ALL, dialogAccept)
                 bindCheckBox(videoCBox, FileType.VIDEO, dialogAccept)
                 bindCheckBox(audioCBox, FileType.AUDIO, dialogAccept)
                 bindCheckBox(pictureCBox, FileType.IMG, dialogAccept)

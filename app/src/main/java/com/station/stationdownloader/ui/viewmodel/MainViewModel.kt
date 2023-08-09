@@ -255,6 +255,7 @@ class MainViewModel @Inject constructor(
                             FileType.AUDIO -> it.fileFilterGroup.copy(selectAudio = checkState.isSelect)
                             FileType.IMG -> it.fileFilterGroup.copy(selectImage = checkState.isSelect)
                             FileType.OTHER -> it.fileFilterGroup.copy(selectOther = checkState.isSelect)
+                            FileType.ALL -> it.fileFilterGroup.copy(selectAll = checkState.isSelect)
                         }
                         dialogAccept(DialogAction.CalculateSizeInfo)
                         it.copy(
@@ -376,6 +377,7 @@ data class TaskSizeInfo(
 )
 
 data class fileFilterGroup(
+    val selectAll:Boolean=false,
     val selectVideo: Boolean = true,
     val selectAudio: Boolean = false,
     val selectImage: Boolean = false,

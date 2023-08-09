@@ -35,6 +35,7 @@ enum class DownloadEngine:Serializable  {
 }
 
 enum class FileType:Serializable{
+    ALL,
     VIDEO,
     AUDIO,
     IMG,
