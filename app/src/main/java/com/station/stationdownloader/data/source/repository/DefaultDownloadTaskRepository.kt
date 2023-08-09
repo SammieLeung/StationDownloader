@@ -184,11 +184,11 @@ class DefaultDownloadTaskRepository(
                 }
 
                 is NewTaskConfigModel.TorrentTask -> {
-                    val (torrentId, torrentPath, taskName, downloadPath, _,engine,_) = newTask
+                    val (torrentId, magnetUrl,torrentPath, taskName, downloadPath, _,engine,_) = newTask
                     val realDownloadPath = File(downloadPath, taskName).path
                     saveTask(
                         torrentId = torrentId,
-                        originUrl = torrentPath,
+                        originUrl = magnetUrl.ifEmpty { torrentPath },
                         realUrl = torrentPath,
                         taskName = taskName,
                         urlType = DownloadUrlType.TORRENT,

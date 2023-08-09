@@ -18,6 +18,7 @@ import com.station.stationdownloader.data.source.remote.json.RemoteSubFileInfo
 import com.station.stationdownloader.data.source.remote.json.RemoteTask
 import com.station.stationdownloader.data.source.remote.json.RemoteTaskStatus
 import com.station.stationdownloader.data.source.remote.json.RemoteTorrentInfo
+import com.station.stationdownloader.utils.DLogger
 import com.station.stationdownloader.utils.TaskTools
 import com.station.stationkitkt.MoshiHelper
 import com.xunlei.downloadlib.parameter.TorrentInfo
@@ -34,7 +35,7 @@ import java.io.File
 class TaskStatusServiceImpl(
     private val service: TaskService,
     private val serviceScope: CoroutineScope
-) : ITaskStatusService.Stub() {
+) : ITaskStatusService.Stub(), DLogger {
     private val entryPoint: TaskStatusServiceEntryPoint
 
     init {
@@ -123,15 +124,15 @@ class TaskStatusServiceImpl(
             when (saveTaskResult.code) {
                 TaskExecuteError.REPEATING_TASK_NOTHING_CHANGED.ordinal -> {
                     saveTaskResult.exception.message?.let {
-                        val status = service.getRunningTaskMap()[url]
+                        val status = service.getRunningTaskMap()[it]
                         if (status == null || status.taskId < 0 || status.status == ITaskState.STOP.code) {
-                            startTaskAndWaitTaskId(url, callback)
+                            startTaskAndWaitTaskId(it, callback)
                         } else {
                             callback?.onResult(
                                 MoshiHelper.toJson(
                                     RemoteStartTask(
-                                        url,
-                                        service.getRunningTaskMap()[url]?.taskId ?: -1L
+                                        it,
+                                        service.getRunningTaskMap()[it]?.taskId ?: -1L
                                     )
                                 )
                             )
@@ -157,12 +158,14 @@ class TaskStatusServiceImpl(
             service.applicationContext,
             url
         )
-        while (service.getRunningTaskMap()[url] == null) {
+        var count=0
+        while (service.getRunningTaskMap()[url] == null&&count<100) {
+            count++
             delay(10)
         }
         service.getRunningTaskMap()[url]?.let {
             callback?.onResult(MoshiHelper.toJson(RemoteStartTask(url, it.taskId)))
-        }
+        }?:callback?.onFailed("start task failed",TaskExecuteError.START_TASK_FAILED.ordinal)
     }
 
     override fun stopTask(url: String?, callback: ITaskServiceCallback?) {
@@ -386,6 +389,10 @@ class TaskStatusServiceImpl(
 
     override fun getConfigSet(callback: ITaskServiceCallback?) {
         TODO("Not yet implemented")
+    }
+
+    override fun DLogger.tag(): String {
+        return "TaskStatusServiceImpl"
     }
 
 }

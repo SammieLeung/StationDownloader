@@ -71,7 +71,7 @@ class XLEngine internal constructor(
 
     override suspend fun initUrl(originUrl: String): IResult<NewTaskConfigModel> =
         withContext(defaultDispatcher) {
-            logger("initUrl")
+            logger("initUrl=$originUrl")
             var decodeUrl = TaskTools.getUrlDecodeUrl(originUrl)
 
             val isMagnetHash = TaskTools.isMagnetHash(decodeUrl)
@@ -205,7 +205,7 @@ class XLEngine internal constructor(
             if (taskId <= 0) {
                 val torrentFile = File(downloadPath, torrentFileName)
                 return if (torrentFile.isFile && torrentFile.exists()) {
-                    initTorrentUrl(torrentFile.path)
+                    initTorrentUrl(torrentFile.path,magnetUrl)
                 } else {
                     IResult.Error(
                         Exception(TaskExecuteError.ADD_MAGNET_TASK_ERROR.name),
@@ -230,7 +230,10 @@ class XLEngine internal constructor(
                         continue
                     }
 
-                    if (taskInfo.mFileSize == taskInfo.mDownloadSize) break
+                    if (taskInfo.mFileSize == taskInfo.mDownloadSize) {
+                        XLTaskHelper.instance().stopTask(taskId)
+                        break
+                    }
 
                     //延时轮询
                     delay(GET_MAGNET_TASK_INFO_DELAY)
@@ -238,7 +241,8 @@ class XLEngine internal constructor(
                 return@withTimeout initTorrentUrl(
                     File(
                         downloadPath, torrentFileName
-                    ).path
+                    ).path,
+                    magnetUrl
                 )
             }
         } catch (e: TimeoutCancellationException) {
@@ -266,6 +270,7 @@ class XLEngine internal constructor(
         val taskName = XLTaskHelper.instance().getFileName(realUrl)
         val downloadPath =
             File(configurationDataSource.getDownloadPath()).path
+        logger("initNormalUrl:realUrl=$realUrl originUrl=$originUrl")
         val normalTask = NewTaskConfigModel.NormalTask(
             originUrl = originUrl,
             url = realUrl,
@@ -276,7 +281,7 @@ class XLEngine internal constructor(
         )
 
         if (realUrl.urlType() == DownloadUrlType.MAGNET) {
-            return autoDownloadTorrent(realUrl, downloadPath, taskName)
+            return autoDownloadTorrent(originUrl, downloadPath, taskName)
         }
 
         if (realUrl.urlType() == DownloadUrlType.HTTP) {
@@ -326,7 +331,7 @@ class XLEngine internal constructor(
     /**
      * 初始化种子任务
      */
-    private suspend fun initTorrentUrl(torrentUrl: String): IResult<NewTaskConfigModel> {
+    private suspend fun initTorrentUrl(torrentUrl: String,magnetUrl: String=""): IResult<NewTaskConfigModel> {
         var torrentInfo =
             XLTaskHelper.instance().getTorrentInfo(torrentUrl) ?: return IResult.Error(
                 Exception(TaskExecuteError.TORRENT_INFO_IS_NULL.name),
@@ -354,6 +359,7 @@ class XLEngine internal constructor(
             NewTaskConfigModel.TorrentTask(
                 torrentId = (torrentIdResult as IResult.Success).data,
                 torrentPath = torrentUrl,
+                magnetUrl=magnetUrl,
                 taskName = taskName,
                 downloadPath = downloadPath,
                 fileCount = fileCount,
@@ -363,10 +369,10 @@ class XLEngine internal constructor(
     }
 
     private suspend fun getHttpFileHeader(httpUrl: String): IResult<FileContentHeader> {
-        try {
-            return IResult.Success(fileSizeApiService.getHttpFileHeader(httpUrl))
+        return try {
+            IResult.Success(fileSizeApiService.getHttpFileHeader(httpUrl))
         } catch (e: Exception) {
-            return IResult.Error(e, TaskExecuteError.GET_HTTP_FILE_HEADER_ERROR.ordinal)
+            IResult.Error(e, TaskExecuteError.GET_HTTP_FILE_HEADER_ERROR.ordinal)
         }
     }
 

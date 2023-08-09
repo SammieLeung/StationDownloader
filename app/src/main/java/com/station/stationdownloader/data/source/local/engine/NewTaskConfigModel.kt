@@ -37,6 +37,7 @@ sealed class NewTaskConfigModel(
 
     data class TorrentTask(
         val torrentId: Long,
+        val magnetUrl: String,
         val torrentPath: String,
         val taskName: String,
         val downloadPath: String,
@@ -74,6 +75,7 @@ sealed class NewTaskConfigModel(
                 TorrentTask(
                     torrentId = torrentId,
                     torrentPath = torrentPath,
+                    magnetUrl=magnetUrl,
                     taskName = name,
                     downloadPath = downloadPath,
                     fileCount = fileCount,
