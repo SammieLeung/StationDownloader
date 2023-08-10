@@ -19,6 +19,6 @@ interface ITaskStatusService {
    void deleteTask(String url,boolean isDeleteFile,ITaskServiceCallback callback);
    void getTaskList(ITaskServiceCallback callback);
    void getDownloadStatus(String url,ITaskServiceCallback callback);
-   void setConfig(long speedLimit,int maxThread,String downloadPath,ITaskServiceCallback callback);
+   void setConfig(String speedLimit,String maxThread,String downloadPath,ITaskServiceCallback callback);
    void getConfigSet(ITaskServiceCallback callback);
 }

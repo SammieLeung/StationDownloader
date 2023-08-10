@@ -3,6 +3,10 @@ package com.station.stationdownloader
 import android.provider.ContactsContract.Directory
 import com.orhanobut.logger.Logger
 import com.squareup.moshi.Json
+import com.station.stationdownloader.contants.DOWNLOAD_ENGINE
+import com.station.stationdownloader.contants.DOWNLOAD_PATH
+import com.station.stationdownloader.contants.MAX_THREAD
+import com.station.stationdownloader.contants.SPEED_LIMIT
 import com.station.stationdownloader.contants.TaskExecuteError
 import com.station.stationdownloader.data.IResult
 import com.station.stationdownloader.data.source.IConfigurationRepository
@@ -12,6 +16,8 @@ import com.station.stationdownloader.data.source.ITorrentInfoRepository
 import com.station.stationdownloader.data.source.local.engine.NewTaskConfigModel
 import com.station.stationdownloader.data.source.local.room.entities.asRemoteTorrentInfo
 import com.station.stationdownloader.data.source.remote.json.RemoteDeviceStorage
+import com.station.stationdownloader.data.source.remote.json.RemoteGetDownloadConfig
+import com.station.stationdownloader.data.source.remote.json.RemoteSetDownloadConfig
 import com.station.stationdownloader.data.source.remote.json.RemoteStartTask
 import com.station.stationdownloader.data.source.remote.json.RemoteStopTask
 import com.station.stationdownloader.data.source.remote.json.RemoteSubFileInfo
@@ -379,16 +385,59 @@ class TaskStatusServiceImpl(
     }
 
     override fun setConfig(
-        speedLimit: Long,
-        maxThread: Int,
+        speedLimit: String?,
+        maxThread: String?,
         downloadPath: String?,
         callback: ITaskServiceCallback?
     ) {
-        TODO("Not yet implemented")
+        serviceScope.launch {
+            handleSetConfigSet(speedLimit,maxThread,downloadPath,callback)
+        }
     }
 
+    private suspend fun handleSetConfigSet(
+        speedLimit: String?,
+        maxThread: String?,
+        downloadPath: String?,
+        callback: ITaskServiceCallback?
+    ) {
+        speedLimit?.let {
+            engineRepo.configure(SPEED_LIMIT,it)
+        }
+        downloadPath?.let{
+            engineRepo.configure(DOWNLOAD_PATH,it)
+        }
+        maxThread?.let {
+            engineRepo.configure(MAX_THREAD,it)
+        }
+
+        callback?.apply {
+            RemoteSetDownloadConfig(
+                configRepo.getSpeedLimit(),
+                configRepo.getMaxThread(),
+                configRepo.getDownloadPath()
+            ).let {
+                onResult(MoshiHelper.toJson(it))
+            }
+        }
+    }
+
+
     override fun getConfigSet(callback: ITaskServiceCallback?) {
-        TODO("Not yet implemented")
+        serviceScope.launch {
+            handleGetConfigSet(callback)
+        }
+    }
+
+    private suspend fun handleGetConfigSet(callback: ITaskServiceCallback?) {
+        callback?.apply {
+            val configSet=RemoteGetDownloadConfig(
+                configRepo.getSpeedLimit(),
+                configRepo.getMaxThread(),
+                configRepo.getDownloadPath()
+            )
+            onResult(MoshiHelper.toJson(configSet))
+        }
     }
 
     override fun DLogger.tag(): String {
