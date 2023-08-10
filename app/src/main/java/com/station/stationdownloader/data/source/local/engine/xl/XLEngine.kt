@@ -196,16 +196,16 @@ class XLEngine internal constructor(
     private suspend fun autoDownloadTorrent(
         magnetUrl: String, downloadPath: String, torrentFileName: String
     ): IResult<NewTaskConfigModel> {
+        //1.下载种子
+        val taskId = XLTaskHelper.instance().addMagentTask(
+            magnetUrl, downloadPath, torrentFileName
+        )
         try {
-            //1.下载种子
-            val taskId = XLTaskHelper.instance().addMagentTask(
-                magnetUrl, downloadPath, torrentFileName
-            )
 
             if (taskId <= 0) {
                 val torrentFile = File(downloadPath, torrentFileName)
                 return if (torrentFile.isFile && torrentFile.exists()) {
-                    initTorrentUrl(torrentFile.path,magnetUrl)
+                    initTorrentUrl(torrentFile.path, magnetUrl)
                 } else {
                     IResult.Error(
                         Exception(TaskExecuteError.ADD_MAGNET_TASK_ERROR.name),
@@ -246,6 +246,7 @@ class XLEngine internal constructor(
                 )
             }
         } catch (e: TimeoutCancellationException) {
+            XLTaskHelper.instance().stopTask(taskId)
             return IResult.Error(
                 e, TaskExecuteError.DOWNLOAD_TORRENT_TIME_OUT.ordinal
             )
@@ -331,7 +332,10 @@ class XLEngine internal constructor(
     /**
      * 初始化种子任务
      */
-    private suspend fun initTorrentUrl(torrentUrl: String,magnetUrl: String=""): IResult<NewTaskConfigModel> {
+    private suspend fun initTorrentUrl(
+        torrentUrl: String,
+        magnetUrl: String = ""
+    ): IResult<NewTaskConfigModel> {
         var torrentInfo =
             XLTaskHelper.instance().getTorrentInfo(torrentUrl) ?: return IResult.Error(
                 Exception(TaskExecuteError.TORRENT_INFO_IS_NULL.name),
@@ -359,7 +363,7 @@ class XLEngine internal constructor(
             NewTaskConfigModel.TorrentTask(
                 torrentId = (torrentIdResult as IResult.Success).data,
                 torrentPath = torrentUrl,
-                magnetUrl=magnetUrl,
+                magnetUrl = magnetUrl,
                 taskName = taskName,
                 downloadPath = downloadPath,
                 fileCount = fileCount,

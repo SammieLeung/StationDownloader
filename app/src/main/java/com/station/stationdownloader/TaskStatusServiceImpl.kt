@@ -1,10 +1,8 @@
 package com.station.stationdownloader
 
-import android.provider.ContactsContract.Directory
 import com.orhanobut.logger.Logger
-import com.squareup.moshi.Json
-import com.station.stationdownloader.contants.DOWNLOAD_ENGINE
 import com.station.stationdownloader.contants.DOWNLOAD_PATH
+import com.station.stationdownloader.contants.FAILED
 import com.station.stationdownloader.contants.MAX_THREAD
 import com.station.stationdownloader.contants.SPEED_LIMIT
 import com.station.stationdownloader.contants.TaskExecuteError
@@ -19,15 +17,10 @@ import com.station.stationdownloader.data.source.remote.json.RemoteDeviceStorage
 import com.station.stationdownloader.data.source.remote.json.RemoteGetDownloadConfig
 import com.station.stationdownloader.data.source.remote.json.RemoteSetDownloadConfig
 import com.station.stationdownloader.data.source.remote.json.RemoteStartTask
-import com.station.stationdownloader.data.source.remote.json.RemoteStopTask
-import com.station.stationdownloader.data.source.remote.json.RemoteSubFileInfo
 import com.station.stationdownloader.data.source.remote.json.RemoteTask
 import com.station.stationdownloader.data.source.remote.json.RemoteTaskStatus
-import com.station.stationdownloader.data.source.remote.json.RemoteTorrentInfo
 import com.station.stationdownloader.utils.DLogger
-import com.station.stationdownloader.utils.TaskTools
 import com.station.stationkitkt.MoshiHelper
-import com.xunlei.downloadlib.parameter.TorrentInfo
 import dagger.hilt.EntryPoint
 import dagger.hilt.InstallIn
 import dagger.hilt.android.EntryPointAccessors
@@ -35,7 +28,6 @@ import dagger.hilt.components.SingletonComponent
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import org.json.JSONArray
 import java.io.File
 
 class TaskStatusServiceImpl(
@@ -171,14 +163,13 @@ class TaskStatusServiceImpl(
         }
         service.getRunningTaskMap()[url]?.let {
             callback?.onResult(MoshiHelper.toJson(RemoteStartTask(url, it.taskId)))
-        }?:callback?.onFailed("start task failed",TaskExecuteError.START_TASK_FAILED.ordinal)
+        }?:callback?.onFailed("start task failed", FAILED)
     }
 
     override fun stopTask(url: String?, callback: ITaskServiceCallback?) {
         serviceScope.launch {
             url?.let {
-                TaskService.stopTask(service.applicationContext, it)
-                callback?.onResult(MoshiHelper.toJson(RemoteStopTask(it)))
+                service.stopTask(it,callback)
             }
         }
     }
@@ -256,7 +247,6 @@ class TaskStatusServiceImpl(
                 callback?.onResult(MoshiHelper.toJson(it.asRemoteTorrentInfo(torrentMap[it])))
             }
         }
-
     }
 
 
@@ -288,7 +278,21 @@ class TaskStatusServiceImpl(
         isDeleteFile: Boolean,
         callback: ITaskServiceCallback?
     ) {
-        TODO("Not yet implemented")
+        serviceScope.launch {
+            handleDeleteTask(url, isDeleteFile, callback)
+        }
+    }
+
+    private fun handleDeleteTask(
+        url: String?,
+        deleteFile: Boolean,
+        callback: ITaskServiceCallback?
+    ) {
+        if (url == null) {
+            callback?.onFailed("url is null", TaskExecuteError.NOT_SUPPORT_URL.ordinal)
+            return
+        }
+        service.deleteTask(url,deleteFile,callback)
     }
 
     override fun getTaskList(callback: ITaskServiceCallback?) {

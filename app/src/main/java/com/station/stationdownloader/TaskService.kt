@@ -6,11 +6,14 @@ import android.content.Intent
 import android.os.IBinder
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import com.orhanobut.logger.Logger
+import com.station.stationdownloader.contants.FAILED
+import com.station.stationdownloader.contants.TaskExecuteError
 import com.station.stationdownloader.data.IResult
 import com.station.stationdownloader.data.source.IDownloadTaskRepository
 import com.station.stationdownloader.data.source.IEngineRepository
 import com.station.stationdownloader.data.source.local.room.entities.XLDownloadTaskEntity
 import com.station.stationdownloader.data.source.local.room.entities.asStationDownloadTask
+import com.station.stationdownloader.data.source.remote.json.RemoteStopTask
 import com.station.stationdownloader.data.source.remote.json.RemoteTask
 import com.station.stationdownloader.di.AppCoroutineScope
 import com.station.stationdownloader.utils.DLogger
@@ -131,7 +134,7 @@ class TaskService : Service(), DLogger {
     private fun startTask(url: String) = serviceScope.launch {
         try {
             val xlEntity = taskRepo.getTaskByUrl(url) ?: return@launch
-            if(runningTaskMap[url]!=null)
+            if (runningTaskMap[url] != null)
                 stopTask(url).join()
             val taskIdResult = engineRepo.startTask(xlEntity.asStationDownloadTask())
             if (taskIdResult is IResult.Error) {
@@ -167,42 +170,58 @@ class TaskService : Service(), DLogger {
         }
     }
 
-    private fun stopTask(url: String) = serviceScope.launch {
-        try {
-            watchTaskJobMap.remove(url)?.apply { cancel() }
-            val entity = taskRepo.getTaskByUrl(url) ?: return@launch
-            val taskId = runningTaskMap[url]?.taskId
-            if (taskId == null) {
-                taskRepo.updateTask(entity.copy(status = DownloadTaskStatus.PAUSE))
-            } else {
-                engineRepo.stopTask(taskId, entity.asStationDownloadTask())
-            }
-            updateTaskStatusNow(url, -1, ITaskState.STOP.code)
-        } catch (e: Exception) {
-            logError(e.message.toString())
-        } finally {
-            stopTaskJobMap.remove(url)
-            runningTaskMap.remove(url)
-            if (runningTaskMap[url] == null && watchTaskJobMap[url] == null && stopTaskJobMap[url] == null) {
-                logger("stopTask finally clear!")
+     fun stopTask(url: String, callback: ITaskServiceCallback? = null) =
+        serviceScope.launch {
+            try {
+                watchTaskJobMap.remove(url)?.apply { cancel() }
+                val entity = taskRepo.getTaskByUrl(url)
+                if (entity == null) {
+                    callback?.onFailed("Download task not found!", FAILED)
+                    return@launch
+                }
+                val taskId = runningTaskMap[url]?.taskId
+                if (taskId == null) {
+                    taskRepo.updateTask(entity.copy(status = DownloadTaskStatus.PAUSE))
+                } else {
+                    engineRepo.stopTask(taskId, entity.asStationDownloadTask())
+                    callback?.onResult(MoshiHelper.toJson(RemoteStopTask(url)))
+                }
+                updateTaskStatusNow(url, -1, ITaskState.STOP.code)
+            } catch (e: Exception) {
+                logError(e.message.toString())
+                callback?.onFailed(e.message.toString(), FAILED)
+            } finally {
+                stopTaskJobMap.remove(url)
+                runningTaskMap.remove(url)
+                if (runningTaskMap[url] == null && watchTaskJobMap[url] == null && stopTaskJobMap[url] == null) {
+                    logger("stopTask finally clear!")
+                }
+
             }
 
         }
 
-    }
-
-    private fun deleteTask(url: String, isDeleteFile: Boolean) =
+    fun deleteTask(
+        url: String,
+        isDeleteFile: Boolean,
+        callback: ITaskServiceCallback? = null
+    ) =
         serviceScope.launch {
             stopTask(url)
             val deleteResult = taskRepo.deleteTask(url, isDeleteFile)
             if (deleteResult is IResult.Error) {
                 Logger.e(deleteResult.exception.message.toString())
+                callback?.onFailed(
+                    "delete task 【$url】failed",
+                    TaskExecuteError.DELETE_TASK_FAILED.ordinal
+                )
                 sendLocalBroadcast(
                     Intent(ACTION_DELETE_TASK_RESULT).putExtra("url", url)
                         .putExtra("result", false)
                 )
             } else {
                 deleteResult as IResult.Success
+                callback?.onResult(url)
                 sendLocalBroadcast(
                     Intent(ACTION_DELETE_TASK_RESULT).putExtra("url", url)
                         .putExtra("result", true)

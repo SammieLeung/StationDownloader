@@ -1,6 +1,7 @@
 package com.station.stationdownloader.contants
 
 const val UNKNOWN_ERROR = -1
+const val FAILED = 404
 
 enum class ConfigureError {
     CONFIGURE_ERROR,
