@@ -2,6 +2,7 @@
 package com.station.stationdownloader;
 // Declare any non-default types here with import statements
 import com.station.stationdownloader.ITaskServiceCallback;
+import com.station.stationdownloader.ITaskServiceListener;
 interface ITaskStatusService {
     /**
      * Demonstrates some basic types that you can use as parameters
@@ -21,4 +22,6 @@ interface ITaskStatusService {
    void getDownloadStatus(String url,ITaskServiceCallback callback);
    void setConfig(String speedLimit,String maxThread,String downloadPath,ITaskServiceCallback callback);
    void getConfigSet(ITaskServiceCallback callback);
+   void addServiceListener(ITaskServiceListener listener);
+   void removeServiceListener(ITaskServiceListener listener);
 }

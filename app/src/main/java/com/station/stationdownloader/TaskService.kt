@@ -13,6 +13,7 @@ import com.station.stationdownloader.data.source.IDownloadTaskRepository
 import com.station.stationdownloader.data.source.IEngineRepository
 import com.station.stationdownloader.data.source.local.room.entities.XLDownloadTaskEntity
 import com.station.stationdownloader.data.source.local.room.entities.asStationDownloadTask
+import com.station.stationdownloader.data.source.remote.json.RemoteStartTask
 import com.station.stationdownloader.data.source.remote.json.RemoteStopTask
 import com.station.stationdownloader.data.source.remote.json.RemoteTask
 import com.station.stationdownloader.di.AppCoroutineScope
@@ -46,6 +47,8 @@ class TaskService : Service(), DLogger {
 
     @Inject
     lateinit var taskRepo: IDownloadTaskRepository
+
+    var taskStatusBinder: TaskStatusServiceImpl? = null
 
     private val watchTaskJobMap = mutableMapOf<String, Job>()
     private var startTaskJobMap = mutableMapOf<String, Job>()
@@ -118,7 +121,9 @@ class TaskService : Service(), DLogger {
 
 
     override fun onBind(intent: Intent?): IBinder? {
-        return TaskStatusServiceImpl(this, serviceScope)
+        if (taskStatusBinder == null)
+            taskStatusBinder = TaskStatusServiceImpl(this, serviceScope)
+        return taskStatusBinder
     }
 
 
@@ -147,6 +152,11 @@ class TaskService : Service(), DLogger {
                     putExtra("reason", taskIdResult.exception.message.toString())
                 })
                 updateTaskStatusNow(url, -1, ITaskState.STOP.code)
+                sendErrorToClient(
+                    "start_task",
+                    taskIdResult.exception.message.toString(),
+                    TaskExecuteError.START_TASK_FAILED.ordinal
+                )
                 return@launch
             }
             val taskId = (taskIdResult as IResult.Success).data
@@ -160,23 +170,33 @@ class TaskService : Service(), DLogger {
             )
             runningTaskMap[url] = status
             updateTaskStatusNow(url, taskId, ITaskState.RUNNING.code)
+            sendToClient("start_task", MoshiHelper.toJson(RemoteStartTask(url, taskId)))
 
             watchTaskJobMap[url]?.apply { cancel() }
             watchTaskJobMap[url] = createWatchTask(taskId, url)
         } catch (e: Exception) {
             logError(e.message.toString())
+            sendErrorToClient(
+                "start_task",
+                e.message.toString(),
+                TaskExecuteError.START_TASK_FAILED.ordinal
+            )
         } finally {
             startTaskJobMap.remove(url)
         }
     }
 
-     fun stopTask(url: String, callback: ITaskServiceCallback? = null) =
+    fun stopTask(url: String) =
         serviceScope.launch {
             try {
                 watchTaskJobMap.remove(url)?.apply { cancel() }
                 val entity = taskRepo.getTaskByUrl(url)
                 if (entity == null) {
-                    callback?.onFailed("Download task not found!", FAILED)
+                    sendErrorToClient(
+                        "stop_task",
+                        "Download task not found!",
+                        TaskExecuteError.STOP_TASK_FAILED.ordinal
+                    )
                     return@launch
                 }
                 val taskId = runningTaskMap[url]?.taskId
@@ -184,12 +204,16 @@ class TaskService : Service(), DLogger {
                     taskRepo.updateTask(entity.copy(status = DownloadTaskStatus.PAUSE))
                 } else {
                     engineRepo.stopTask(taskId, entity.asStationDownloadTask())
-                    callback?.onResult(MoshiHelper.toJson(RemoteStopTask(url)))
+                    sendToClient("stop_task", MoshiHelper.toJson(RemoteStopTask(url)))
                 }
                 updateTaskStatusNow(url, -1, ITaskState.STOP.code)
             } catch (e: Exception) {
                 logError(e.message.toString())
-                callback?.onFailed(e.message.toString(), FAILED)
+                sendErrorToClient(
+                    "stop_task",
+                    e.message.toString(),
+                    TaskExecuteError.STOP_TASK_FAILED.ordinal
+                )
             } finally {
                 stopTaskJobMap.remove(url)
                 runningTaskMap.remove(url)
@@ -395,6 +419,14 @@ class TaskService : Service(), DLogger {
 
     private fun sendLocalBroadcast(intent: Intent) {
         LocalBroadcastManager.getInstance(this).sendBroadcast(intent)
+    }
+
+    private fun sendToClient(command: String, data: String) {
+        taskStatusBinder?.sendToClient(command, data)
+    }
+
+    private fun sendErrorToClient(command: String, reason: String, code: Int) {
+        taskStatusBinder?.sendErrorToClient(command, reason, code)
     }
 
     override fun DLogger.tag(): String {

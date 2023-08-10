@@ -35,6 +35,7 @@ class TaskStatusServiceImpl(
     private val serviceScope: CoroutineScope
 ) : ITaskStatusService.Stub(), DLogger {
     private val entryPoint: TaskStatusServiceEntryPoint
+    private val serviceListenerList = mutableListOf<ITaskServiceListener>()
 
     init {
         entryPoint = EntryPointAccessors.fromApplication(
@@ -86,12 +87,18 @@ class TaskStatusServiceImpl(
         callback: ITaskServiceCallback?
     ) {
         if (url == null) {
+            sendErrorToClient("start_task", "url is null", TaskExecuteError.NOT_SUPPORT_URL.ordinal)
             callback?.onFailed("url is null", TaskExecuteError.NOT_SUPPORT_URL.ordinal)
             return
         }
         val newTaskResult = engineRepo.initUrl(url)
         if (newTaskResult is IResult.Error) {
             Logger.e(newTaskResult.exception.message.toString())
+            sendErrorToClient(
+                "start_task",
+                newTaskResult.exception.message.toString(),
+                newTaskResult.code
+            )
             callback?.onFailed(newTaskResult.exception.message, newTaskResult.code)
             return
         }
@@ -134,6 +141,14 @@ class TaskStatusServiceImpl(
                                     )
                                 )
                             )
+                            sendToClient(
+                                "start_task", MoshiHelper.toJson(
+                                    RemoteStartTask(
+                                        it,
+                                        service.getRunningTaskMap()[it]?.taskId ?: -1L
+                                    )
+                                )
+                            )
                         }
                     }
                     Logger.e(service.getString(R.string.repeating_task_nothing_changed))
@@ -141,6 +156,11 @@ class TaskStatusServiceImpl(
 
                 else -> {
                     Logger.e(saveTaskResult.exception.message.toString())
+                    sendErrorToClient(
+                        "start_task",
+                        saveTaskResult.exception.message.toString(),
+                        saveTaskResult.code
+                    )
                     callback?.onFailed(saveTaskResult.exception.message, saveTaskResult.code)
                 }
             }
@@ -156,20 +176,24 @@ class TaskStatusServiceImpl(
             service.applicationContext,
             url
         )
-        var count=0
-        while (service.getRunningTaskMap()[url] == null&&count<100) {
+        var count = 0
+        while (service.getRunningTaskMap()[url] == null && count < 100) {
             count++
             delay(10)
         }
         service.getRunningTaskMap()[url]?.let {
             callback?.onResult(MoshiHelper.toJson(RemoteStartTask(url, it.taskId)))
-        }?:callback?.onFailed("start task failed", FAILED)
+            sendToClient("start_task", MoshiHelper.toJson(RemoteStartTask(url, it.taskId)))
+        } ?: {
+            callback?.onFailed("start task failed", FAILED)
+            sendErrorToClient("start_task", "start task failed", FAILED)
+        }
     }
 
     override fun stopTask(url: String?, callback: ITaskServiceCallback?) {
         serviceScope.launch {
             url?.let {
-                service.stopTask(it,callback)
+                service.stopTask(it)
             }
         }
     }
@@ -256,7 +280,7 @@ class TaskStatusServiceImpl(
         }
     }
 
-    suspend fun getTorrentInfo(torrentPath: String?, callback: ITaskServiceCallback?) {
+    private suspend fun getTorrentInfo(torrentPath: String?, callback: ITaskServiceCallback?) {
         if (torrentPath == null) {
             callback?.onFailed("torrentPath is null", TaskExecuteError.NOT_SUPPORT_URL.ordinal)
             return
@@ -292,7 +316,7 @@ class TaskStatusServiceImpl(
             callback?.onFailed("url is null", TaskExecuteError.NOT_SUPPORT_URL.ordinal)
             return
         }
-        service.deleteTask(url,deleteFile,callback)
+        service.deleteTask(url, deleteFile, callback)
     }
 
     override fun getTaskList(callback: ITaskServiceCallback?) {
@@ -395,7 +419,7 @@ class TaskStatusServiceImpl(
         callback: ITaskServiceCallback?
     ) {
         serviceScope.launch {
-            handleSetConfigSet(speedLimit,maxThread,downloadPath,callback)
+            handleSetConfigSet(speedLimit, maxThread, downloadPath, callback)
         }
     }
 
@@ -406,13 +430,13 @@ class TaskStatusServiceImpl(
         callback: ITaskServiceCallback?
     ) {
         speedLimit?.let {
-            engineRepo.configure(SPEED_LIMIT,it)
+            engineRepo.configure(SPEED_LIMIT, it)
         }
-        downloadPath?.let{
-            engineRepo.configure(DOWNLOAD_PATH,it)
+        downloadPath?.let {
+            engineRepo.configure(DOWNLOAD_PATH, it)
         }
         maxThread?.let {
-            engineRepo.configure(MAX_THREAD,it)
+            engineRepo.configure(MAX_THREAD, it)
         }
 
         callback?.apply {
@@ -426,7 +450,6 @@ class TaskStatusServiceImpl(
         }
     }
 
-
     override fun getConfigSet(callback: ITaskServiceCallback?) {
         serviceScope.launch {
             handleGetConfigSet(callback)
@@ -435,12 +458,48 @@ class TaskStatusServiceImpl(
 
     private suspend fun handleGetConfigSet(callback: ITaskServiceCallback?) {
         callback?.apply {
-            val configSet=RemoteGetDownloadConfig(
+            val configSet = RemoteGetDownloadConfig(
                 configRepo.getSpeedLimit(),
                 configRepo.getMaxThread(),
                 configRepo.getDownloadPath()
             )
             onResult(MoshiHelper.toJson(configSet))
+        }
+    }
+
+    override fun addServiceListener(listener: ITaskServiceListener?) {
+        listener?.apply {
+            serviceListenerList.add(this)
+        }
+    }
+
+    override fun removeServiceListener(listener: ITaskServiceListener?) {
+        listener?.apply {
+            serviceListenerList.remove(this)
+        }
+    }
+
+    fun sendToClient(command: String, data: String) {
+        val iterator=serviceListenerList.iterator()
+        while(iterator.hasNext()){
+            val it=iterator.next()
+            try {
+                it.notify(command, data)
+            }catch (e:Exception){
+                iterator.remove()
+            }
+        }
+    }
+
+    fun sendErrorToClient(command: String, reason: String, code: Int) {
+        val iterator=serviceListenerList.iterator()
+        while(iterator.hasNext()){
+            val it=iterator.next()
+            try {
+                it.failed(command, reason, code)
+            }catch (e:Exception){
+                iterator.remove()
+            }
         }
     }
 
