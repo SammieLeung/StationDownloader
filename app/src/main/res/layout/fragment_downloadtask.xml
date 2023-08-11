@@ -4,6 +4,16 @@
 
     <data>
 
+        <import type="android.view.View" />
+
+        <variable
+            name="isEmpty"
+            type="boolean" />
+
+        <variable
+            name="emptyListHint"
+            type="String" />
+
         <variable
             name="text"
             type="String" />
@@ -13,12 +23,25 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent">
 
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_centerInParent="true"
+            android:drawableTop="@mipmap/ic_empty"
+            android:gravity="center"
+            android:text="@{emptyListHint}"
+            android:textColor="#D6D6D6"
+            android:textFontWeight="800"
+            android:textSize="23sp"
+            android:visibility="@{isEmpty ? View.VISIBLE : View.GONE}" />
+
         <androidx.recyclerview.widget.RecyclerView
+            android:visibility="@{isEmpty ? View.GONE : View.VISIBLE}"
             android:id="@+id/taskListView"
             android:layout_width="match_parent"
-            app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
+            android:layout_height="match_parent"
             android:orientation="vertical"
-            android:layout_height="match_parent">
+            app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager">
 
         </androidx.recyclerview.widget.RecyclerView>
     </RelativeLayout>

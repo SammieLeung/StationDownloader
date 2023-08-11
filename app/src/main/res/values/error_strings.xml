@@ -4,5 +4,7 @@
     <string name="assert_torrent_file">这不是一个种子文件，请重新选择！</string>
     <string name="free_space_not_enough">空间不足</string>
     <string name="free_space_shortage">剩余空间过低</string>
+    <string name="running_task_list_empty">暂无下载中任务</string>
+    <string name="done_task_list_empty">暂无已完成任务</string>
 
 </resources>

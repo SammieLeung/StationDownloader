@@ -7,6 +7,7 @@ import com.station.stationdownloader.data.source.local.room.entities.TorrentFile
 import com.station.stationdownloader.data.source.local.room.entities.TorrentInfoEntity
 import com.station.stationdownloader.data.source.local.room.entities.asTorrentFileInfoEntity
 import com.station.stationdownloader.data.source.local.room.entities.asTorrentInfoEntity
+import com.station.stationdownloader.utils.DLogger
 import com.xunlei.downloadlib.parameter.TorrentInfo
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
@@ -17,21 +18,27 @@ class DefaultTorrentInfoRepository(
     private val localDataSource: ITorrentInfoDataSource,
     private val externalScope: CoroutineScope,
     private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO
-) : ITorrentInfoRepository {
+) : ITorrentInfoRepository,DLogger {
 
     override suspend fun saveTorrentInfo(
         torrentInfo: TorrentInfo,
         torrentPath: String
     ): IResult<Long> {
+        printCodeLine()
         val result = localDataSource.getTorrentId(torrentInfo.mInfoHash, torrentPath)
         if (result is IResult.Success) {
             return result
         }
+        printCodeLine()
 
         val deferred = externalScope.async {
             val torrentIdResult =
                 localDataSource.saveTorrentInfo(torrentInfo.asTorrentInfoEntity(torrentPath))
+            printCodeLine()
+
             val torrentId = (torrentIdResult as IResult.Success).data
+            printCodeLine()
+
             if (torrentId > 0) {
                 saveTorrentFileInfos(torrentInfo, torrentId)
             }
@@ -71,6 +78,10 @@ class DefaultTorrentInfoRepository(
                 }
             }
         }
+    }
+
+    override fun DLogger.tag(): String {
+        return "DefaultTorrentInfoRepository"
     }
 
 }

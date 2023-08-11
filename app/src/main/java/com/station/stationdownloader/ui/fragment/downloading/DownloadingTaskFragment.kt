@@ -12,6 +12,7 @@ import androidx.fragment.app.viewModels
 import androidx.lifecycle.lifecycleScope
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import com.orhanobut.logger.Logger
+import com.station.stationdownloader.R
 import com.station.stationdownloader.TaskService
 import com.station.stationdownloader.TaskStatusServiceImpl
 import com.station.stationdownloader.databinding.FragmentDownloadtaskBinding
@@ -85,6 +86,8 @@ class DownloadingTaskFragment : BaseFragment<FragmentDownloadtaskBinding>(), DLo
         menuStateFlow: StateFlow<MenuDialogUiState>,
         accept: (UiAction) -> Unit,
     ) {
+        emptyListHint = getString(R.string.running_task_list_empty)
+
         taskListView.adapter = taskListAdapter
         taskListView.itemAnimator = null
         lifecycleScope.launch {
@@ -100,15 +103,18 @@ class DownloadingTaskFragment : BaseFragment<FragmentDownloadtaskBinding>(), DLo
                 when (it) {
                     is UiState.Init -> {}
                     is UiState.FillTaskList -> {
+                        isEmpty = it.taskList.isEmpty()
                         taskListAdapter.fillData(it.taskList)
                         accept(UiAction.InitUiState)
                     }
+
                     is UiState.UpdateProgress -> {
                         taskListAdapter.updateProgress(it.taskItem)
                     }
 
                     is UiState.DeleteTaskResultState -> {
                         taskListAdapter.deleteTask(it.deleteItem)
+                        isEmpty = taskListAdapter.itemCount==0
                     }
                 }
             }

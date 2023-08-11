@@ -5,6 +5,7 @@ import android.view.View
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.lifecycleScope
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
+import com.station.stationdownloader.R
 import com.station.stationdownloader.databinding.FragmentDownloadtaskBinding
 import com.station.stationdownloader.ui.base.BaseFragment
 import com.station.stationdownloader.ui.fragment.donetask.menu.DoneTaskItemMenuDialogFragment
@@ -49,6 +50,9 @@ class DownloadedTaskFragment : BaseFragment<FragmentDownloadtaskBinding>(), DLog
         uiStateFlow: StateFlow<UiState>,
         menuDialogUiState: StateFlow<MenuDialogUiState>
     ) {
+
+        emptyListHint = getString(R.string.done_task_list_empty)
+
         taskListView.adapter = taskListAdapter
         taskListView.itemAnimator = null
 
@@ -56,14 +60,17 @@ class DownloadedTaskFragment : BaseFragment<FragmentDownloadtaskBinding>(), DLog
             uiStateFlow.collect {
                 when (it) {
                     is UiState.AddDoneTaskItemState -> {
+                        isEmpty = false
                         taskListAdapter.addNewTask(it.doneItem)
                     }
 
                     is UiState.DeleteTaskResultState -> {
                         taskListAdapter.deleteTask(it.deleteItem)
+                        isEmpty=taskListAdapter.itemCount==0
                     }
 
                     is UiState.FillDataList -> {
+                        isEmpty = it.doneTaskItemList.isEmpty()
                         taskListAdapter.fillData(it.doneTaskItemList)
                     }
                     else -> {}
