@@ -6,6 +6,8 @@ import androidx.test.platform.app.InstrumentationRegistry
 import com.orhanobut.logger.AndroidLogAdapter
 import com.orhanobut.logger.Logger
 import com.station.stationdownloader.data.source.local.model.TreeNode
+import com.station.stationdownloader.data.source.local.model.getCheckedFilePaths
+import com.station.stationdownloader.data.source.local.model.getFilePaths
 import com.station.stationdownloader.utils.TaskTools
 import com.xunlei.downloadlib.XLTaskHelper
 import com.xunlei.downloadlib.parameter.TorrentInfo
@@ -141,6 +143,19 @@ class TorrentTest {
         return root
     }
 
+    @Test
+    fun testEmpty(){
+       val data=""
+        if(data.isEmpty()) {
+            Logger.d("1")
+        }
+
+        val data2:String?=null
+        if(data2.isNullOrEmpty()) {
+            Logger.d("2")
+        }
+    }
+
 
     fun getTorrentInfo(url: String) {
         val appContext = InstrumentationRegistry.getInstrumentation().targetContext
@@ -154,11 +169,17 @@ class TorrentTest {
 
 
         val treeNode = torrentInfo.getFileTree() as TreeNode.Directory
-//        treeNode.getByFileIndex(15)?.toggle()
-//        treeNode.getByFileIndex(2)?.toggle()
-//        treeNode.getByFileIndex(3)?.toggle()
+        treeNode.getByFileIndex(1)?.autoSelect(true)
+        treeNode.getByFileIndex(3)?.autoSelect(true)
+        treeNode.getByFileIndex(5)?.autoSelect(true)
 
-        treeNode.findNodeByIndexRecursive(2)
+
+
+        treeNode.getCheckedFilePaths().forEach {
+            Logger.d(it)
+        }
+
+
 
         printFileTree(treeNode)
 //        val TAG = "testTorrent"

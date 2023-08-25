@@ -3,6 +3,7 @@ package com.station.stationdownloader.data.source.local.model
 import com.orhanobut.logger.Logger
 import com.station.stationdownloader.FileType
 import com.station.stationdownloader.utils.TaskTools
+import java.io.File
 
 sealed class TreeNode(
     val _name: String,
@@ -263,7 +264,7 @@ sealed class TreeNode(
     }
 }
 
- fun TreeNode.Directory.getChildrenCount(): Int {
+fun TreeNode.Directory.getChildrenCount(): Int {
     var count = 0;
     _children?.forEach {
         if (it is TreeNode.File)
@@ -277,7 +278,7 @@ sealed class TreeNode(
 }
 
 
- fun TreeNode.Directory.findNodeByIndexRecursive(position: Int): TreeNode? {
+fun TreeNode.Directory.findNodeByIndexRecursive(position: Int): TreeNode? {
     var currentPos = position
     for (child in children) {
         if (currentPos == 0) {
@@ -295,7 +296,7 @@ sealed class TreeNode(
     return null
 }
 
- fun TreeNode.Directory.getChildAbsolutionPosition(treeNode: TreeNode): Int {
+fun TreeNode.Directory.getChildAbsolutionPosition(treeNode: TreeNode): Int {
     var currentPos = -1
     for (idx in 0 until getChildrenCount()) {
         val child = children[idx]
@@ -313,7 +314,7 @@ sealed class TreeNode(
     return currentPos
 }
 
- fun TreeNode.getParenPosition(pos: Int): Int {
+fun TreeNode.getParenPosition(pos: Int): Int {
     if (_parent != null) {
         if (_parent._children != null)
             return pos - _parent._children.indexOf(this) - 1
@@ -321,7 +322,7 @@ sealed class TreeNode(
     return -1
 }
 
- fun TreeNode.Directory.filterFile(fileType: FileType, isSelect: Boolean) {
+fun TreeNode.Directory.filterFile(fileType: FileType, isSelect: Boolean) {
 
     children.forEach {
         when (it) {
@@ -362,7 +363,65 @@ sealed class TreeNode(
             }
         }
     }
+}
 
+private fun TreeNode.getFilePath(): String? {
+    if (this is TreeNode.File) {
+        this.parent.getFilePath()?.let {
+            return it + File.separator + this.fileName
+        }
+        return this.fileName
+    } else if (this is TreeNode.Directory) {
+        if (this.isRoot())
+            return null
+        this.parent?.let {
+            return it.getFilePath()?.let {
+                return it + File.separator + this.folderName
+            } ?: this.folderName
+        }
+    }
+    return null
+}
+
+fun TreeNode.Directory.getFilePaths(): List<String> {
+    val filePaths = mutableListOf<String>()
+    _children?.forEach {
+        when (it) {
+            is TreeNode.Directory -> {
+                it.getFilePaths()?.forEach { path ->
+                    filePaths.add(path)
+                }
+            }
+
+            is TreeNode.File -> {
+                it.getFilePath()?.let { path ->
+                    filePaths.add(path)
+                }
+            }
+        }
+    }
+    return filePaths
+}
+
+fun TreeNode.Directory.getCheckedFilePaths(): List<String> {
+    val filePaths = mutableListOf<String>()
+    _children?.forEach {
+        when (it) {
+            is TreeNode.Directory -> {
+                it.getCheckedFilePaths().forEach { path ->
+                    filePaths.add(path)
+                }
+            }
+
+            is TreeNode.File -> {
+                if (it.isChecked)
+                    it.getFilePath()?.let { path ->
+                        filePaths.add(path)
+                    }
+            }
+        }
+    }
+    return filePaths
 }
 
 fun TreeNode.Directory.getSelectedFileIndexes(): List<Int> {
@@ -381,7 +440,7 @@ fun TreeNode.Directory.getSelectedFileIndexes(): List<Int> {
 fun TreeNode.Directory.setSelectFileIndexes(indexes: List<Int>) {
     _children?.forEach {
         if (it is TreeNode.File) {
-           it.autoSelect(indexes.contains(it.fileIndex))
+            it.autoSelect(indexes.contains(it.fileIndex))
         } else if (it is TreeNode.Directory) {
             it.setSelectFileIndexes(indexes)
         }

@@ -220,7 +220,6 @@ class TaskService : Service(), DLogger {
                 if (runningTaskMap[url] == null && watchTaskJobMap[url] == null && stopTaskJobMap[url] == null) {
                     logger("stopTask finally clear!")
                 }
-
             }
 
         }

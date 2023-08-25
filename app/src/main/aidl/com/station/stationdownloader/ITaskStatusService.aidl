@@ -8,6 +8,7 @@ interface ITaskStatusService {
      * Demonstrates some basic types that you can use as parameters
      * and return values in AIDL.
      */
+   void subscribeMovie(String url,String path,in int[] selectIndexes,String movieId,String movieType,ITaskServiceCallback callback);
    void startTask(String url,String path,in int[] selectIndexes,ITaskServiceCallback callback);
    void stopTask(String url,ITaskServiceCallback callback);
    void startAllTasks(ITaskServiceCallback callback);

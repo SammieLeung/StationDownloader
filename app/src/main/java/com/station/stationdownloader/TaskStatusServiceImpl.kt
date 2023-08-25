@@ -1,5 +1,7 @@
 package com.station.stationdownloader
 
+import android.content.ContentValues
+import android.net.Uri
 import com.orhanobut.logger.Logger
 import com.station.stationdownloader.contants.DOWNLOAD_PATH
 import com.station.stationdownloader.contants.FAILED
@@ -12,6 +14,8 @@ import com.station.stationdownloader.data.source.IDownloadTaskRepository
 import com.station.stationdownloader.data.source.IEngineRepository
 import com.station.stationdownloader.data.source.ITorrentInfoRepository
 import com.station.stationdownloader.data.source.local.engine.NewTaskConfigModel
+import com.station.stationdownloader.data.source.local.model.TreeNode
+import com.station.stationdownloader.data.source.local.model.getCheckedFilePaths
 import com.station.stationdownloader.data.source.local.room.entities.asRemoteTorrentInfo
 import com.station.stationdownloader.data.source.remote.json.RemoteDeviceStorage
 import com.station.stationdownloader.data.source.remote.json.RemoteGetDownloadConfig
@@ -69,6 +73,35 @@ class TaskStatusServiceImpl(
     fun getService(): TaskService = service
 
 
+    override fun subscribeMovie(
+        url: String?,
+        path: String?,
+        selectIndexes: IntArray?,
+        movieId: String?,
+        movieType: String?,
+        callback: ITaskServiceCallback?
+    ) {
+        serviceScope.launch {
+            handleStartTask(url,path,selectIndexes,fun (downloadPath: String, joinFileString: String) {
+                try{
+                    service.contentResolver.insert(
+                        Uri.parse("content://com.hphtv.movielibrary.provider.v2/addPoster"),
+                        ContentValues().apply {
+                            put("download_path",downloadPath)
+                            put("file_list",joinFileString)
+                            put("movie_id",movieId)
+                            put("movie_type",movieType)
+                        })
+                }catch (e:Exception){
+                    callback?.onFailed(e.message.toString(),FAILED)
+                }
+
+            },callback)
+        }
+
+    }
+
+
     override fun startTask(
         url: String?,
         path: String?,
@@ -76,7 +109,7 @@ class TaskStatusServiceImpl(
         callback: ITaskServiceCallback?
     ) {
         serviceScope.launch {
-            handleStartTask(url, path, selectIndexes, callback)
+            handleStartTask(url, path, selectIndexes,null, callback)
         }
     }
 
@@ -84,6 +117,7 @@ class TaskStatusServiceImpl(
         url: String?,
         path: String?,
         selectIndexes: IntArray?,
+        predicate: ((String, String) -> Unit)?,
         callback: ITaskServiceCallback?
     ) {
         if (url == null) {
@@ -104,6 +138,7 @@ class TaskStatusServiceImpl(
         }
         newTaskResult as IResult.Success
         var newTaskConfig = newTaskResult.data
+        Logger.d("taskPath: ${newTaskConfig._downloadPath}")
 
         if (selectIndexes == null || selectIndexes.isEmpty()) {
             taskRepo.getTaskByUrl(url)?.let {
@@ -119,6 +154,10 @@ class TaskStatusServiceImpl(
             newTaskConfig = newTaskConfig.update(
                 downloadPath = it
             )
+        }
+        Logger.d("newtaskPath: ${newTaskConfig._downloadPath}")
+        predicate?.let {
+            it(newTaskConfig._downloadPath, (newTaskConfig._fileTree as TreeNode.Directory).getCheckedFilePaths().joinToString(";;"))
         }
 
         val saveTaskResult = taskRepo.saveTask(
@@ -168,6 +207,7 @@ class TaskStatusServiceImpl(
         }
 
         saveTaskResult as IResult.Success
+        Logger.d("downloadPath: ${saveTaskResult.data.downloadPath}")
         startTaskAndWaitTaskId(saveTaskResult.data.url, callback)
     }
 
@@ -480,24 +520,24 @@ class TaskStatusServiceImpl(
     }
 
     fun sendToClient(command: String, data: String) {
-        val iterator=serviceListenerList.iterator()
-        while(iterator.hasNext()){
-            val it=iterator.next()
+        val iterator = serviceListenerList.iterator()
+        while (iterator.hasNext()) {
+            val it = iterator.next()
             try {
                 it.notify(command, data)
-            }catch (e:Exception){
+            } catch (e: Exception) {
                 iterator.remove()
             }
         }
     }
 
     fun sendErrorToClient(command: String, reason: String, code: Int) {
-        val iterator=serviceListenerList.iterator()
-        while(iterator.hasNext()){
-            val it=iterator.next()
+        val iterator = serviceListenerList.iterator()
+        while (iterator.hasNext()) {
+            val it = iterator.next()
             try {
                 it.failed(command, reason, code)
-            }catch (e:Exception){
+            } catch (e: Exception) {
                 iterator.remove()
             }
         }
