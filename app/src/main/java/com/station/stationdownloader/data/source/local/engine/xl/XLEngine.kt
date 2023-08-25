@@ -228,20 +228,17 @@ class XLEngine internal constructor(
                         .getTaskInfo(taskId).mTaskStatus != ITaskState.UNKNOWN.code
                 ) {
                     val taskInfo = XLTaskHelper.instance().getTaskInfo(taskId)
-                    printCodeLine()
 
                     //3.1获取filesize
                     if (taskInfo.mFileSize == 0L) {
                         continue
                     }
-                    printCodeLine()
 
                     if (taskInfo.mFileSize == taskInfo.mDownloadSize) {
                         XLTaskHelper.instance().stopTask(taskId)
                         break
                     }
-                    printCodeLine()
-
+                    logger("torrentFileSize=${taskInfo.mFileSize} torrentDownloadSize=${taskInfo.mDownloadSize}")
                     //延时轮询
                     delay(GET_MAGNET_TASK_INFO_DELAY)
                 }
@@ -343,42 +340,28 @@ class XLEngine internal constructor(
         torrentUrl: String,
         magnetUrl: String = ""
     ): IResult<NewTaskConfigModel> {
-        printCodeLine()
-
         var torrentInfo =
             XLTaskHelper.instance().getTorrentInfo(torrentUrl) ?: return IResult.Error(
                 Exception(TaskExecuteError.TORRENT_INFO_IS_NULL.name),
                 TaskExecuteError.TORRENT_INFO_IS_NULL.ordinal
             )
-        printCodeLine()
-
         if (torrentInfo.mInfoHash == null) return IResult.Error(
             Exception(TaskExecuteError.TORRENT_INFO_IS_NULL.name),
             TaskExecuteError.TORRENT_INFO_IS_NULL.ordinal
         )
-        printCodeLine()
-
         if (torrentInfo.mIsMultiFiles && torrentInfo.mSubFileInfo == null) return IResult.Error(
             Exception(TaskExecuteError.SUB_TORRENT_INFO_IS_NULL.name),
             TaskExecuteError.SUB_TORRENT_INFO_IS_NULL.ordinal
         )
-        printCodeLine()
-
         val taskName = torrentUrl.substringAfterLast(File.separatorChar).substringBeforeLast(".")
-        printCodeLine()
-
         val downloadPath =
             File(configurationDataSource.getDownloadPath()).path
-        printCodeLine()
         val fileCount = torrentInfo.mFileCount
-        printCodeLine()
         val torrentIdResult = torrentInfoRepo.saveTorrentInfo(torrentInfo, torrentUrl)
-        printCodeLine()
 
         if (torrentIdResult is IResult.Error) {
             return torrentIdResult
         }
-        printCodeLine()
 
         return IResult.Success(
             NewTaskConfigModel.TorrentTask(

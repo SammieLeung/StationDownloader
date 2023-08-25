@@ -9,7 +9,6 @@ import com.station.stationdownloader.data.IResult
 import com.station.stationdownloader.data.source.IDownloadTaskDataSource
 import com.station.stationdownloader.data.source.IDownloadTaskRepository
 import com.station.stationdownloader.data.source.local.engine.NewTaskConfigModel
-import com.station.stationdownloader.data.source.local.engine.asXLDownloadTaskEntity
 import com.station.stationdownloader.data.source.local.model.TreeNode
 import com.station.stationdownloader.data.source.local.model.getSelectedFileIndexes
 import com.station.stationdownloader.data.source.local.room.entities.XLDownloadTaskEntity
@@ -83,7 +82,7 @@ class DefaultDownloadTaskRepository(
        urlType: DownloadUrlType,
        engine: DownloadEngine,
        totalSize: Long,
-       downloadPath: String,
+       realDownloadPath: String,
        selectIndexes: List<Int>,
        fileList: List<String>,
        fileCount: Int
@@ -101,7 +100,7 @@ class DefaultDownloadTaskRepository(
                     urlType = urlType,
                     engine = engine,
                     totalSize = totalSize,
-                    downloadPath = downloadPath,
+                    downloadPath = realDownloadPath,
                     selectIndexes = selectIndexes,
                     fileList = fileList,
                     fileCount = fileCount
@@ -116,8 +115,7 @@ class DefaultDownloadTaskRepository(
                 )
             return@withContext IResult.Success(newTaskResult)
         }
-
-        if (assertTaskConfigNotChange(existsTask, engine, downloadPath, taskName, selectIndexes)) {
+        if (assertTaskConfigNotChange(existsTask, engine, realDownloadPath, taskName, selectIndexes)) {
             if(existsTask.status==DownloadTaskStatus.COMPLETED)
                 return@withContext IResult.Error(
                     Exception(TaskExecuteError.TASK_COMPLETED.name),
@@ -129,9 +127,8 @@ class DefaultDownloadTaskRepository(
             )
         }
 
-
         val updatedTask = existsTask.copy(
-            downloadPath = File(downloadPath, taskName).path,
+            downloadPath = realDownloadPath,
             engine = engine,
             selectIndexes = selectIndexes,
             name = taskName
@@ -176,7 +173,7 @@ class DefaultDownloadTaskRepository(
                         urlType = urlType,
                         engine = engine,
                         totalSize = fileSize,
-                        downloadPath = realDownloadPath,
+                        realDownloadPath = realDownloadPath,
                         selectIndexes = newSelectIndexes,
                         fileList = emptyList(),
                         fileCount = fileCount
@@ -194,7 +191,7 @@ class DefaultDownloadTaskRepository(
                         urlType = DownloadUrlType.TORRENT,
                         engine = engine,
                         totalSize = fileSize,
-                        downloadPath = realDownloadPath,
+                        realDownloadPath = realDownloadPath,
                         selectIndexes = newSelectIndexes,
                         fileList = emptyList(),
                         fileCount = fileCount
@@ -234,12 +231,12 @@ class DefaultDownloadTaskRepository(
     private fun assertTaskConfigNotChange(
         existsTask: XLDownloadTaskEntity,
         engine: DownloadEngine,
-        downloadPath: String,
+        realDownloadPath: String,
         taskName: String,
         selectedFileIndexes: List<Int>
     ): Boolean {
         return existsTask.engine == engine &&
-                existsTask.downloadPath == File(downloadPath, taskName).path &&
+                existsTask.downloadPath == realDownloadPath &&
                 existsTask.name == taskName &&
                 existsTask.selectIndexes == selectedFileIndexes
     }
