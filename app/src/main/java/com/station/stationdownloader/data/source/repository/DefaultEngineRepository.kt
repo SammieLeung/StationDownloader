@@ -135,7 +135,7 @@ class DefaultEngineRepository(
                     var downloadStatus = DownloadTaskStatus.DOWNLOADING
                     if (taskIdResult is IResult.Error) {
                         maxThreadCount.decrementAndGet()
-                        downloadStatus = DownloadTaskStatus.PAUSE
+                        return@withContext taskIdResult
                     }
                     taskIdResult as IResult.Success
                     if (taskIdResult.data <= 0L)
