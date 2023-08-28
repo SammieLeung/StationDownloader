@@ -156,9 +156,7 @@ class TaskStatusServiceImpl(
             )
         }
         Logger.d("newtaskPath: ${newTaskConfig._downloadPath}")
-        predicate?.let {
-            it(newTaskConfig._downloadPath, (newTaskConfig._fileTree as TreeNode.Directory).getCheckedFilePaths().joinToString(";;"))
-        }
+
 
         val saveTaskResult = taskRepo.saveTask(
             newTaskConfig
@@ -207,6 +205,9 @@ class TaskStatusServiceImpl(
         }
 
         saveTaskResult as IResult.Success
+        predicate?.let {
+            it(saveTaskResult.data.downloadPath, (newTaskConfig._fileTree as TreeNode.Directory).getCheckedFilePaths().joinToString(";;"))
+        }
         Logger.d("downloadPath: ${saveTaskResult.data.downloadPath}")
         startTaskAndWaitTaskId(saveTaskResult.data.url, callback)
     }

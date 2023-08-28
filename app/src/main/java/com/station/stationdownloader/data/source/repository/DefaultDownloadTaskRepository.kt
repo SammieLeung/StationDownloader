@@ -1,6 +1,7 @@
 package com.station.stationdownloader.data.source.repository
 
 import com.orhanobut.logger.Logger
+import com.squareup.moshi.Moshi
 import com.station.stationdownloader.DownloadEngine
 import com.station.stationdownloader.DownloadTaskStatus
 import com.station.stationdownloader.DownloadUrlType
@@ -10,10 +11,12 @@ import com.station.stationdownloader.data.source.IDownloadTaskDataSource
 import com.station.stationdownloader.data.source.IDownloadTaskRepository
 import com.station.stationdownloader.data.source.local.engine.NewTaskConfigModel
 import com.station.stationdownloader.data.source.local.model.TreeNode
+import com.station.stationdownloader.data.source.local.model.getCheckedFilePaths
 import com.station.stationdownloader.data.source.local.model.getSelectedFileIndexes
 import com.station.stationdownloader.data.source.local.room.entities.XLDownloadTaskEntity
 import com.station.stationdownloader.data.succeeded
 import com.station.stationdownloader.utils.TaskTools
+import com.station.stationkitkt.MoshiHelper
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
@@ -74,18 +77,18 @@ class DefaultDownloadTaskRepository(
     }
 
 
-   override suspend fun saveTask(
-       torrentId: Long,
-       originUrl: String,
-       realUrl: String,
-       taskName: String,
-       urlType: DownloadUrlType,
-       engine: DownloadEngine,
-       totalSize: Long,
-       realDownloadPath: String,
-       selectIndexes: List<Int>,
-       fileList: List<String>,
-       fileCount: Int
+    override suspend fun saveTask(
+        torrentId: Long,
+        originUrl: String,
+        realUrl: String,
+        taskName: String,
+        urlType: DownloadUrlType,
+        engine: DownloadEngine,
+        totalSize: Long,
+        realDownloadPath: String,
+        selectIndexes: List<Int>,
+        fileList: List<String>,
+        fileCount: Int
     ): IResult<XLDownloadTaskEntity> = withContext(ioDispatcher)
     {
         val existsTask = getTaskByUrl(originUrl)
@@ -115,8 +118,15 @@ class DefaultDownloadTaskRepository(
                 )
             return@withContext IResult.Success(newTaskResult)
         }
-        if (assertTaskConfigNotChange(existsTask, engine, realDownloadPath, taskName, selectIndexes)) {
-            if(existsTask.status==DownloadTaskStatus.COMPLETED)
+        if (assertTaskConfigNotChange(
+                existsTask,
+                engine,
+                realDownloadPath,
+                taskName,
+                selectIndexes
+            )
+        ) {
+            if (existsTask.status == DownloadTaskStatus.COMPLETED)
                 return@withContext IResult.Error(
                     Exception(TaskExecuteError.TASK_COMPLETED.name),
                     TaskExecuteError.TASK_COMPLETED.ordinal
@@ -163,7 +173,7 @@ class DefaultDownloadTaskRepository(
 
             return@withContext when (newTask) {
                 is NewTaskConfigModel.NormalTask -> {
-                    val (originUrl, realUrl, taskName, urlType, downloadPath, engine) = newTask
+                    val (originUrl, realUrl, taskName, urlType, downloadPath, engine, fileTree) = newTask
                     val realDownloadPath = File(downloadPath, taskName).path
                     saveTask(
                         torrentId = -1,
@@ -175,13 +185,13 @@ class DefaultDownloadTaskRepository(
                         totalSize = fileSize,
                         realDownloadPath = realDownloadPath,
                         selectIndexes = newSelectIndexes,
-                        fileList = emptyList(),
+                        fileList = (fileTree as TreeNode.Directory).getCheckedFilePaths(),
                         fileCount = fileCount
                     )
                 }
 
                 is NewTaskConfigModel.TorrentTask -> {
-                    val (torrentId, magnetUrl,torrentPath, taskName, downloadPath, _,engine,_) = newTask
+                    val (torrentId, magnetUrl, torrentPath, taskName, downloadPath, _, engine, fileTree) = newTask
                     val realDownloadPath = File(downloadPath, taskName).path
                     saveTask(
                         torrentId = torrentId,
@@ -193,7 +203,7 @@ class DefaultDownloadTaskRepository(
                         totalSize = fileSize,
                         realDownloadPath = realDownloadPath,
                         selectIndexes = newSelectIndexes,
-                        fileList = emptyList(),
+                        fileList = (fileTree as TreeNode.Directory).getCheckedFilePaths(),
                         fileCount = fileCount
                     )
                 }
