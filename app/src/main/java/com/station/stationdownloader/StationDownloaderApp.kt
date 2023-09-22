@@ -58,11 +58,11 @@ class StationDownloaderApp : Application(),DLogger {
                 initialized = true
                 DimenUtils.init(context = applicationContext)
                 mApplicationScope.launch {
-                    engineRepo.init()
                     Logger.addLogAdapter(AndroidLogAdapter())
                     Stetho.initializeWithDefaults(applicationContext)
                     MoshiHelper.init()
                     MimeTypeHelper.init(context = applicationContext)
+                    engineRepo.init()
                 }
             }
         }

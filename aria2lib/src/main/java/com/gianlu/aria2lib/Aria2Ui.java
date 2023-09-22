@@ -193,6 +193,15 @@ public class Aria2Ui {
             this.i = i;
             this.o = o;
         }
+
+        @Override
+        public String toString() {
+            return "LogMessage{" +
+                    "type=" + type +
+                    ", i=" + i +
+                    ", o=" + o +
+                    '}';
+        }
     }
 
     private class ServiceBroadcastReceiver extends BroadcastReceiver {

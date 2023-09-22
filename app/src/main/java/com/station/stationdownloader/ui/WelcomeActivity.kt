@@ -1,9 +1,13 @@
 package com.station.stationdownloader.ui
 
+import android.content.BroadcastReceiver
+import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
 import android.os.Bundle
 import android.os.SystemClock
 import androidx.lifecycle.lifecycleScope
+import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import com.facebook.stetho.Stetho
 import com.orhanobut.logger.AndroidLogAdapter
 import com.orhanobut.logger.Logger
@@ -35,13 +39,19 @@ class WelcomeActivity : PermissionActivity<ActivityWelcomeBinding>(
         super.grantAllPermissions()
         lifecycleScope.launch {
             withContext(Dispatchers.Default) {
+                LocalBroadcastManager.getInstance(this@WelcomeActivity).registerReceiver(object :BroadcastReceiver(){
+                    override fun onReceive(context: Context?, intent: Intent?) {
+                        startActivity(Intent(this@WelcomeActivity, MainActivity::class.java))
+                        finish()
+                    }
+                }, IntentFilter("ACTION_INIT"))
                 val app = application as StationDownloaderApp
                 if (!app.isInitialized()) {
                     app.initAction()
                 }
-                startActivity(Intent(this@WelcomeActivity, MainActivity::class.java))
-                finish()
+
             }
         }
     }
+
 }

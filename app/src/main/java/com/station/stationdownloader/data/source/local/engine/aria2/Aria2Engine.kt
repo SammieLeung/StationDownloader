@@ -3,14 +3,14 @@ package com.station.stationdownloader.data.source.local.engine.aria2
 import android.content.Context
 import android.net.Uri
 import android.util.Base64
+import com.gianlu.aria2lib.Aria2Ui
+import com.gianlu.aria2lib.BadEnvironmentException
 import com.gianlu.aria2lib.commonutils.Prefs
-import com.gianlu.aria2lib.internal.Aria2
 import com.orhanobut.logger.Logger
 import com.station.stationdownloader.DownloadUrlType
 import com.station.stationdownloader.data.IResult
 import com.station.stationdownloader.data.source.local.engine.IEngine
 import com.station.stationdownloader.data.source.local.engine.NewTaskConfigModel
-import com.station.stationdownloader.data.source.local.model.StationDownloadTask
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -28,23 +28,53 @@ class Aria2Engine internal constructor(
     private val appContext: Context,
     private val defaultDispatcher: CoroutineDispatcher = Dispatchers.Default
 ) : IEngine {
-    lateinit var client: WebSocketClient
-    override suspend fun init() = withContext(defaultDispatcher) {
-        Prefs.init(appContext)
-        val aria2 = Aria2.get()
-        val parent: File = appContext.filesDir
-        aria2.loadEnv(
-            parent,
-            File(appContext.applicationInfo.nativeLibraryDir, "libaria2c.so"),
-            File(parent, "session")
-        )
+    //    lateinit var client: WebSocketClient
+    var aria2Ui: Aria2Ui? = null
 
-        aria2.start()
-        client = WebSocketClient()
+    override suspend fun init(): Unit = withContext(defaultDispatcher) {
+
+        // Init prefs
+        Prefs.init(appContext)
+
+        aria2Ui= Aria2Ui(appContext,object :Aria2Ui.Listener{
+            override fun onUpdateLogs(msg: MutableList<Aria2Ui.LogMessage>) {
+                Logger.d("onUpdateLogs ${msg}")
+            }
+
+            override fun onMessage(msg: Aria2Ui.LogMessage) {
+                Logger.d("onMessage ${msg}")
+            }
+
+            override fun updateUi(on: Boolean) {
+                Logger.d("updateUi ${on}")
+            }
+        })
+        aria2Ui?.let {
+            try {
+                it.loadEnv(appContext)
+                it.startService()
+            }catch (e: BadEnvironmentException){
+                e.printStackTrace()
+            }
+
+        }
+
+
+//        Prefs.init(appContext)
+//        val aria2 = Aria2.get()
+//        val parent: File = appContext.filesDir
+//        aria2.loadEnv(
+//            parent,
+//            File(appContext.applicationInfo.nativeLibraryDir, "libaria2c.so"),
+//            File(parent, "session")
+//        )
+//
+//        aria2.start()
+//        client = WebSocketClient()
     }
 
     override suspend fun unInit() {
-        client.close()
+        aria2Ui?.unbind()
     }
 
     override suspend fun initUrl(url: String): IResult<NewTaskConfigModel> {
@@ -104,16 +134,16 @@ class Aria2Engine internal constructor(
     }
 
     private fun addUri(url: String) {
-        val request = addUriRequest(url).build(client)
-        Logger.d("${request.toString()}")
-        client.send(request.toString())
+//        val request = addUriRequest(url).build(client)
+//        Logger.d("${request.toString()}")
+//        client.send(request.toString())
     }
 
 
     private fun addTorrent(url: String) {
-        val request = addTorrentRequest(url).build(client)
-        Logger.d("${request}")
-        client.send(request.toString())
+//        val request = addTorrentRequest(url).build(client)
+//        Logger.d("${request}")
+//        client.send(request.toString())
     }
 
 
@@ -134,7 +164,6 @@ class Aria2Engine internal constructor(
 
 
 }
-
 
 class AriaRequest(
     method: Aria2Method,

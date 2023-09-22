@@ -31,15 +31,6 @@ class WebSocketClient() {
     @Volatile
     private var closed = false
 
-    private fun buildClient(): OkHttpClient {
-        val timeout = 5
-        val builder = OkHttpClient.Builder()
-        builder.connectTimeout(timeout.toLong(), TimeUnit.SECONDS)
-            .readTimeout(timeout.toLong(), TimeUnit.SECONDS)
-            .writeTimeout(timeout.toLong(), TimeUnit.SECONDS)
-        return builder.build()
-    }
-
     init {
         client = buildClient()
         webSocket = WeakReference(
@@ -86,6 +77,16 @@ class WebSocketClient() {
         )
 
     }
+
+    private fun buildClient(): OkHttpClient {
+        val timeout = 5
+        val builder = OkHttpClient.Builder()
+        builder.connectTimeout(timeout.toLong(), TimeUnit.SECONDS)
+            .readTimeout(timeout.toLong(), TimeUnit.SECONDS)
+            .writeTimeout(timeout.toLong(), TimeUnit.SECONDS)
+        return builder.build()
+    }
+
 
     @WorkerThread
     fun close() {
