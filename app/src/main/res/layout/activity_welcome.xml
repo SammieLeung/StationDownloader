@@ -1,43 +1,78 @@
 <?xml version="1.0" encoding="utf-8"?>
-<layout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto">
+<layout xmlns:android="http://schemas.android.com/apk/res/android">
 
+    <data>
+
+        <variable
+            name="process"
+            type="String" />
+    </data>
 
     <RelativeLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:background="@color/main_background_color">
 
-
-        <ImageView
-            android:id="@+id/logoView"
-            android:src="@mipmap/ic_launcher"
-            android:layout_centerInParent="true"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"/>
-
         <LinearLayout
-            android:layout_marginTop="10dp"
             android:layout_centerInParent="true"
-            android:layout_below="@id/logoView"
             android:layout_width="wrap_content"
-            android:layout_height="wrap_content">
-            <TextView
-                android:id="@+id/tvTips"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:drawablePadding="24dp"
-                android:text="@string/welcome_message"
-                android:textColor="@color/title_text_color"
-                android:textSize="21sp" />
-            <ProgressBar
-                android:layout_marginStart="10dp"
-                android:layout_width="30dp"
-                android:layout_height="30dp"/>
+            android:orientation="vertical"
+            android:layout_height="675dp">
+
+            <LinearLayout
+                android:gravity="center"
+                android:orientation="vertical"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent">
+
+                <ImageView
+                    android:id="@+id/logoView"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:src="@mipmap/ic_launcher" />
+
+                <LinearLayout
+                    android:id="@+id/loadingView"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_below="@id/logoView"
+                    android:layout_centerInParent="true"
+                    android:layout_marginTop="10dp">
+
+                    <TextView
+                        android:id="@+id/tvTips"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:drawablePadding="24dp"
+                        android:text="@string/welcome_message"
+                        android:textColor="@color/title_text_color"
+                        android:textSize="21sp" />
+
+                    <ProgressBar
+                        android:layout_width="30dp"
+                        android:layout_height="30dp"
+                        android:layout_marginStart="10dp" />
+                </LinearLayout>
+                <androidx.core.widget.NestedScrollView
+                    android:layout_marginTop="20dp"
+                    android:layout_width="360dp"
+                    android:layout_height="wrap_content">
+
+                    <TextView
+                        android:maxHeight="300dp"
+                        android:layout_gravity="center"
+                        android:gravity="center"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_centerInParent="true"
+                        android:text="@{process}"
+                        android:textColor="@color/title_text_color"
+                        android:textSize="18sp" />
+                </androidx.core.widget.NestedScrollView>
+            </LinearLayout>
+
+
         </LinearLayout>
-
-
-
 
 
     </RelativeLayout>

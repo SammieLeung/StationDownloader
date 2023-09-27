@@ -2,6 +2,7 @@ package com.station.stationdownloader.data.source.local.engine.xl
 
 import android.content.Context
 import com.orhanobut.logger.Logger
+import com.station.stationdownloader.DownloadEngine
 import com.station.stationdownloader.DownloadUrlType
 import com.station.stationdownloader.ITaskState
 import com.station.stationdownloader.contants.ConfigureError
@@ -48,18 +49,24 @@ class XLEngine internal constructor(
 ) : IEngine, DLogger {
     private var hasInit = false
 
-    override suspend fun init() {
+    override suspend fun init(): IResult<String> = withContext(defaultDispatcher) {
         if (!hasInit) {
             synchronized(this@XLEngine) {
                 if (!hasInit) {
-                    XLTaskHelper.init(context)
-                    hasInit = true
+                    try {
+                        XLTaskHelper.init(context)
+                        hasInit = true
+                    } catch (e: Exception) {
+                        e.printStackTrace()
+                        return@withContext IResult.Error(e)
+                    }
                 }
             }
         }
+        return@withContext IResult.Success("${DownloadEngine.XL}[${XLTaskHelper.instance()}]")
     }
 
-    override suspend fun unInit() {
+    override suspend fun unInit() = withContext(defaultDispatcher) {
         if (hasInit) {
             synchronized(this@XLEngine) {
                 if (hasInit) {
@@ -158,7 +165,7 @@ class XLEngine internal constructor(
         XLTaskHelper.instance().stopTask(taskId)
     }
 
-    override suspend fun configure(key: String, value: String): IResult<Unit> {
+    override suspend fun configure(key: String, value: String): IResult<String> {
         when (key) {
             SPEED_LIMIT -> {
                 XLDownloadManager.getInstance().setSpeedLimit(value.toLong(), value.toLong())
@@ -178,7 +185,14 @@ class XLEngine internal constructor(
                 ConfigureError.NOT_SUPPORT_CONFIGURATION.ordinal
             )
         }
-        return IResult.Success(Unit)
+        return IResult.Success(Pair(key,value).toString())
+    }
+
+    override suspend fun getEngineStatus(): IEngine.EngineStatus {
+        return if (hasInit)
+            IEngine.EngineStatus.ON
+        else
+            IEngine.EngineStatus.OFF
     }
 
     suspend fun getTaskInfo(taskId: Long): XLTaskInfo =

@@ -9,7 +9,11 @@ import com.station.stationdownloader.data.source.local.model.StationDownloadTask
  * date:  2023/5/9
  */
 interface IEngine {
-    suspend fun init()
+    enum class EngineStatus {
+        ON, OFF
+    }
+
+    suspend fun init():IResult<String>
     suspend fun unInit()
     suspend fun initUrl(url: String): IResult<NewTaskConfigModel>
 
@@ -25,8 +29,8 @@ interface IEngine {
         selectIndexes:IntArray
     ):IResult<Long>
     suspend fun stopTask(taskId:Long)
-    suspend fun configure(key: String, values: String): IResult<Unit>
-
+    suspend fun configure(key: String, values: String): IResult<String>
+    suspend fun getEngineStatus(): EngineStatus
 
 }
 

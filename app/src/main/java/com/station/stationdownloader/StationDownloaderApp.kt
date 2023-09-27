@@ -1,16 +1,12 @@
 package com.station.stationdownloader
 
 import android.app.Application
-import android.content.BroadcastReceiver
-import android.content.Context
-import android.content.Intent
-import android.util.Log
 import com.facebook.stetho.Stetho
+import com.gianlu.aria2lib.Aria2Ui
 import com.orhanobut.logger.AndroidLogAdapter
 import com.orhanobut.logger.Logger
+import com.station.stationdownloader.data.IResult
 import com.station.stationdownloader.data.source.IEngineRepository
-import com.station.stationdownloader.data.source.local.engine.IEngine
-import com.station.stationdownloader.di.XLEngineAnnotation
 import com.station.stationdownloader.utils.DLogger
 import com.station.stationkitkt.DimenUtils
 import com.station.stationkitkt.MimeTypeHelper
@@ -19,10 +15,8 @@ import com.station.stationkitkt.PackageTools
 import dagger.hilt.android.HiltAndroidApp
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.isActive
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import javax.inject.Inject
 
 /**
@@ -31,38 +25,30 @@ import javax.inject.Inject
  */
 
 @HiltAndroidApp
-class StationDownloaderApp : Application(),DLogger {
+class StationDownloaderApp : Application(), DLogger {
     val mApplicationScope = CoroutineScope(SupervisorJob())
     val useV2FileManager: Boolean by lazy {
         PackageTools.isAppInstalled(applicationContext, FILE_MANAGER_V2_PACKAGE)
     }
     private var initialized = false
 
-    @Inject
-    lateinit var engineRepo: IEngineRepository
-
-    override fun onCreate() {
-        super.onCreate()
-    }
 
     override fun onTerminate() {
         super.onTerminate()
-        Logger.d("onTerminate")
         Logger.clearLogAdapters()
-
     }
 
-     fun initAction() {
-        synchronized(this){
-            if(!initialized) {
-                initialized = true
-                DimenUtils.init(context = applicationContext)
-                mApplicationScope.launch {
+    fun initialize() {
+        if (!initialized) {
+            synchronized(this) {
+                if (!initialized) {
+                    DimenUtils.init(context = applicationContext)
                     Logger.addLogAdapter(AndroidLogAdapter())
                     Stetho.initializeWithDefaults(applicationContext)
                     MoshiHelper.init()
                     MimeTypeHelper.init(context = applicationContext)
-                    engineRepo.init()
+                    initialized = true
+                    Logger.d("StationDownloaderApp initialized")
                 }
             }
         }
@@ -70,12 +56,6 @@ class StationDownloaderApp : Application(),DLogger {
 
     fun isInitialized(): Boolean {
         return initialized
-    }
-
-    val mBroadCastReceiver = object : BroadcastReceiver() {
-        override fun onReceive(context: Context?, intent: Intent?) {
-
-        }
     }
 
     companion object {

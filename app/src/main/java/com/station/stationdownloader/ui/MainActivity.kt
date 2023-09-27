@@ -53,10 +53,10 @@ class MainActivity : BaseActivity<ActivityMainBinding>(), DLogger {
 
     val tabViewList: MutableList<View> = mutableListOf()
 
-    val serviceConnection=object :ServiceConnection{
+    val serviceConnection = object : ServiceConnection {
         override fun onServiceConnected(name: ComponentName?, service: IBinder?) {
-            val binder= service as TaskStatusServiceImpl
-            vm.taskService=binder.getService()
+            val binder = service as TaskStatusServiceImpl
+            vm.taskService = binder.getService()
         }
 
         override fun onServiceDisconnected(name: ComponentName?) {
@@ -69,7 +69,7 @@ class MainActivity : BaseActivity<ActivityMainBinding>(), DLogger {
                 launch {
                     vm.mainUiState.collect {
                         mBinding.isLoading = it.isLoading
-                        if(it.isShowAddNewTask){
+                        if (it.isShowAddNewTask) {
                             if (supportFragmentManager.findFragmentByTag(
                                     AddNewTaskDialogFragment::class.java.simpleName
                                 )?.isVisible == true
@@ -108,7 +108,11 @@ class MainActivity : BaseActivity<ActivityMainBinding>(), DLogger {
 
     override fun onResume() {
         super.onResume()
-        bindService(Intent(this, TaskService::class.java),serviceConnection,Context.BIND_AUTO_CREATE)
+        bindService(
+            Intent(this, TaskService::class.java),
+            serviceConnection,
+            Context.BIND_AUTO_CREATE
+        )
     }
 
     override fun onPause() {
@@ -139,10 +143,9 @@ class MainActivity : BaseActivity<ActivityMainBinding>(), DLogger {
     }
 
     private fun initTabAction(view: View, destination: Destination) {
-        view.setOnClickListener {
-            view->
-            tabViewList.forEach { it.isSelected=false }
-            view.isSelected=true
+        view.setOnClickListener { view ->
+            tabViewList.forEach { it.isSelected = false }
+            view.isSelected = true
             navigator.navigateTo(destination)
         }
         view.onFocusChangeListener =
@@ -173,5 +176,12 @@ class MainActivity : BaseActivity<ActivityMainBinding>(), DLogger {
 
     override fun DLogger.tag(): String {
         return MainActivity::class.java.simpleName
+    }
+
+    companion object {
+        @JvmStatic
+        fun newIntent(welcomeActivity: WelcomeActivity): Intent? {
+            return Intent(welcomeActivity, MainActivity::class.java)
+        }
     }
 }

@@ -1,5 +1,7 @@
 package com.station.stationdownloader.data.source.repository
 
+import com.gianlu.aria2lib.Aria2Ui
+import com.orhanobut.logger.Logger
 import com.station.stationdownloader.DownloadEngine
 import com.station.stationdownloader.DownloadTaskStatus
 import com.station.stationdownloader.DownloadUrlType
@@ -18,6 +20,7 @@ import com.station.stationdownloader.data.source.IEngineRepository
 import com.station.stationdownloader.data.source.ITorrentInfoRepository
 import com.station.stationdownloader.data.source.local.engine.IEngine
 import com.station.stationdownloader.data.source.local.engine.NewTaskConfigModel
+import com.station.stationdownloader.data.source.local.engine.aria2.Aria2Engine
 import com.station.stationdownloader.data.source.local.engine.xl.XLEngine
 import com.station.stationdownloader.data.source.local.model.StationDownloadTask
 import com.station.stationdownloader.data.source.local.model.asXLDownloadTaskEntity
@@ -27,6 +30,9 @@ import com.station.stationdownloader.data.source.local.room.entities.asStationDo
 import com.xunlei.downloadlib.XLDownloadManager
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.onCompletion
 import kotlinx.coroutines.withContext
 import java.io.File
 import java.util.concurrent.atomic.AtomicInteger
@@ -40,26 +46,36 @@ class DefaultEngineRepository(
     private val torrentInfoRepo: ITorrentInfoRepository,
     private val defaultDispatcher: CoroutineDispatcher = Dispatchers.Default,
     private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO,
-
-    ) : IEngineRepository {
+) : IEngineRepository {
     private var maxThread: Int = 0
     private var maxThreadCount = AtomicInteger(0)
 
-    override suspend fun init(): IResult<Unit> {
-        return try {
-            xlEngine.init()
-            aria2Engine.init()
-            loadConfig()
-            IResult.Success(Unit)
-        } catch (e: Exception) {
-            IResult.Error(exception = e)
+    override fun init(): Flow<Pair<DownloadEngine, IResult<String>>> =
+        flow {
+            emit(Pair(DownloadEngine.XL, xlEngine.init()))
+            emit(Pair(DownloadEngine.ARIA2, aria2Engine.init()))
+        }.onCompletion {
+            val configResult=(loadLocalConfigurations() as IResult.Success).data
+            Logger.d("${DownloadEngine.XL.name} ${configResult[DownloadEngine.XL.name]}")
+            Logger.d("${DownloadEngine.ARIA2.name} ${configResult[DownloadEngine.ARIA2.name]}")
         }
 
+    override suspend fun loadLocalConfigurations(): IResult<Map<String, IResult<String>>> {
+        maxThread = configurationDataSource.getMaxThread()
+        val xlResult = loadXLConfig()
+        val aria2Result = loadAria2Config()
+        return IResult.Success(
+            mapOf(
+                DownloadEngine.XL.name to xlResult,
+                DownloadEngine.ARIA2.name to aria2Result
+            )
+        )
     }
 
     override suspend fun unInit(): IResult<Unit> {
         return try {
             xlEngine.unInit()
+            aria2Engine.unInit()
             IResult.Success(Unit)
         } catch (e: Exception) {
             IResult.Error(exception = e)
@@ -184,23 +200,21 @@ class DefaultEngineRepository(
         return@withContext startTask(newTask.asStationDownloadTask())
     }
 
-    private suspend fun loadConfig(): IResult<Boolean> {
+    private suspend fun loadXLConfig(): IResult<String> {
         val speedLimit = configurationDataSource.getSpeedLimit()
-        maxThread = configurationDataSource.getMaxThread()
-        val downloadPath = configurationDataSource.getDownloadPath()
-        val defaultEngine = configurationDataSource.getDefaultEngine()
         val xlConfigResult = xlEngine.configure(SPEED_LIMIT, speedLimit.toString())
-        val aria2ConfigResult = aria2Engine.configure(SPEED_LIMIT, speedLimit.toString())
-
-        if (xlConfigResult is IResult.Error) return xlConfigResult.copy(exception = Exception("[xl] ${xlConfigResult.exception.message}"))
-        if (aria2ConfigResult is IResult.Error) return aria2ConfigResult.copy(
-            exception = Exception(
-                "[aria2] ${aria2ConfigResult.exception.message}"
-            )
-        )
-        return IResult.Success(true)
+        if (xlConfigResult is IResult.Error)
+            return xlConfigResult.copy(exception = Exception("[${DownloadEngine.XL}] ${xlConfigResult.exception.message}"))
+        return xlConfigResult
     }
 
+    private suspend fun loadAria2Config(): IResult<String> {
+        val speedLimit = configurationDataSource.getSpeedLimit()
+        val aria2ConfigResult = aria2Engine.configure(SPEED_LIMIT, speedLimit.toString())
+        if (aria2ConfigResult is IResult.Error)
+            return aria2ConfigResult.copy(exception = Exception("[${DownloadEngine.ARIA2}] ${aria2ConfigResult.exception.message}"))
+        return aria2ConfigResult
+    }
 
     override suspend fun configure(key: String, value: String): IResult<Unit> {
         when (key) {
@@ -237,6 +251,23 @@ class DefaultEngineRepository(
             )
         )
         return IResult.Success(Unit)
+    }
+
+    override suspend fun getEngineStatus(): Map<DownloadEngine, IEngine.EngineStatus> {
+        val xlStatus = xlEngine.getEngineStatus()
+        val aria2Status = aria2Engine.getEngineStatus()
+        return mapOf(
+            DownloadEngine.XL to xlStatus,
+            DownloadEngine.ARIA2 to aria2Status
+        )
+    }
+
+    override fun addAria2Listener(listener: Aria2Ui.Listener) {
+        (aria2Engine as Aria2Engine).addAria2UiListener(listener)
+    }
+
+    override fun removeAria2Listener(listener: Aria2Ui.Listener) {
+        (aria2Engine as Aria2Engine).removeAria2UiListener(listener)
     }
 
 

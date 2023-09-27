@@ -6,7 +6,6 @@ import android.content.Intent
 import android.os.IBinder
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import com.orhanobut.logger.Logger
-import com.station.stationdownloader.contants.FAILED
 import com.station.stationdownloader.contants.TaskExecuteError
 import com.station.stationdownloader.data.IResult
 import com.station.stationdownloader.data.source.IDownloadTaskRepository
@@ -15,7 +14,7 @@ import com.station.stationdownloader.data.source.local.room.entities.XLDownloadT
 import com.station.stationdownloader.data.source.local.room.entities.asStationDownloadTask
 import com.station.stationdownloader.data.source.remote.json.RemoteStartTask
 import com.station.stationdownloader.data.source.remote.json.RemoteStopTask
-import com.station.stationdownloader.data.source.remote.json.RemoteTask
+import com.station.stationdownloader.data.util.EngineRepoUseCase
 import com.station.stationdownloader.di.AppCoroutineScope
 import com.station.stationdownloader.utils.DLogger
 import com.station.stationkitkt.MoshiHelper
@@ -46,6 +45,9 @@ class TaskService : Service(), DLogger {
     lateinit var engineRepo: IEngineRepository
 
     @Inject
+    lateinit var engineRepoUseCase:EngineRepoUseCase
+
+    @Inject
     lateinit var taskRepo: IDownloadTaskRepository
 
     var taskStatusBinder: TaskStatusServiceImpl? = null
@@ -73,8 +75,10 @@ class TaskService : Service(), DLogger {
             if (application == null)
                 return@launch
             val app = application as StationDownloaderApp
-            if (!app.isInitialized())
-                app.initAction()
+            if (!app.isInitialized()) {
+                app.initialize()
+                engineRepoUseCase.initEngine()
+            }
         }
 
     }

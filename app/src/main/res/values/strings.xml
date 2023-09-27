@@ -4,6 +4,7 @@
     <string name="add_uri">添加</string>
 
     <string name="welcome_message">正在初始化</string>
+    <string name="welcome_enter_message">正在进入下载器...</string>
 
     <string name="menu_downloading">下载中</string>
     <string name="menu_downloaded">下载完成</string>
@@ -44,4 +45,12 @@
 
     <string name="confirm_delete_task">确定删除任务？</string>
     <string name="delete_file_at_same_time">同时删除文件</string>
+
+
+    <string name="defalut_engine_initailize_error">[默认下载器] 加载失败!</string>
+    <string name="defalut_engine_initailize_succeed">[默认下载器] 加载成功!</string>
+
+   <string name="aria2_engine_initailize_error">[Aria2下载器] 加载失败!</string>
+    <string name="aria2_engine_initailize_succeed">[Aria2下载器] 加载成功!</string>
+
 </resources>

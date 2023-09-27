@@ -2,11 +2,13 @@ package com.station.stationdownloader.data.source.local.engine.aria2
 
 import android.content.Context
 import android.net.Uri
+import android.os.Messenger
 import android.util.Base64
 import com.gianlu.aria2lib.Aria2Ui
 import com.gianlu.aria2lib.BadEnvironmentException
 import com.gianlu.aria2lib.commonutils.Prefs
 import com.orhanobut.logger.Logger
+import com.station.stationdownloader.DownloadEngine
 import com.station.stationdownloader.DownloadUrlType
 import com.station.stationdownloader.data.IResult
 import com.station.stationdownloader.data.source.local.engine.IEngine
@@ -14,11 +16,14 @@ import com.station.stationdownloader.data.source.local.engine.NewTaskConfigModel
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import okhttp3.internal.wait
 import org.json.JSONArray
 import org.json.JSONException
 import org.json.JSONObject
 import java.io.ByteArrayOutputStream
 import java.io.File
+import kotlin.coroutines.resume
+import kotlin.coroutines.suspendCoroutine
 
 /**
  * author: Sam Leung
@@ -28,36 +33,18 @@ class Aria2Engine internal constructor(
     private val appContext: Context,
     private val defaultDispatcher: CoroutineDispatcher = Dispatchers.Default
 ) : IEngine {
-    //    lateinit var client: WebSocketClient
-    var aria2Ui: Aria2Ui? = null
-
-    override suspend fun init(): Unit = withContext(defaultDispatcher) {
-
-        // Init prefs
-        Prefs.init(appContext)
-
-        aria2Ui= Aria2Ui(appContext,object :Aria2Ui.Listener{
-            override fun onUpdateLogs(msg: MutableList<Aria2Ui.LogMessage>) {
-                Logger.d("onUpdateLogs ${msg}")
+    private var aria2Service: Aria2UiDispatcher = Aria2UiDispatcher(appContext)
+    override suspend fun init(): IResult<String> = withContext(defaultDispatcher) {
+        try {
+            if (!aria2Service.ui.hasEnv()) {
+                aria2Service.ui.loadEnv(appContext)
+                aria2Service.ui.startService()
             }
-
-            override fun onMessage(msg: Aria2Ui.LogMessage) {
-                Logger.d("onMessage ${msg}")
-            }
-
-            override fun updateUi(on: Boolean) {
-                Logger.d("updateUi ${on}")
-            }
-        })
-        aria2Ui?.let {
-            try {
-                it.loadEnv(appContext)
-                it.startService()
-            }catch (e: BadEnvironmentException){
-                e.printStackTrace()
-            }
-
+        } catch (e: Exception) {
+            e.printStackTrace()
+            return@withContext IResult.Error(e)
         }
+        return@withContext IResult.Success("${DownloadEngine.ARIA2}[${aria2Service.ui.version()}")
 
 
 //        Prefs.init(appContext)
@@ -73,8 +60,17 @@ class Aria2Engine internal constructor(
 //        client = WebSocketClient()
     }
 
+    fun addAria2UiListener(listener: Aria2Ui.Listener) {
+        aria2Service.listeners.add(listener)
+        aria2Service.ui.askForStatus()
+    }
+
+    fun removeAria2UiListener(listener: Aria2Ui.Listener) {
+        aria2Service.listeners.remove(listener)
+    }
+
     override suspend fun unInit() {
-        aria2Ui?.unbind()
+        aria2Service.ui.unbind()
     }
 
     override suspend fun initUrl(url: String): IResult<NewTaskConfigModel> {
@@ -107,8 +103,31 @@ class Aria2Engine internal constructor(
     }
 
 
-    override suspend fun configure(key: String, values: String): IResult<Unit> {
-        return IResult.Success(Unit)
+    override suspend fun configure(key: String, values: String): IResult<String> {
+        return IResult.Success(Pair(key, values).toString())
+    }
+
+    override suspend fun getEngineStatus(): IEngine.EngineStatus {
+            val data = suspendCoroutine {
+                val listener = object : Aria2Ui.Listener {
+                    override fun onUpdateLogs(msg: MutableList<Aria2Ui.LogMessage>) {
+                    }
+
+                    override fun onMessage(msg: Aria2Ui.LogMessage) {
+                    }
+
+                    override fun updateUi(on: Boolean) {
+                        it.resume(on)
+                        aria2Service.listeners.remove(this)
+                    }
+                }
+                aria2Service.listeners.add(listener)
+                aria2Service.ui.askForStatus()
+            }
+            return if (data)
+                IEngine.EngineStatus.ON
+            else
+                IEngine.EngineStatus.OFF
     }
 
 
@@ -162,7 +181,26 @@ class Aria2Engine internal constructor(
         return Base64.encodeToString(out.toByteArray(), Base64.NO_WRAP)
     }
 
+    private inner class Aria2UiDispatcher(context: Context) : Aria2Ui.Listener {
+        init {
+            Prefs.init(context)
+        }
 
+        val listeners: MutableSet<Aria2Ui.Listener> = mutableSetOf()
+
+        val ui: Aria2Ui = Aria2Ui(context, this)
+
+        override fun onUpdateLogs(msg: MutableList<Aria2Ui.LogMessage>) {
+        }
+
+        override fun onMessage(msg: Aria2Ui.LogMessage) {
+            for (listener in listeners) listener.onMessage(msg)
+        }
+
+        override fun updateUi(on: Boolean) {
+            for (listener in listeners) listener.updateUi(on)
+        }
+    }
 }
 
 class AriaRequest(
@@ -190,6 +228,7 @@ class AriaRequest(
         request.put("params", params)
         return request
     }
+
 }
 
 data class Request2(
