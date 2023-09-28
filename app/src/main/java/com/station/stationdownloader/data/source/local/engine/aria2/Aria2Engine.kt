@@ -45,19 +45,6 @@ class Aria2Engine internal constructor(
             return@withContext IResult.Error(e)
         }
         return@withContext IResult.Success("${DownloadEngine.ARIA2}[${aria2Service.ui.version()}")
-
-
-//        Prefs.init(appContext)
-//        val aria2 = Aria2.get()
-//        val parent: File = appContext.filesDir
-//        aria2.loadEnv(
-//            parent,
-//            File(appContext.applicationInfo.nativeLibraryDir, "libaria2c.so"),
-//            File(parent, "session")
-//        )
-//
-//        aria2.start()
-//        client = WebSocketClient()
     }
 
     fun addAria2UiListener(listener: Aria2Ui.Listener) {
