@@ -5,8 +5,10 @@ import android.util.Base64
 import android.view.View
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.lifecycleScope
+import com.gianlu.aria2lib.Aria2Ui
 import com.station.stationdownloader.R
 import com.station.stationdownloader.StationDownloaderApp
+import com.station.stationdownloader.data.source.local.engine.aria2.Aria2Engine
 import com.station.stationdownloader.databinding.FragmentSettingsBinding
 import com.station.stationdownloader.ui.base.BaseFragment
 import com.station.stationdownloader.ui.contract.OpenFileManagerV1Contract
@@ -15,9 +17,10 @@ import com.station.stationdownloader.utils.DLogger
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
+import javax.inject.Inject
 
 @AndroidEntryPoint
-class SettingsFragment : BaseFragment<FragmentSettingsBinding>(), DLogger {
+class SettingsFragment : BaseFragment<FragmentSettingsBinding>(), DLogger, Aria2Ui.Listener {
     private val app by lazy {
         requireActivity().application as StationDownloaderApp
     }
@@ -42,12 +45,16 @@ class SettingsFragment : BaseFragment<FragmentSettingsBinding>(), DLogger {
         vm.accept(UiAction.ResetDialogState)
     }
 
+    @Inject
+    lateinit var aria2Engine:Aria2Engine
+
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         logger(vm)
         mBinding.bindState(
             vm.commonSetting,
             vm.dialogState,
+            vm.aria2Setting,
             vm.accept
         )
     }
@@ -55,18 +62,25 @@ class SettingsFragment : BaseFragment<FragmentSettingsBinding>(), DLogger {
     override fun onResume() {
         super.onResume()
         vm.accept(UiAction.RefreshConfigurations)
+        aria2Engine.addAria2UiListener(this)
+    }
+
+    override fun onPause() {
+        super.onPause()
+        aria2Engine.removeAria2UiListener(this)
     }
 
     private fun FragmentSettingsBinding.bindState(
-        commonSetting: StateFlow<CommonSettingState>,
-        dialogState: StateFlow<DialogState>,
+        commonSettingStateFlow: StateFlow<CommonSettingState>,
+        dialogStateFlow: StateFlow<DialogState>,
+        aria2SettingStateFlow: StateFlow<Aria2SettingState>,
         accept: (UiAction) -> Unit
     ) {
 
 
         lifecycleScope.launch {
-            commonSetting.collect { settingState ->
-                itemStateList = settingState.settingItemStates
+            commonSettingStateFlow.collect { settingState ->
+                commonItemStateList = settingState.settingItemStates
 
                 commonSettingDownloadPath.root.setOnClickListener {
                     settingState.settingItemStates[0].onClick()
@@ -82,10 +96,16 @@ class SettingsFragment : BaseFragment<FragmentSettingsBinding>(), DLogger {
         }
 
         lifecycleScope.launch {
-            dialogState.collect {
+            dialogStateFlow.collect {
                 if (it.isShowDownloadPath) showDownloadPathDialog()
                 else if (it.isShowMaxThread) showMaxThreadDialog()
                 else if (it.isShowSpeedLimit) showSpeedLimitDialog()
+            }
+        }
+
+        lifecycleScope.launch {
+            aria2SettingStateFlow.collect { aria2SettingState ->
+                aria2ItemStateList = aria2SettingState.settingItemStates
             }
         }
     }
@@ -101,9 +121,9 @@ class SettingsFragment : BaseFragment<FragmentSettingsBinding>(), DLogger {
     }
 
     private fun showDownloadPathDialog() {
-        if(app.useV2FileManager){
+        if (app.useV2FileManager) {
             openFileManagerV2()
-        }else{
+        } else {
             openFileManagerV1()
         }
     }
@@ -125,13 +145,23 @@ class SettingsFragment : BaseFragment<FragmentSettingsBinding>(), DLogger {
 
     private fun openFileManagerV2() {
         openFolderV2.launch(Bundle().apply {
-            putString(OpenFileManagerV2Contract.EXTRA_MIME_TYPE,"folder/*")
+            putString(OpenFileManagerV2Contract.EXTRA_MIME_TYPE, "folder/*")
         })
     }
 
 
     override fun DLogger.tag(): String {
         return SettingsFragment::class.java.simpleName
+    }
+
+    override fun onUpdateLogs(msg: MutableList<Aria2Ui.LogMessage>) {
+    }
+
+    override fun onMessage(msg: Aria2Ui.LogMessage) {
+    }
+
+    override fun updateUi(on: Boolean) {
+        vm.accept(UiAction.UpdateAria2State(on))
     }
 
 }

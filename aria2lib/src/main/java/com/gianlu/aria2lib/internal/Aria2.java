@@ -378,7 +378,7 @@ public final class Aria2 {
             params.put("--enable-color", "false");
             params.put("--enable-rpc", "true");
             params.put("--rpc-secret", Prefs.getString(Aria2PK.RPC_TOKEN));
-            params.put("--rpc-listen-port", String.valueOf(Prefs.getInt(Aria2PK.RPC_PORT, 6801)));
+            params.put("--rpc-listen-port", String.valueOf(Prefs.getInt(Aria2PK.RPC_PORT, 6800)));
             params.put("--dir", Prefs.getString(Aria2PK.OUTPUT_DIRECTORY));
             params.put("--rpc-listen-all", Boolean.toString(Prefs.getBoolean(Aria2PK.RPC_LISTEN_ALL)));
             params.put("--rpc-allow-origin-all", Boolean.toString(Prefs.getBoolean(Aria2PK.RPC_LISTEN_ALL)));

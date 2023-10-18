@@ -5,6 +5,12 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.orhanobut.logger.AndroidLogAdapter
 import com.orhanobut.logger.Logger
+import com.station.stationdownloader.data.source.local.engine.aria2.connection.client.WebSocketClient
+import com.station.stationdownloader.data.source.local.engine.aria2.connection.common.OptionsMap
+import com.station.stationdownloader.data.source.local.engine.aria2.connection.profile.UserProfileManager
+import com.station.stationdownloader.data.source.local.engine.aria2.connection.transport.Aria2Request
+import com.station.stationdownloader.data.source.local.engine.aria2.connection.transport.Aria2Requests
+import com.station.stationdownloader.data.source.local.engine.aria2.connection.util.CommonUtils
 import com.station.stationdownloader.utils.TaskTools
 import com.station.stationdownloader.utils.TaskTools.toHumanReading
 import com.station.stationdownloader.utils.asMB
@@ -19,6 +25,8 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import okhttp3.internal.notifyAll
+import org.json.JSONArray
+import org.json.JSONException
 import org.json.JSONObject
 import org.junit.Assert.*
 import org.junit.Before
@@ -68,7 +76,7 @@ class AppTest {
         re = InternalResponse()
         synchronized(re as InternalResponse) {
             println(1)
-            re?.wait(1000)
+            re?.wait(4000)
             println(2)
             println(re?.getResult()?.get("a"))
             println(3)
@@ -77,23 +85,24 @@ class AppTest {
 
     @Test
     fun testNotify() {
+        Thread {
+            try {
 
-        Logger.addLogAdapter(AndroidLogAdapter())
-        try {
-            send()
+                send()
 
-        } catch (e: Exception) {
-            Logger.d("test")
-        }
+            } catch (e: Exception) {
+                Logger.d(e)
+            }
+        }.start()
         val b = Thread {
             println(21)
             re?.data(JSONObject().put("a", "b"))
             println(23)
 
         }
+        b.start()
 
         Thread.sleep(2000)
-        b.start()
 
     }
 
@@ -144,12 +153,13 @@ class AppTest {
     }
 
 
-    var job:Job?=null
+    var job: Job? = null
+
     @Test
     fun testCancelJob() {
         runBlocking {
             val scope = CoroutineScope(Dispatchers.Default)
-            job=scope.launch {
+            job = scope.launch {
                 Logger.d("job 1 =$job")
                 Logger.d("job 3=$this")
             }
@@ -160,23 +170,25 @@ class AppTest {
     }
 
     @Test
-    fun testTaskInfo(){
+    fun testTaskInfo() {
         runBlocking {
             XLTaskHelper.init(InstrumentationRegistry.getInstrumentation().targetContext)
-            val taskId=XLTaskHelper.instance().addTorrentTask("/storage/emulated/0/Station/movie.torrent","/storage/emulated/0/Station/Download",
-                intArrayOf())
+            val taskId = XLTaskHelper.instance().addTorrentTask(
+                "/storage/emulated/0/Station/movie.torrent", "/storage/emulated/0/Station/Download",
+                intArrayOf()
+            )
             Logger.d("taskId=$taskId")
-            val taskInfo=XLTaskHelper.instance().getTaskInfo(taskId)
+            val taskInfo = XLTaskHelper.instance().getTaskInfo(taskId)
             Logger.d("taskInfo=$taskInfo")
 
-            val fakeTaskInfo=XLTaskHelper.instance().getTaskInfo(-1)
+            val fakeTaskInfo = XLTaskHelper.instance().getTaskInfo(-1)
             Logger.d("fakeTaskInfo=$fakeTaskInfo")
         }
 
     }
 
     @Test
-    fun  testStorageSpace(){
+    fun testStorageSpace() {
         Logger.d("totalSpace ${File("/storage/emulated/0/Station/Download").totalSpace.toHumanReading()}")
         Logger.d("freeSpace ${File("/storage/emulated/0/Station/Download").freeSpace.toHumanReading()}")
 

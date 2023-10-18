@@ -6,7 +6,7 @@ import com.station.stationdownloader.DownloadEngine
 import com.station.stationdownloader.R
 import com.station.stationdownloader.StationDownloaderApp
 import com.station.stationdownloader.data.IResult
-import com.station.stationdownloader.data.util.EngineRepoUseCase
+import com.station.stationdownloader.data.usecase.EngineRepoUseCase
 import com.station.stationdownloader.databinding.ActivityWelcomeBinding
 import com.station.stationdownloader.ui.base.PermissionActivity
 import dagger.hilt.android.AndroidEntryPoint
@@ -57,10 +57,16 @@ class WelcomeActivity : PermissionActivity<ActivityWelcomeBinding>(
                                 mBinding.process= messageList.joinToString("\n")
                                 delay(1000)
                                 startActivity(MainActivity.newIntent(this@WelcomeActivity))
+                                finish()
                             }
+
+                            DownloadEngine.INVALID_ENGINE -> {}
                         }
 
                     }
+                }else{
+                    startActivity(MainActivity.newIntent(this@WelcomeActivity))
+                    finish()
                 }
 
             }

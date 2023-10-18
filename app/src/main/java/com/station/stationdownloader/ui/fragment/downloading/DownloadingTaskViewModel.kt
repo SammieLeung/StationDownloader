@@ -10,15 +10,18 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
+import com.orhanobut.logger.Logger
+import com.station.stationdownloader.DownloadEngine
 import com.station.stationdownloader.DownloadTaskStatus
 import com.station.stationdownloader.ITaskState
 import com.station.stationdownloader.R
+import com.station.stationdownloader.TaskId
 import com.station.stationdownloader.TaskService
 import com.station.stationdownloader.TaskStatus
 import com.station.stationdownloader.data.source.IDownloadTaskRepository
-import com.station.stationdownloader.data.source.IEngineRepository
 import com.station.stationdownloader.data.source.local.model.StationDownloadTask
 import com.station.stationdownloader.data.source.local.room.entities.asStationDownloadTask
+import com.station.stationdownloader.data.source.repository.DefaultEngineRepository
 import com.station.stationdownloader.utils.DLogger
 import com.station.stationdownloader.utils.TaskTools
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -39,7 +42,7 @@ class DownloadingTaskViewModel @Inject constructor(
     val application: Application,
     val stateHandle: SavedStateHandle,
     val taskRepo: IDownloadTaskRepository,
-    val enginRepo: IEngineRepository
+    val enginRepo: DefaultEngineRepository
 ) : ViewModel(), DLogger {
 
     private val _uiState: MutableStateFlow<UiState> = MutableStateFlow(UiState.Init)
@@ -95,6 +98,7 @@ class DownloadingTaskViewModel @Inject constructor(
         val initTaskList = actionStateFlow.filterIsInstance<UiAction.CheckTaskList>()
         val showDeleteConfirmDialog =
             actionStateFlow.filterIsInstance<UiAction.ShowDeleteConfirmDialog>()
+        val tellAllFlow = actionStateFlow.filterIsInstance<UiAction.TellAll>()
 
         handleInitUiState(initUiState)
         handleGetTaskList(getTaskList)
@@ -104,6 +108,7 @@ class DownloadingTaskViewModel @Inject constructor(
         handleDeleteTask(deleteTask)
         handleInitTaskList(initTaskList)
         handleShowDeleteConfirmDialog(showDeleteConfirmDialog)
+        handleTellAll(tellAllFlow)
 
         return { action ->
             viewModelScope.launch {
@@ -266,6 +271,38 @@ class DownloadingTaskViewModel @Inject constructor(
         }
     }
 
+    private fun handleTellAll(tellAllFlow: Flow<UiAction.TellAll>) {
+        viewModelScope.launch {
+            Logger.d("handleTellAll")
+            tellAllFlow.collect {
+                enginRepo.tellAll().forEach { aria2Task ->
+                    val taskItem =
+                        runningTaskItemList.find { it.url == aria2Task.taskStatus.url && it.engine == DownloadEngine.ARIA2.name }
+                            ?: return@forEach
+                    val index = runningTaskItemList.indexOf(taskItem)
+                    runningTaskItemList[index] = taskItem.copy(
+                        taskId = aria2Task.taskStatus.taskId,
+                        status = aria2Task.taskStatus.status,
+                        speed = formatSpeed(aria2Task.taskStatus.speed),
+                        sizeInfo = formatSizeInfo(
+                            aria2Task.taskStatus.downloadSize,
+                            aria2Task.taskStatus.totalSize
+                        ),
+                        progress = formatProgress(
+                            aria2Task.taskStatus.downloadSize,
+                            aria2Task.taskStatus.totalSize
+                        ),
+
+                        )
+                    _uiState.update {
+                        UiState.UpdateProgress(runningTaskItemList[index])
+                    }
+                }
+            }
+        }
+    }
+
+
     fun collectTaskStatus(taskStatus: StateFlow<TaskStatus>) {
         viewModelScope.launch {
             taskStatus.collect { taskStatus ->
@@ -365,6 +402,7 @@ class DownloadingTaskViewModel @Inject constructor(
         )
     }
 
+
     companion object {
         const val ACTION_NOTIFY_ADD_DONE_TASK = "action.notify.add.done.task"
         const val EXTRA_URL = "extra_url"
@@ -394,7 +432,7 @@ sealed class UiState {
 
 
 data class TaskItem(
-    val taskId: Long = -1L,
+    val taskId: TaskId = TaskId.INVALID_TASK_ID,
     val url: String,
     val taskName: String,
     val status: Int,
@@ -408,10 +446,11 @@ data class TaskItem(
 sealed class UiAction {
     object InitUiState : UiAction()
     object GetTaskList : UiAction()
+    object TellAll : UiAction()
     data class StartTask(val url: String) : UiAction()
     data class StopTask(val url: String) : UiAction()
     object CheckTaskList : UiAction()
-    data class ShowTaskMenu(val url: String="", val isShow: Boolean) : UiAction()
+    data class ShowTaskMenu(val url: String = "", val isShow: Boolean) : UiAction()
     data class DeleteTask(val url: String, val isDeleteFile: Boolean) : UiAction()
     data class ShowDeleteConfirmDialog(val isShowDelete: Boolean) : UiAction()
 }

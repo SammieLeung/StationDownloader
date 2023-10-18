@@ -6,15 +6,14 @@ import com.station.stationdownloader.data.source.IConfigurationRepository
 import com.station.stationdownloader.data.source.IDownloadTaskRepository
 import com.station.stationdownloader.data.source.repository.DefaultDownloadTaskRepository
 import com.station.stationdownloader.data.source.IDownloadTaskDataSource
-import com.station.stationdownloader.data.source.IEngineRepository
 import com.station.stationdownloader.data.source.ITorrentInfoDataSource
 import com.station.stationdownloader.data.source.ITorrentInfoRepository
-import com.station.stationdownloader.data.source.local.engine.IEngine
 import com.station.stationdownloader.data.source.local.engine.aria2.Aria2Engine
 import com.station.stationdownloader.data.source.local.engine.xl.XLEngine
 import com.station.stationdownloader.data.source.local.ConfigurationLocalDataSource
 import com.station.stationdownloader.data.source.local.DownloadTaskLocalDataSource
 import com.station.stationdownloader.data.source.local.TorrentInfoLocalDataSource
+import com.station.stationdownloader.data.source.local.engine.aria2.connection.profile.UserProfileManager
 import com.station.stationdownloader.data.source.local.room.dao.XLDownloadTaskDao
 import com.station.stationdownloader.data.source.local.room.dao.TorrentFileInfoDao
 import com.station.stationdownloader.data.source.local.room.dao.TorrentInfoDao
@@ -35,14 +34,6 @@ import javax.inject.Singleton
 
 @Qualifier
 annotation class LocalConfigurationDataSource
-
-
-@Qualifier
-annotation class XLEngineAnnotation
-
-@Qualifier
-annotation class Aria2EngineAnnotation
-
 
 @Module
 @InstallIn(SingletonComponent::class)
@@ -73,8 +64,11 @@ object DownloadTaskModule {
     @Provides
     fun provideDownloadTaskRepository(
         localDataSource: IDownloadTaskDataSource,
+        torrentDataSource: ITorrentInfoDataSource,
+        @IoDispatcher
+        ioDispatcher: CoroutineDispatcher,
     ): IDownloadTaskRepository {
-        return DefaultDownloadTaskRepository(localDataSource)
+        return DefaultDownloadTaskRepository(localDataSource, torrentDataSource, ioDispatcher)
     }
 
     @Provides
@@ -92,30 +86,29 @@ object EngineModule {
     @Provides
     @Singleton
     fun provideEngineRepo(
-        @XLEngineAnnotation xlEngine: IEngine,
-        @Aria2EngineAnnotation aria2Engine: IEngine,
+        xlEngine: XLEngine,
+        aria2Engine: Aria2Engine,
         downloadTaskRepo: IDownloadTaskRepository,
         @LocalConfigurationDataSource configurationDataSource: IConfigurationDataSource,
         configRepo: IConfigurationRepository,
         torrentInfoRepo: ITorrentInfoRepository,
         @DefaultDispatcher defaultDispatcher: CoroutineDispatcher,
         @IoDispatcher ioDispatcher: CoroutineDispatcher
-    ): IEngineRepository {
+    ): DefaultEngineRepository {
         return DefaultEngineRepository(
             xlEngine = xlEngine,
             aria2Engine = aria2Engine,
             downloadTaskRepo = downloadTaskRepo,
             configurationDataSource = configurationDataSource,
             configRepo = configRepo,
-            torrentInfoRepo= torrentInfoRepo,
+            torrentInfoRepo = torrentInfoRepo,
             defaultDispatcher = defaultDispatcher,
-            ioDispatcher=ioDispatcher
+            ioDispatcher = ioDispatcher
         )
     }
 
     @Provides
     @Singleton
-    @XLEngineAnnotation
     fun provideXLEngine(
         @ApplicationContext context: Context,
         @LocalConfigurationDataSource configurationDataSource: IConfigurationDataSource,
@@ -124,7 +117,7 @@ object EngineModule {
         @AppCoroutineScope externalScope: CoroutineScope,
         @IoDispatcher ioDispatcher: CoroutineDispatcher,
         @DefaultDispatcher defaultDispatcher: CoroutineDispatcher
-    ): IEngine {
+    ): XLEngine {
         return XLEngine(
             context = context,
             configurationDataSource = configurationDataSource,
@@ -138,12 +131,12 @@ object EngineModule {
 
     @Provides
     @Singleton
-    @Aria2EngineAnnotation
     fun provideAria2Engine(
         @ApplicationContext context: Context,
+        profileManager: UserProfileManager,
         @DefaultDispatcher defaultDispatcher: CoroutineDispatcher
-    ): IEngine {
-        return Aria2Engine(context, defaultDispatcher)
+    ): Aria2Engine {
+        return Aria2Engine(context, profileManager, defaultDispatcher)
     }
 
 }

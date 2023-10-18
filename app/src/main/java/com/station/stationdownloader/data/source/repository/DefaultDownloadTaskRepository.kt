@@ -9,6 +9,7 @@ import com.station.stationdownloader.contants.TaskExecuteError
 import com.station.stationdownloader.data.IResult
 import com.station.stationdownloader.data.source.IDownloadTaskDataSource
 import com.station.stationdownloader.data.source.IDownloadTaskRepository
+import com.station.stationdownloader.data.source.ITorrentInfoDataSource
 import com.station.stationdownloader.data.source.local.engine.NewTaskConfigModel
 import com.station.stationdownloader.data.source.local.model.TreeNode
 import com.station.stationdownloader.data.source.local.model.getCheckedFilePaths
@@ -29,6 +30,7 @@ import java.io.File
  */
 class DefaultDownloadTaskRepository(
     private val localDataSource: IDownloadTaskDataSource,
+    private val torrentDataSource: ITorrentInfoDataSource,
     private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO
 ) : IDownloadTaskRepository {
     override suspend fun getTasks(): List<XLDownloadTaskEntity> {
@@ -60,8 +62,24 @@ class DefaultDownloadTaskRepository(
                 Exception(TaskExecuteError.NOT_SUPPORT_YET.name),
                 TaskExecuteError.NOT_SUPPORT_YET.ordinal
             )
+
+            DownloadEngine.INVALID_ENGINE -> {
+                IResult.Error(
+                    Exception(TaskExecuteError.INVALID_ENGINE_TYPE.name),
+                    TaskExecuteError.INVALID_ENGINE_TYPE.ordinal
+                )
+            }
         }
 
+    }
+
+    override suspend fun getTorrentTaskByHash(infoHash: String): XLDownloadTaskEntity? {
+        val torrentInfoResult = torrentDataSource.getTorrentByHash(infoHash)
+        if (torrentInfoResult is IResult.Error) {
+            return null
+        }
+        torrentInfoResult as IResult.Success
+        return localDataSource.getTaskByUrl(infoHash)
     }
 
     override fun getTasksStream(): Flow<IResult<List<XLDownloadTaskEntity>>> {

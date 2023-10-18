@@ -6,15 +6,16 @@ import android.content.Intent
 import android.os.IBinder
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import com.orhanobut.logger.Logger
+import com.station.stationdownloader.TaskId.Companion.INVALID_TASK_ID
 import com.station.stationdownloader.contants.TaskExecuteError
 import com.station.stationdownloader.data.IResult
 import com.station.stationdownloader.data.source.IDownloadTaskRepository
-import com.station.stationdownloader.data.source.IEngineRepository
 import com.station.stationdownloader.data.source.local.room.entities.XLDownloadTaskEntity
 import com.station.stationdownloader.data.source.local.room.entities.asStationDownloadTask
 import com.station.stationdownloader.data.source.remote.json.RemoteStartTask
 import com.station.stationdownloader.data.source.remote.json.RemoteStopTask
-import com.station.stationdownloader.data.util.EngineRepoUseCase
+import com.station.stationdownloader.data.source.repository.DefaultEngineRepository
+import com.station.stationdownloader.data.usecase.EngineRepoUseCase
 import com.station.stationdownloader.di.AppCoroutineScope
 import com.station.stationdownloader.utils.DLogger
 import com.station.stationkitkt.MoshiHelper
@@ -42,10 +43,10 @@ class TaskService : Service(), DLogger {
     lateinit var applicationScope: CoroutineScope
 
     @Inject
-    lateinit var engineRepo: IEngineRepository
+    lateinit var engineRepo: DefaultEngineRepository
 
     @Inject
-    lateinit var engineRepoUseCase:EngineRepoUseCase
+    lateinit var engineRepoUseCase: EngineRepoUseCase
 
     @Inject
     lateinit var taskRepo: IDownloadTaskRepository
@@ -58,7 +59,7 @@ class TaskService : Service(), DLogger {
     private val taskStatusFlow: MutableStateFlow<TaskStatus> =
         MutableStateFlow(
             TaskStatus(
-                taskId = 0,
+                taskId = INVALID_TASK_ID,
                 url = "",
                 speed = 0,
                 downloadSize = 0,
@@ -88,9 +89,12 @@ class TaskService : Service(), DLogger {
             when (intent.action) {
                 ACTION_WATCH_TASK -> {
                     val url = intent.getStringExtra("url") ?: return START_NOT_STICKY
-                    val taskId = intent.getLongExtra("taskId", -1)
+                    val taskId = intent.getStringExtra("taskId")
+                    val taskEngineName = intent.getStringExtra("engine")
                     watchTaskJobMap[url]?.apply { cancel() }
-                    watchTaskJobMap[url] = createWatchTask(taskId, url)
+                    watchTaskJobMap[url] =
+                        createWatchTask(TaskId(taskEngineName?.let { DownloadEngine.valueOf(it) }
+                            ?: DownloadEngine.XL, taskId ?: ""), url)
                 }
 
                 ACTION_CANCEL_WATCH_TASK -> {
@@ -145,7 +149,8 @@ class TaskService : Service(), DLogger {
             val xlEntity = taskRepo.getTaskByUrl(url) ?: return@launch
             if (runningTaskMap[url] != null)
                 stopTask(url).join()
-            val taskIdResult = engineRepo.startTask(xlEntity.asStationDownloadTask())
+            val downloadTask = xlEntity.asStationDownloadTask()
+            val taskIdResult = engineRepo.startTask(downloadTask)
             if (taskIdResult is IResult.Error) {
                 Logger.e(taskIdResult.exception.message.toString())
                 sendLocalBroadcast(Intent(
@@ -155,7 +160,7 @@ class TaskService : Service(), DLogger {
                     putExtra("result", false)
                     putExtra("reason", taskIdResult.exception.message.toString())
                 })
-                updateTaskStatusNow(url, -1, ITaskState.STOP.code)
+                updateTaskStatusNow(url, TaskId(downloadTask.engine, ""), ITaskState.STOP.code)
                 sendErrorToClient(
                     "start_task",
                     taskIdResult.exception.message.toString(),
@@ -174,10 +179,14 @@ class TaskService : Service(), DLogger {
             )
             runningTaskMap[url] = status
             updateTaskStatusNow(url, taskId, ITaskState.RUNNING.code)
-            sendToClient("start_task", MoshiHelper.toJson(RemoteStartTask(url, taskId)))
+            sendToClient(
+                "start_task",
+                MoshiHelper.toJson(RemoteStartTask(url, taskId.id))
+            )
 
             watchTaskJobMap[url]?.apply { cancel() }
             watchTaskJobMap[url] = createWatchTask(taskId, url)
+
         } catch (e: Exception) {
             logError(e.message.toString())
             sendErrorToClient(
@@ -210,7 +219,7 @@ class TaskService : Service(), DLogger {
                     engineRepo.stopTask(taskId, entity.asStationDownloadTask())
                     sendToClient("stop_task", MoshiHelper.toJson(RemoteStopTask(url)))
                 }
-                updateTaskStatusNow(url, -1, ITaskState.STOP.code)
+                taskId?.let { updateTaskStatusNow(url, it, ITaskState.STOP.code) }
             } catch (e: Exception) {
                 logError(e.message.toString())
                 sendErrorToClient(
@@ -257,10 +266,21 @@ class TaskService : Service(), DLogger {
         }
 
 
-    private fun createWatchTask(taskId: Long, url: String): Job {
+    private fun createWatchTask(taskId: TaskId, url: String): Job {
         return serviceScope.launch {
             try {
-                speedTest(taskId, url)
+                when (taskId.engine) {
+                    DownloadEngine.XL -> {
+                        speedTest(taskId, url)
+                    }
+
+                    DownloadEngine.ARIA2 -> {
+                        aria2TellStatus(taskId, url)
+                    }
+
+                    DownloadEngine.INVALID_ENGINE -> TODO()
+                }
+
             } finally {
                 logger("【$url】")
                 logger("need to cancel WatchJob")
@@ -277,8 +297,9 @@ class TaskService : Service(), DLogger {
      * @param delayTestTime Int
      */
     private suspend fun speedTest(
-        taskId: Long, url: String, failedCount: Int = 0, delayTestTime: Int = 30
+        taskId: TaskId, url: String, failedCount: Int = 0, delayTestTime: Int = 30
     ) {
+        if (taskId.engine != DownloadEngine.XL) return
         val task: XLDownloadTaskEntity = taskRepo.getTaskByUrl(url) ?: return
         var delayCount = delayTestTime
         var nullCount = 0
@@ -291,7 +312,7 @@ class TaskService : Service(), DLogger {
 
 
         while (true) {
-            val taskInfo = XLTaskHelper.instance().getTaskInfo(taskId)
+            val taskInfo = XLTaskHelper.instance().getTaskInfo(taskId.id.toLong())
             if (taskInfo == null) {
                 if (nullCount < 5) {
                     nullCount++
@@ -373,7 +394,7 @@ class TaskService : Service(), DLogger {
         if (isRestart) retryDownload(taskId, url, retryFailedCount)
     }
 
-    private suspend fun retryDownload(oldTaskId: Long, url: String, retryCount: Int) {
+    private suspend fun retryDownload(oldTaskId: TaskId, url: String, retryCount: Int) {
         logger("重试下载【$url】")
         Logger.e("重试下载 原[$oldTaskId] 第[${retryCount + 1}]次重试 下次重试间隔【${(retryCount + 1) * 5}】")
         val xlTaskEntity = taskRepo.getTaskByUrl(url) ?: return
@@ -383,21 +404,57 @@ class TaskService : Service(), DLogger {
             Logger.e(result.exception.message.toString())
             return
         }
-        val taskId = (result as IResult.Success).data
-        speedTest(taskId, url, retryCount + 1, (retryCount + 1) * 5)
+        val taskResult = (result as IResult.Success).data
+        speedTest(taskResult, url, retryCount + 1, (retryCount + 1) * 5)
     }
 
-    private fun updateTaskStatusNow(url: String, taskId: Long, status: Int) {
-        val taskInfo = XLTaskHelper.instance().getTaskInfo(taskId) ?: return
-        val taskStatus = TaskStatus(
-            taskId = taskId,
-            url = url,
-            speed = taskInfo.mDownloadSpeed,
-            downloadSize = taskInfo.mDownloadSize,
-            totalSize = taskInfo.mFileSize,
-            status = status
-        )
-        updateTaskStatus(url, taskStatus)
+    private suspend fun aria2TellStatus(taskId: TaskId, url: String) {
+        while (true) {
+            val taskStatusResult = engineRepo.getTaskStatus(TaskStatus(taskId = taskId, url = url))
+            if (taskStatusResult is IResult.Error) {
+                logError(taskStatusResult.exception)
+                return
+            }
+            val taskStatus = (taskStatusResult as IResult.Success).data
+            updateTaskStatus(url, taskStatus)
+            if (taskStatus.status == ITaskState.DONE.code || taskStatus.status == ITaskState.STOP.code) {
+                if (taskStatus.status == ITaskState.DONE.code) {
+                    Logger.w("下载完成 [${taskId}]")
+                    engineRepo.stopTask(
+                        taskId,
+                        taskRepo.getTaskByUrl(url)?.asStationDownloadTask() ?: return
+                    )
+                }
+                runningTaskMap.remove(url)
+                watchTaskJobMap.remove(url)?.cancel()
+                return
+            }
+            delay(1000)
+        }
+    }
+
+    private fun updateTaskStatusNow(url: String, taskId: TaskId, status: Int) {
+        when (taskId.engine) {
+            DownloadEngine.XL -> {
+                val taskInfo = XLTaskHelper.instance().getTaskInfo(taskId.id.toLong()) ?: return
+                val taskStatus = TaskStatus(
+                    taskId = taskId,
+                    url = url,
+                    speed = taskInfo.mDownloadSpeed,
+                    downloadSize = taskInfo.mDownloadSize,
+                    totalSize = taskInfo.mFileSize,
+                    status = status
+                )
+                updateTaskStatus(url, taskStatus)
+            }
+
+            DownloadEngine.ARIA2 -> {
+
+            }
+
+            DownloadEngine.INVALID_ENGINE -> TODO()
+        }
+
     }
 
     private fun updateTaskStatus(url: String, status: TaskStatus) {
@@ -449,10 +506,11 @@ class TaskService : Service(), DLogger {
         const val ACTION_DELETE_TASK_RESULT = "action.delete.task.result"
 
         @JvmStatic
-        fun watchTask(context: Context, url: String, taskId: Long = -1) {
+        fun watchTask(context: Context, url: String, taskId: String, engine: DownloadEngine) {
             val intent = Intent(context, TaskService::class.java).setAction(ACTION_WATCH_TASK)
             intent.putExtra("url", url)
             intent.putExtra("taskId", taskId)
+            intent.putExtra("engine", engine)
             context.startService(intent)
         }
 

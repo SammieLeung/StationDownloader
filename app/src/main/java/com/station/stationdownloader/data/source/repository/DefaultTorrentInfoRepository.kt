@@ -50,9 +50,8 @@ class DefaultTorrentInfoRepository(
 
     override suspend fun getTorrentByHash(
         hash: String,
-        torrentPath: String
     ): IResult<Map<TorrentInfoEntity, List<TorrentFileInfoEntity>>> {
-        return localDataSource.getTorrentByHash(hash, torrentPath)
+        return localDataSource.getTorrentByHash(hash)
     }
 
     override suspend fun getTorrentById(torrentId: Long): IResult<Map<TorrentInfoEntity, List<TorrentFileInfoEntity>>> {

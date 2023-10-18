@@ -71,12 +71,12 @@ class DataBaseTest {
 
             Logger.d(torrentInfo.mInfoHash)
 
-            val result = torrentDataRepo.getTorrentByHash("123","")
+            val result = torrentDataRepo.getTorrentByHash("123",)
             if (result is IResult.Success) {
                 Logger.e("${result.data}")
             }
 
-            val res2=torrentDataRepo.getTorrentByHash(torrentInfo.mInfoHash,"")
+            val res2=torrentDataRepo.getTorrentByHash(torrentInfo.mInfoHash,)
             if (res2 is IResult.Success) {
                 res2.data.forEach { t, u ->
                     Logger.d(t)

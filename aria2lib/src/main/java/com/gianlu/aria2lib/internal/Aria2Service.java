@@ -1,35 +1,21 @@
 package com.gianlu.aria2lib.internal;
 
-import android.annotation.TargetApi;
-import android.app.Notification;
-import android.app.NotificationChannel;
-import android.app.NotificationManager;
-import android.app.PendingIntent;
 import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
-import android.content.SharedPreferences;
-import android.os.Build;
 import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.IBinder;
-import android.os.Looper;
 import android.os.Message;
 import android.os.Messenger;
 import android.os.RemoteException;
-import android.preference.PreferenceManager;
 import android.util.Log;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.core.app.NotificationCompat;
-import androidx.core.content.ContextCompat;
 import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 
-import com.gianlu.aria2lib.Aria2PK;
 import com.gianlu.aria2lib.BadEnvironmentException;
-import com.gianlu.aria2lib.BareConfigProvider;
-import com.gianlu.aria2lib.R;
 import com.gianlu.aria2lib.commonutils.Prefs;
 
 import java.io.IOException;
@@ -52,21 +38,8 @@ public final class Aria2Service extends Service implements Aria2.MessageListener
     private Messenger messenger;
     private LocalBroadcastManager broadcastManager;
     private Aria2 aria2;
-//    private NotificationCompat.Builder defaultNotification;
-//    private NotificationManager notificationManager;
-//    private long startTime = System.currentTimeMillis();
-//    private BareConfigProvider provider;
-//    private final SharedPreferences.OnSharedPreferenceChangeListener reinitializeNotificationListener = (sharedPreferences, key) -> {
-//        if (key.equals(Aria2PK.SHOW_PERFORMANCE.key()))
-//            initializeNotification();
-//    };
 
     public static void startService(@NonNull Context context) {
-//        new Handler(Looper.getMainLooper()).post(() -> {
-//            ContextCompat.startForegroundService(context, new Intent(context, Aria2Service.class)
-//                    .setAction(ACTION_START_SERVICE));
-//
-//        });
         context.startService(new Intent(context,Aria2Service.class).setAction(ACTION_START_SERVICE));
     }
 
@@ -74,41 +47,6 @@ public final class Aria2Service extends Service implements Aria2.MessageListener
         context.startService(new Intent(context, Aria2Service.class)
                 .setAction(ACTION_STOP_SERVICE));
     }
-
-//    @NonNull
-//    private static BareConfigProvider loadProvider() {
-//        String classStr = Prefs.getString(Aria2PK.BARE_CONFIG_PROVIDER, null);
-//        if (classStr == null) throw new IllegalStateException("Provider not initialized!");
-//
-//        try {
-//            Class<?> clazz = Class.forName(classStr);
-//            return (BareConfigProvider) clazz.newInstance();
-//        } catch (ClassNotFoundException | IllegalAccessException | InstantiationException ex) {
-//            throw new RuntimeException("Failed initializing provider!", ex);
-//        }
-//    }
-
-//    @NonNull
-//    private PendingIntent getStopServiceIntent() {
-//        return PendingIntent.getService(this, 1, new Intent(this, Aria2Service.class)
-//                .setAction(ACTION_STOP_SERVICE), PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
-//    }
-
-//    private void initializeNotification() {
-//        defaultNotification = new NotificationCompat.Builder(getBaseContext(), CHANNEL_ID)
-//                .setContentTitle(SERVICE_NAME)
-//                .setOnlyAlertOnce(true)
-//                .setShowWhen(false)
-//                .setAutoCancel(false)
-//                .setOngoing(true)
-//                .setSmallIcon(provider.notificationIcon())
-//                .setContentIntent(PendingIntent.getActivity(this, 2, new Intent(this, provider.actionClass())
-//                        .putExtra("openFromNotification", true), PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE))
-//                .setContentText("aria2c is running...");
-//
-//        if (!Prefs.getBoolean(Aria2PK.SHOW_PERFORMANCE))
-//            defaultNotification.addAction(R.drawable.baseline_clear_24, getString(R.string.stopService), getStopServiceIntent());
-//    }
 
     @Override
     public void onCreate() {
@@ -120,13 +58,6 @@ public final class Aria2Service extends Service implements Aria2.MessageListener
         aria2.addListener(this);
         serviceThread.start();
         broadcastManager = LocalBroadcastManager.getInstance(this);
-//        notificationManager = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
-//        provider = loadProvider();
-
-//        initializeNotification();
-
-//        PreferenceManager.getDefaultSharedPreferences(this).registerOnSharedPreferenceChangeListener(reinitializeNotificationListener);
-
         try {
             Log.d(TAG, aria2.version());
         } catch (BadEnvironmentException | IOException ex) {
@@ -145,17 +76,7 @@ public final class Aria2Service extends Service implements Aria2.MessageListener
     public void onDestroy() {
         super.onDestroy();
         if (aria2 != null) aria2.removeListener(this);
-
-//        PreferenceManager.getDefaultSharedPreferences(this).unregisterOnSharedPreferenceChangeListener(reinitializeNotificationListener);
     }
-
-//    @TargetApi(Build.VERSION_CODES.O)
-//    private void createChannel() {
-//        NotificationChannel chan = new NotificationChannel(CHANNEL_ID, SERVICE_NAME, NotificationManager.IMPORTANCE_DEFAULT);
-//        chan.setLockscreenVisibility(Notification.VISIBILITY_PUBLIC);
-//        NotificationManager service = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
-//        if (service != null) service.createNotificationChannel(chan);
-//    }
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
@@ -195,10 +116,6 @@ public final class Aria2Service extends Service implements Aria2.MessageListener
     }
 
     private void start() throws IOException, BadEnvironmentException {
-
-//        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) createChannel();
-//        startForeground(NOTIFICATION_ID, defaultNotification.build());
-//        if (aria2.start()) startTime = System.currentTimeMillis();
         aria2.start();
         dispatchStatus();
 
@@ -207,31 +124,7 @@ public final class Aria2Service extends Service implements Aria2.MessageListener
     @Override
     public void onMessage(@NonNull com.gianlu.aria2lib.internal.Message msg) {
         dispatch(msg);
-
-//        if (msg.type() == com.gianlu.aria2lib.internal.Message.Type.MONITOR_UPDATE)
-//            updateMonitor((MonitorUpdate) msg.object());
     }
-
-//    private void updateMonitor(@Nullable MonitorUpdate update) {
-//        if (update == null || notificationManager == null || !aria2.isRunning()) {
-//            if (update != null) update.recycle();
-//            return;
-//        }
-//
-//        RemoteViews layout = new RemoteViews(getPackageName(), R.layout.aria2lib_custom_notification);
-//        layout.setTextViewText(R.id.customNotification_runningTime, "Running time: " + CommonUtils.timeFormatter((System.currentTimeMillis() - startTime) / 1000));
-//        layout.setTextViewText(R.id.customNotification_pid, "PID: " + update.pid());
-//        layout.setTextViewText(R.id.customNotification_cpu, "CPU: " + update.cpu() + "%");
-//        layout.setTextViewText(R.id.customNotification_memory, "Memory: " + CommonUtils.dimensionFormatter(update.rss(), false));
-//        layout.setImageViewResource(R.id.customNotification_icon, provider.launcherIcon());
-//        layout.setImageViewResource(R.id.customNotification_stop, R.drawable.baseline_clear_24);
-//        layout.setOnClickPendingIntent(R.id.customNotification_stop, getStopServiceIntent());
-//        defaultNotification.setCustomContentView(layout);
-//
-//        notificationManager.notify(NOTIFICATION_ID, defaultNotification.build());
-//
-//        update.recycle();
-//    }
 
     private void dispatch(@NonNull com.gianlu.aria2lib.internal.Message msg) {
         Intent intent = new Intent(BROADCAST_MESSAGE);

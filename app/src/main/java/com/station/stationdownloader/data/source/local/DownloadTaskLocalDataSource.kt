@@ -56,9 +56,9 @@ class DownloadTaskLocalDataSource internal constructor(
     override suspend fun getTaskByUrl(
         url: String,
         downloadPath: String
-    ): IResult<XLDownloadTaskEntity> {
+    ): IResult<XLDownloadTaskEntity> = withContext(ioDispatcher) {
         val xlDownloadTaskEntity = downloadTaskDao.getTaskByUrl(url, downloadPath)
-        return if (xlDownloadTaskEntity == null) {
+        return@withContext if (xlDownloadTaskEntity == null) {
             IResult.Error(
                 Exception(TaskExecuteError.TASK_NOT_FOUND.name),
                 TaskExecuteError.TASK_NOT_FOUND.ordinal
@@ -66,6 +66,10 @@ class DownloadTaskLocalDataSource internal constructor(
         } else {
             IResult.Success(xlDownloadTaskEntity)
         }
+    }
+
+    override suspend fun getTaskByTorrentId(torrentId: Long): XLDownloadTaskEntity? {
+        return downloadTaskDao.getTaskByTorrentId(torrentId)
     }
 
     override suspend fun updateTask(task: XLDownloadTaskEntity): IResult<Int> =

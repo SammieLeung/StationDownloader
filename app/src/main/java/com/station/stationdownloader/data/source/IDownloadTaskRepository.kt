@@ -5,6 +5,7 @@ import com.station.stationdownloader.DownloadUrlType
 import com.station.stationdownloader.data.IResult
 import com.station.stationdownloader.data.source.local.engine.NewTaskConfigModel
 import com.station.stationdownloader.data.source.local.model.StationDownloadTask
+import com.station.stationdownloader.data.source.local.room.entities.TorrentInfoEntity
 import com.station.stationdownloader.data.source.local.room.entities.XLDownloadTaskEntity
 import kotlinx.coroutines.flow.Flow
 
@@ -20,6 +21,7 @@ interface IDownloadTaskRepository {
         engine: DownloadEngine,
         downloadPath: String
     ): IResult<XLDownloadTaskEntity>
+    suspend fun getTorrentTaskByHash(infoHash:String):XLDownloadTaskEntity?
 
     fun getTasksStream(): Flow<IResult<List<XLDownloadTaskEntity>>>
     suspend fun insertTask(task: XLDownloadTaskEntity): IResult<Long>

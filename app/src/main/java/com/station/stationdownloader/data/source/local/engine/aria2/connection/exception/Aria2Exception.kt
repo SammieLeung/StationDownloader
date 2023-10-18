@@ -1,4 +1,4 @@
-package com.station.stationdownloader.data.source.local.engine.aria2
+package com.station.stationdownloader.data.source.local.engine.aria2.connection.exception
 
 import org.json.JSONException
 import org.json.JSONObject

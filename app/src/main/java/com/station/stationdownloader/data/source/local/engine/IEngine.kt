@@ -1,36 +1,20 @@
 package com.station.stationdownloader.data.source.local.engine
 
 import com.station.stationdownloader.DownloadUrlType
+import com.station.stationdownloader.TaskId
 import com.station.stationdownloader.data.IResult
-import com.station.stationdownloader.data.source.local.model.StationDownloadTask
 
-/**
- * author: Sam Leung
- * date:  2023/5/9
- */
 interface IEngine {
-    enum class EngineStatus {
-        ON, OFF
-    }
-
-    suspend fun init():IResult<String>
+    suspend fun init(): IResult<String>
     suspend fun unInit()
-    suspend fun initUrl(url: String): IResult<NewTaskConfigModel>
-
-    /**
-     * 获取下载任务的大小
-     */
-     suspend fun startTask(
+    suspend fun startTask(
         url: String,
         downloadPath: String,
         name: String,
         urlType: DownloadUrlType,
-        fileCount:Int,
-        selectIndexes:IntArray
-    ):IResult<Long>
-    suspend fun stopTask(taskId:Long)
+        fileCount: Int,
+        selectIndexes: IntArray
+    ): IResult<String>
+    suspend fun stopTask(taskId: String)
     suspend fun configure(key: String, values: String): IResult<String>
-    suspend fun getEngineStatus(): EngineStatus
-
 }
-

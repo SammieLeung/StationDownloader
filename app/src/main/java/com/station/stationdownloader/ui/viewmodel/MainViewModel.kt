@@ -5,6 +5,7 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.orhanobut.logger.Logger
+import com.station.stationdownloader.DownloadEngine
 import com.station.stationdownloader.FreeSpaceState
 import com.station.stationdownloader.FileType
 import com.station.stationdownloader.ITaskState
@@ -14,12 +15,12 @@ import com.station.stationdownloader.contants.TaskExecuteError
 import com.station.stationdownloader.data.IResult
 import com.station.stationdownloader.data.source.IConfigurationRepository
 import com.station.stationdownloader.data.source.IDownloadTaskRepository
-import com.station.stationdownloader.data.source.IEngineRepository
 import com.station.stationdownloader.data.source.ITorrentInfoRepository
 import com.station.stationdownloader.data.source.local.engine.NewTaskConfigModel
 import com.station.stationdownloader.data.source.local.model.StationDownloadTask
 import com.station.stationdownloader.data.source.local.model.TreeNode
 import com.station.stationdownloader.data.source.local.model.filterFile
+import com.station.stationdownloader.data.source.repository.DefaultEngineRepository
 import com.station.stationdownloader.ui.fragment.newtask.toHumanReading
 import com.station.stationdownloader.utils.DLogger
 import com.station.stationdownloader.utils.MB
@@ -45,7 +46,7 @@ class MainViewModel @Inject constructor(
     val taskRepo: IDownloadTaskRepository
 ) : ViewModel(), DLogger {
     @Inject
-    lateinit var engineRepo: IEngineRepository
+    lateinit var engineRepo: DefaultEngineRepository
 
     @Inject
     lateinit var configRepo: IConfigurationRepository
@@ -106,14 +107,15 @@ class MainViewModel @Inject constructor(
                 if (_newTaskState.value !is NewTaskState.PreparingData)
                     return@collect
                 val preparingData = _newTaskState.value as NewTaskState.PreparingData
+
                 val saveTaskResult =
-                    taskRepo.saveTask(preparingData.task)
+                    taskRepo.saveTask(preparingData.task.update(downloadEngine = action.engine))
                 if (saveTaskResult is IResult.Error) {
                     when (saveTaskResult.code) {
                         TaskExecuteError.REPEATING_TASK_NOTHING_CHANGED.ordinal -> {
                             saveTaskResult.exception.message?.let {
                                 val status = taskService?.getRunningTaskMap()?.get(it)
-                                if (status == null || status.taskId < 0L || status.status == ITaskState.STOP.code) {
+                                if (status == null || status.taskId.isInvalid() || status.status == ITaskState.STOP.code) {
                                     TaskService.startTask(application, it)
                                 }
                             }
@@ -206,7 +208,10 @@ class MainViewModel @Inject constructor(
             actionStateFlow.filterIsInstance<DialogAction.ResetTaskSettingDialogState>()
         val filterStateFlow = actionStateFlow.filterIsInstance<DialogAction.FilterGroupState>()
 
-        val setDownloadPathFlow = actionStateFlow.filterIsInstance<DialogAction.SetDownloadPath>()
+        val changeDownloadPathFlow =
+            actionStateFlow.filterIsInstance<DialogAction.ChangeDownloadPath>()
+        val changeDownloadEngineFlow =
+            actionStateFlow.filterIsInstance<DialogAction.ChangeDownloadEngine>()
         val calculateSizeInfoFlow =
             actionStateFlow.filterIsInstance<DialogAction.CalculateSizeInfo>()
 
@@ -214,8 +219,9 @@ class MainViewModel @Inject constructor(
         handleInitAddUriState(initAddUriState)
         handleInitTaskSettingState(initTaskSettingState)
         handleFilterState(filterStateFlow)
-        handleSetDownloadPathFlow(setDownloadPathFlow)
+        handleChangeDownloadPathFlow(changeDownloadPathFlow)
         handleCalculateSizeInfo(calculateSizeInfoFlow)
+        handleDownloadEngineFlow(changeDownloadEngineFlow)
 
         return { dialogAction ->
             viewModelScope.launch {
@@ -223,7 +229,6 @@ class MainViewModel @Inject constructor(
             }
         }
     }
-
 
     private fun handleInitAddUriState(initAddUriStateFlow: Flow<DialogAction.ResetAddUriDialogState>) =
         viewModelScope.launch {
@@ -268,14 +273,14 @@ class MainViewModel @Inject constructor(
             }
         }
 
-    private fun handleSetDownloadPathFlow(setDownloadPathFlow: Flow<DialogAction.SetDownloadPath>) =
+    private fun handleChangeDownloadPathFlow(setDownloadPathFlow: Flow<DialogAction.ChangeDownloadPath>) =
         viewModelScope.launch {
-            setDownloadPathFlow.collect { setDownloadPath ->
+            setDownloadPathFlow.collect { changeDownloadPath ->
                 if (_newTaskState.value is NewTaskState.PreparingData) {
                     _newTaskState.update {
                         (it as NewTaskState.PreparingData).copy(
                             task = it.task.update(
-                                downloadPath = setDownloadPath.downloadPath
+                                downloadPath = changeDownloadPath.downloadPath
                             )
                         )
                     }
@@ -327,6 +332,21 @@ class MainViewModel @Inject constructor(
             }
         }
 
+    private fun handleDownloadEngineFlow(changeDownloadEngineFlow: Flow<DialogAction.ChangeDownloadEngine>) =
+        viewModelScope.launch {
+            changeDownloadEngineFlow.collect { changeDownloadEngine ->
+                if (_newTaskState.value is NewTaskState.PreparingData) {
+                    _newTaskState.update {
+                        (it as NewTaskState.PreparingData).copy(
+                            task = it.task.update(
+                                downloadEngine = changeDownloadEngine.engine
+                            )
+                        )
+                    }
+                }
+            }
+        }
+
     override fun DLogger.tag(): String {
         return MainViewModel::class.java.simpleName
     }
@@ -336,7 +356,7 @@ class MainViewModel @Inject constructor(
 sealed class UiAction {
     data class InitTask(val url: String) : UiAction()
     object ResetToast : UiAction()
-    object StartDownloadTask : UiAction()
+    data class StartDownloadTask(val engine: DownloadEngine) : UiAction()
 }
 
 sealed class DialogAction {
@@ -344,7 +364,8 @@ sealed class DialogAction {
     object ResetTaskSettingDialogState : DialogAction()
 
     data class FilterGroupState(val fileType: FileType, val isSelect: Boolean) : DialogAction()
-    data class SetDownloadPath(val downloadPath: String) : DialogAction()
+    data class ChangeDownloadPath(val downloadPath: String) : DialogAction()
+    data class ChangeDownloadEngine(val engine: DownloadEngine) : DialogAction()
     object CalculateSizeInfo : DialogAction()
 }
 
@@ -377,7 +398,7 @@ data class TaskSizeInfo(
 )
 
 data class fileFilterGroup(
-    val selectAll:Boolean=false,
+    val selectAll: Boolean = false,
     val selectVideo: Boolean = true,
     val selectAudio: Boolean = false,
     val selectImage: Boolean = false,

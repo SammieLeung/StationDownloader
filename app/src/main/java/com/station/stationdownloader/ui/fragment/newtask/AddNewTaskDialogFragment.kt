@@ -4,13 +4,13 @@ import android.content.DialogInterface
 import android.content.Intent
 import android.os.Bundle
 import android.text.Html
-import android.text.Html.FROM_HTML_MODE_LEGACY
 import android.text.Html.FROM_HTML_OPTION_USE_CSS_COLORS
 import android.util.Base64
 import android.view.View
 import android.widget.CheckBox
 import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.lifecycleScope
+import com.station.stationdownloader.DownloadEngine
 import com.station.stationdownloader.FileType
 import com.station.stationdownloader.R
 import com.station.stationdownloader.StationDownloaderApp
@@ -55,7 +55,7 @@ class AddNewTaskDialogFragment : BaseDialogFragment<DialogFragmentAddNewTaskBind
         if (it != null) {
             val base64Id: String = it.pathSegments[1] //dir id
             val decodeData = String(Base64.decode(base64Id, Base64.DEFAULT))
-            vm.dialogAccept(DialogAction.SetDownloadPath(decodeData))
+            vm.dialogAccept(DialogAction.ChangeDownloadPath(decodeData))
         }
     }
 
@@ -64,7 +64,7 @@ class AddNewTaskDialogFragment : BaseDialogFragment<DialogFragmentAddNewTaskBind
             val dataType = intent.getIntExtra("data_type", -1)
             if (dataType == 2) {
                 val uri = intent.getStringExtra("path") ?: return@registerForActivityResult
-                vm.dialogAccept(DialogAction.SetDownloadPath(uri))
+                vm.dialogAccept(DialogAction.ChangeDownloadPath(uri))
             }
         }
     }
@@ -98,7 +98,8 @@ class AddNewTaskDialogFragment : BaseDialogFragment<DialogFragmentAddNewTaskBind
             ) // 设置下拉菜单的样式
         // 将适配器绑定到spinner上
         engineSpinner.adapter = adapter
-        engineSpinner.isEnabled = false
+        engineSpinner.setSelection(1)
+//        engineSpinner.isEnabled = false
     }
 
     private fun DialogFragmentAddNewTaskBinding.bindState(
@@ -112,7 +113,17 @@ class AddNewTaskDialogFragment : BaseDialogFragment<DialogFragmentAddNewTaskBind
         }
 
         downloadBtn.setOnClickListener {
-            accept(UiAction.StartDownloadTask)
+            accept(
+                UiAction.StartDownloadTask(
+                    when (engineSpinner.selectedItemPosition) {
+                        0 -> DownloadEngine.XL
+                        1 -> DownloadEngine.ARIA2
+                        else -> {
+                            DownloadEngine.XL
+                        }
+                    }
+                )
+            )
         }
 
         filePickerBtn.setOnClickListener {
@@ -148,7 +159,7 @@ class AddNewTaskDialogFragment : BaseDialogFragment<DialogFragmentAddNewTaskBind
             newTaskState.filter { it is NewTaskState.PreparingData }.map {
                 (it as NewTaskState.PreparingData).fileFilterGroup
             }.distinctUntilChanged().collect {
-                unBindCheckBox(allCBox,videoCBox, audioCBox, otherCBox, pictureCBox)
+                unBindCheckBox(allCBox, videoCBox, audioCBox, otherCBox, pictureCBox)
 
                 allCBox.isChecked = it.selectAll
                 videoCBox.isChecked = it.selectVideo
@@ -172,7 +183,12 @@ class AddNewTaskDialogFragment : BaseDialogFragment<DialogFragmentAddNewTaskBind
                 (it as NewTaskState.PreparingData).taskSizeInfo
             }.distinctUntilChanged().collect {
                 taskSizeInfo = it.taskSizeInfo
-                downloadSpaceView.setText(Html.fromHtml(it.downloadPathSizeInfo,FROM_HTML_OPTION_USE_CSS_COLORS))
+                downloadSpaceView.setText(
+                    Html.fromHtml(
+                        it.downloadPathSizeInfo,
+                        FROM_HTML_OPTION_USE_CSS_COLORS
+                    )
+                )
             }
         }
     }
@@ -206,9 +222,9 @@ class AddNewTaskDialogFragment : BaseDialogFragment<DialogFragmentAddNewTaskBind
     }
 
     private fun openFilePicker() {
-        if(app.useV2FileManager){
+        if (app.useV2FileManager) {
             openFileManagerV2()
-        }else{
+        } else {
             openFileManagerV2()
         }
     }

@@ -8,7 +8,7 @@ import com.station.stationdownloader.contants.DOWNLOAD_PATH
 import com.station.stationdownloader.contants.MAX_THREAD
 import com.station.stationdownloader.contants.SPEED_LIMIT
 import com.station.stationdownloader.data.source.IConfigurationRepository
-import com.station.stationdownloader.data.source.IEngineRepository
+import com.station.stationdownloader.data.source.repository.DefaultEngineRepository
 import com.station.stationdownloader.utils.DLogger
 import com.station.stationdownloader.utils.TaskTools
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -25,11 +25,11 @@ import javax.inject.Inject
 class SettingViewModel @Inject constructor(
     val application: Application,
     val configRepo: IConfigurationRepository,
-    val engineRepo:IEngineRepository
+    val engineRepo: DefaultEngineRepository
 ) :
     ViewModel(), DLogger {
 
-    private val _commonSetting = MutableStateFlow<CommonSettingState>(
+    private val _commonSetting = MutableStateFlow(
         CommonSettingState(
             settingItemStates = listOf(
                 SettingItemState(),
@@ -39,6 +39,15 @@ class SettingViewModel @Inject constructor(
         )
     )
     val commonSetting = _commonSetting.asStateFlow()
+
+    private val _aria2Setting = MutableStateFlow(
+        Aria2SettingState(
+            settingItemStates = listOf(
+                SettingItemState(),
+            )
+        )
+    )
+    val aria2Setting = _aria2Setting.asStateFlow()
 
     private val _dialogState = MutableStateFlow(
         DialogState(
@@ -71,11 +80,16 @@ class SettingViewModel @Inject constructor(
         val resetDialogStateFlow =
             actionStateFlow.filterIsInstance<UiAction.ResetDialogState>()
 
+        val updateAria2StateFlow =
+            actionStateFlow.filterIsInstance<UiAction.UpdateAria2State>()
+
         handleRefreshConfigurations(refreshConfigurationsFlow)
         handleSetDownloadPath(setDownloadPathFlow)
         handleSetMaxThread(setMaxThreadFlow)
         handleSetDownloadSpeedLimit(setDownloadSpeedLimitFlow)
         handleResetDialogState(resetDialogStateFlow)
+        handleUpdateAria2UiState(updateAria2StateFlow)
+
 
         return { action ->
             viewModelScope.launch {
@@ -83,6 +97,7 @@ class SettingViewModel @Inject constructor(
             }
         }
     }
+
 
     private fun handleRefreshConfigurations(refreshFlow: Flow<UiAction.RefreshConfigurations>) =
         viewModelScope.launch {
@@ -140,7 +155,7 @@ class SettingViewModel @Inject constructor(
     private fun handleSetDownloadPath(setDownloadPathFlow: Flow<UiAction.SetDownloadPath>) =
         viewModelScope.launch {
             setDownloadPathFlow.collect { action ->
-                engineRepo.configure(DOWNLOAD_PATH,action.downloadPath)
+                engineRepo.configure(DOWNLOAD_PATH, action.downloadPath)
                 _commonSetting.update {
                     val list = it.settingItemStates.toMutableList()
                     list[0] = list[0].copy(content = action.downloadPath)
@@ -152,7 +167,7 @@ class SettingViewModel @Inject constructor(
     private fun handleSetMaxThread(setMaxThreadFlow: Flow<UiAction.SetMaxThread>) =
         viewModelScope.launch {
             setMaxThreadFlow.collect { action ->
-              engineRepo.configure(MAX_THREAD,action.maxThread.toString())
+                engineRepo.configure(MAX_THREAD, action.maxThread.toString())
                 _commonSetting.update {
                     val list = it.settingItemStates.toMutableList()
                     list[1] = list[1].copy(content = action.maxThread.toString())
@@ -164,7 +179,7 @@ class SettingViewModel @Inject constructor(
     private fun handleSetDownloadSpeedLimit(setDownloadSpeedLimitFlow: Flow<UiAction.SetDownloadSpeedLimit>) =
         viewModelScope.launch {
             setDownloadSpeedLimitFlow.collect { action ->
-              engineRepo.configure(SPEED_LIMIT,action.downloadSpeedLimit.toString())
+                engineRepo.configure(SPEED_LIMIT, action.downloadSpeedLimit.toString())
                 _commonSetting.update {
                     val list = it.settingItemStates.toMutableList()
                     list[2] = list[2].copy(content = action.downloadSpeedLimit.formatRoundSpeed())
@@ -186,10 +201,35 @@ class SettingViewModel @Inject constructor(
             }
         }
 
+    private fun handleUpdateAria2UiState(updateAria2StateFlow: Flow<UiAction.UpdateAria2State>) {
+        viewModelScope.launch {
+            updateAria2StateFlow.collect { aria2State ->
+                _aria2Setting.update {
+                    it.copy(
+                        settingItemStates = listOf(
+                            SettingItemState(
+                                title = getString(R.string.aria2_setting_status),
+                                extraContent = "",
+                                content = if (aria2State.on) application.getString(R.string.aria2_setting_status_on) else application.getString(
+                                    R.string.aria2_setting_status_off
+                                ),
+                                onClick = {
+                                }
+                            ),
+                        )
+                    )
+                }
+            }
+        }
+    }
 
     private fun Long.formatRoundSpeed(): String {
         if (this == -1L) return application.getString(R.string.speed_no_limit)
         return TaskTools.formatRoundSpeed(this)
+    }
+
+    private fun getString(id: Int): String {
+        return application.getString(id)
     }
 
     override fun DLogger.tag(): String {
@@ -211,6 +251,10 @@ data class CommonSettingState(
     val settingItemStates: List<SettingItemState> = emptyList()
 )
 
+data class Aria2SettingState(
+    val settingItemStates: List<SettingItemState> = emptyList()
+)
+
 data class SettingItemState(
     val title: String = "",
     val extraContent: String = "",
@@ -224,4 +268,5 @@ sealed class UiAction {
     data class SetDownloadPath(val downloadPath: String) : UiAction()
     data class SetMaxThread(val maxThread: Int) : UiAction()
     data class SetDownloadSpeedLimit(val downloadSpeedLimit: Long) : UiAction()
+    data class UpdateAria2State(val on: Boolean) : UiAction()
 }

@@ -31,7 +31,8 @@ enum class DownloadUrlType:Serializable  {
 
 enum class DownloadEngine:Serializable  {
     XL,
-    ARIA2
+    ARIA2,
+    INVALID_ENGINE
 }
 
 enum class FileType:Serializable{

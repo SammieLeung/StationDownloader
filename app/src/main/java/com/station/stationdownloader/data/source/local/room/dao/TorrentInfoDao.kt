@@ -16,17 +16,14 @@ interface TorrentInfoDao {
     @Update
     suspend fun updateTorrentInfo(torrentInfo: TorrentInfoEntity): Int
 
-    @Query(
-        "SELECT * FROM torrent_info AS TI " +
-                "JOIN torrent_file_info AS TFI ON TFI.torrent_id = TI.id "
-    )
-    suspend fun getTorrentInfo(): Map<TorrentInfoEntity, List<TorrentFileInfoEntity>>
 
     @Query(
         "SELECT * FROM torrent_info AS TI " +
-                "JOIN torrent_file_info AS TFI ON TFI.torrent_id = TI.id WHERE TI.hash=:hash AND TI.torrent_path=:torrentPath"
+                "JOIN torrent_file_info AS TFI ON TFI.torrent_id = TI.id WHERE TI.hash=:hash"
     )
-    suspend fun getTorrentByHash(hash: String,torrentPath:String): Map<TorrentInfoEntity, List<TorrentFileInfoEntity>>
+    suspend fun getTorrentByHash(
+        hash: String,
+    ): Map<TorrentInfoEntity, List<TorrentFileInfoEntity>>
 
     @Query(
         "SELECT * FROM torrent_info AS TI " +
@@ -38,12 +35,13 @@ interface TorrentInfoDao {
         "SELECT id FROM torrent_info " +
                 "WHERE hash=:hash AND torrent_path=:torrentPath "
     )
-    suspend fun getTorrentId(hash: String,torrentPath:String): Long
+    suspend fun getTorrentId(hash: String, torrentPath: String): Long
 
     @Query(
         "SELECT * FROM torrent_info AS TI " +
                 "JOIN torrent_file_info AS TFI ON TFI.torrent_id = TI.id WHERE TI.torrent_path=:torrentPath"
     )
     suspend fun getTorrentByPath(torrentPath: String): Map<TorrentInfoEntity, List<TorrentFileInfoEntity>>
+
 
 }

@@ -2,11 +2,8 @@ package com.station.stationdownloader
 
 import android.app.Application
 import com.facebook.stetho.Stetho
-import com.gianlu.aria2lib.Aria2Ui
 import com.orhanobut.logger.AndroidLogAdapter
 import com.orhanobut.logger.Logger
-import com.station.stationdownloader.data.IResult
-import com.station.stationdownloader.data.source.IEngineRepository
 import com.station.stationdownloader.utils.DLogger
 import com.station.stationkitkt.DimenUtils
 import com.station.stationkitkt.MimeTypeHelper
@@ -15,9 +12,6 @@ import com.station.stationkitkt.PackageTools
 import dagger.hilt.android.HiltAndroidApp
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.launch
-import javax.inject.Inject
 
 /**
  * author: Sam Leung

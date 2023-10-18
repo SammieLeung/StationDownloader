@@ -1,4 +1,4 @@
-package com.station.stationdownloader.data.source.local.engine.aria2
+package com.station.stationdownloader.data.source.local.engine.aria2.connection.transport
 
 import okhttp3.internal.notifyAll
 import org.json.JSONObject
@@ -20,8 +20,4 @@ import org.json.JSONObject
         this.data = null
         notifyAll()
     }
-
-
 }
-
-inline fun InternalResponse.wait(timeout:Long) = (this as Object).wait(timeout)

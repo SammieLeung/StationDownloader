@@ -21,7 +21,7 @@ data class RemoteTask(
     val is_multifile: Boolean,
     val is_torrent_task: Boolean,
     val status: Int,
-    val task_id: Long = -1,
+    val task_id: String ="",
     val task_name:String,
     val total_size:Long,
     val url:String,

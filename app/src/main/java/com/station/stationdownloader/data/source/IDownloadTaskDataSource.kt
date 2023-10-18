@@ -17,6 +17,7 @@ interface IDownloadTaskDataSource {
    suspend fun insertTask(task: XLDownloadTaskEntity):IResult<Long>
    suspend fun getTaskByUrl(url: String): XLDownloadTaskEntity?
    suspend fun getTaskByUrl(url:String, downloadPath:String):IResult<XLDownloadTaskEntity>
+   suspend fun getTaskByTorrentId(torrentId:Long):XLDownloadTaskEntity?
    suspend fun updateTask(task: XLDownloadTaskEntity): IResult<Int>
    suspend fun deleteTask(url: String): IResult<Int>
 }

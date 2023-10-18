@@ -38,6 +38,7 @@ class DownloadingTaskFragment : BaseFragment<FragmentDownloadtaskBinding>(), DLo
             Logger.w("onServiceConnected")
             service as TaskStatusServiceImpl
             vm.collectTaskStatus(service.getService().getStatusFlow())
+            vm.accept(UiAction.TellAll)
         }
 
         override fun onServiceDisconnected(name: ComponentName?) {

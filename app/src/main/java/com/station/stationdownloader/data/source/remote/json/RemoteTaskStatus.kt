@@ -17,5 +17,5 @@ data class RemoteTaskStatus(
     val url: String,
     val is_done: Boolean,
     val total_size: Long,
-    val task_id: Long
+    val task_id: String
 )

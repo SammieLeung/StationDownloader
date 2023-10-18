@@ -3,6 +3,7 @@ package com.station.stationdownloader
 import android.content.ContentValues
 import android.net.Uri
 import com.orhanobut.logger.Logger
+import com.station.stationdownloader.TaskId.Companion.INVALID_ID
 import com.station.stationdownloader.contants.DOWNLOAD_PATH
 import com.station.stationdownloader.contants.FAILED
 import com.station.stationdownloader.contants.MAX_THREAD
@@ -11,7 +12,6 @@ import com.station.stationdownloader.contants.TaskExecuteError
 import com.station.stationdownloader.data.IResult
 import com.station.stationdownloader.data.source.IConfigurationRepository
 import com.station.stationdownloader.data.source.IDownloadTaskRepository
-import com.station.stationdownloader.data.source.IEngineRepository
 import com.station.stationdownloader.data.source.ITorrentInfoRepository
 import com.station.stationdownloader.data.source.local.engine.NewTaskConfigModel
 import com.station.stationdownloader.data.source.local.model.TreeNode
@@ -23,6 +23,7 @@ import com.station.stationdownloader.data.source.remote.json.RemoteSetDownloadCo
 import com.station.stationdownloader.data.source.remote.json.RemoteStartTask
 import com.station.stationdownloader.data.source.remote.json.RemoteTask
 import com.station.stationdownloader.data.source.remote.json.RemoteTaskStatus
+import com.station.stationdownloader.data.source.repository.DefaultEngineRepository
 import com.station.stationdownloader.utils.DLogger
 import com.station.stationkitkt.MoshiHelper
 import dagger.hilt.EntryPoint
@@ -51,7 +52,7 @@ class TaskStatusServiceImpl(
     private val taskRepo: IDownloadTaskRepository by lazy {
         entryPoint.getTaskRepo()
     }
-    private val engineRepo: IEngineRepository by lazy {
+    private val engineRepo: DefaultEngineRepository by lazy {
         entryPoint.getEngineRepo()
     }
     private val configRepo: IConfigurationRepository by lazy {
@@ -64,7 +65,7 @@ class TaskStatusServiceImpl(
     @EntryPoint
     @InstallIn(SingletonComponent::class)
     interface TaskStatusServiceEntryPoint {
-        fun getEngineRepo(): IEngineRepository
+        fun getEngineRepo(): DefaultEngineRepository
         fun getTaskRepo(): IDownloadTaskRepository
         fun getConfigRepo(): IConfigurationRepository
         fun getTorrentRepo(): ITorrentInfoRepository
@@ -82,21 +83,27 @@ class TaskStatusServiceImpl(
         callback: ITaskServiceCallback?
     ) {
         serviceScope.launch {
-            handleStartTask(url,path,selectIndexes,fun (downloadPath: String, joinFileString: String) {
-                try{
-                    service.contentResolver.insert(
-                        Uri.parse("content://com.hphtv.movielibrary.provider.v2/addPoster"),
-                        ContentValues().apply {
-                            put("download_path",downloadPath)
-                            put("file_list",joinFileString)
-                            put("movie_id",movieId)
-                            put("movie_type",movieType)
-                        })
-                }catch (e:Exception){
-                    callback?.onFailed(e.message.toString(),FAILED)
-                }
+            handleStartTask(
+                url,
+                path,
+                selectIndexes,
+                fun(downloadPath: String, joinFileString: String) {
+                    try {
+                        service.contentResolver.insert(
+                            Uri.parse("content://com.hphtv.movielibrary.provider.v2/addPoster"),
+                            ContentValues().apply {
+                                put("download_path", downloadPath)
+                                put("file_list", joinFileString)
+                                put("movie_id", movieId)
+                                put("movie_type", movieType)
+                            })
+                    } catch (e: Exception) {
+                        callback?.onFailed(e.message.toString(), FAILED)
+                    }
 
-            },callback)
+                },
+                callback
+            )
         }
 
     }
@@ -109,7 +116,7 @@ class TaskStatusServiceImpl(
         callback: ITaskServiceCallback?
     ) {
         serviceScope.launch {
-            handleStartTask(url, path, selectIndexes,null, callback)
+            handleStartTask(url, path, selectIndexes, null, callback)
         }
     }
 
@@ -167,14 +174,14 @@ class TaskStatusServiceImpl(
                 TaskExecuteError.REPEATING_TASK_NOTHING_CHANGED.ordinal -> {
                     saveTaskResult.exception.message?.let {
                         val status = service.getRunningTaskMap()[it]
-                        if (status == null || status.taskId < 0 || status.status == ITaskState.STOP.code) {
+                        if (status == null || status.taskId.isInvalid()|| status.status == ITaskState.STOP.code) {
                             startTaskAndWaitTaskId(it, callback)
                         } else {
                             callback?.onResult(
                                 MoshiHelper.toJson(
                                     RemoteStartTask(
                                         it,
-                                        service.getRunningTaskMap()[it]?.taskId ?: -1L
+                                        service.getRunningTaskMap()[it]?.taskId?.id ?: INVALID_ID
                                     )
                                 )
                             )
@@ -182,7 +189,7 @@ class TaskStatusServiceImpl(
                                 "start_task", MoshiHelper.toJson(
                                     RemoteStartTask(
                                         it,
-                                        service.getRunningTaskMap()[it]?.taskId ?: -1L
+                                        service.getRunningTaskMap()[it]?.taskId?.id ?: INVALID_ID
                                     )
                                 )
                             )
@@ -206,7 +213,11 @@ class TaskStatusServiceImpl(
 
         saveTaskResult as IResult.Success
         predicate?.let {
-            it(saveTaskResult.data.downloadPath, (newTaskConfig._fileTree as TreeNode.Directory).getCheckedFilePaths().joinToString(";;"))
+            it(
+                saveTaskResult.data.downloadPath,
+                (newTaskConfig._fileTree as TreeNode.Directory).getCheckedFilePaths()
+                    .joinToString(";;")
+            )
         }
         Logger.d("downloadPath: ${saveTaskResult.data.downloadPath}")
         startTaskAndWaitTaskId(saveTaskResult.data.url, callback)
@@ -223,8 +234,8 @@ class TaskStatusServiceImpl(
             delay(10)
         }
         service.getRunningTaskMap()[url]?.let {
-            callback?.onResult(MoshiHelper.toJson(RemoteStartTask(url, it.taskId)))
-            sendToClient("start_task", MoshiHelper.toJson(RemoteStartTask(url, it.taskId)))
+            callback?.onResult(MoshiHelper.toJson(RemoteStartTask(url, it.taskId.id)))
+            sendToClient("start_task", MoshiHelper.toJson(RemoteStartTask(url, it.taskId.id)))
         } ?: {
             callback?.onFailed("start task failed", FAILED)
             sendErrorToClient("start_task", "start task failed", FAILED)
@@ -369,7 +380,7 @@ class TaskStatusServiceImpl(
     private suspend fun handleGetTaskList(callback: ITaskServiceCallback?) {
         val taskList = taskRepo.getTasks()
         taskList.map {
-            val taskId = service.getRunningTaskMap()[it.url]?.taskId ?: -1L
+            val taskId = service.getRunningTaskMap()[it.url]?.taskId
             RemoteTask(
                 id = it.id,
                 down_size = it.downloadSize,
@@ -390,7 +401,7 @@ class TaskStatusServiceImpl(
                         ITaskState.STOP.code
                     }
                 },
-                task_id = taskId,
+                task_id = taskId?.id ?: INVALID_ID,
                 task_name = it.name,
                 total_size = it.totalSize,
                 url = it.url,
@@ -418,7 +429,7 @@ class TaskStatusServiceImpl(
                 url = it.url,
                 is_done = it.status == ITaskState.DONE.code,
                 total_size = it.totalSize,
-                task_id = it.taskId
+                task_id = it.taskId.id
             ).let {
                 callback?.onResult(MoshiHelper.toJson(it))
             }
@@ -443,7 +454,7 @@ class TaskStatusServiceImpl(
                     url = it.url,
                     is_done = it.status == DownloadTaskStatus.COMPLETED,
                     total_size = it.totalSize,
-                    task_id = -1L
+                    task_id = INVALID_ID
                 ).let {
                     callback?.onResult(MoshiHelper.toJson(it))
                     return@run

@@ -23,6 +23,9 @@ interface XLDownloadTaskDao {
     @Query("SELECT * FROM xl_download_task WHERE url=:url AND download_path=:downloadPath")
     suspend fun getTaskByUrl(url:String,downloadPath:String):XLDownloadTaskEntity?
 
+    @Query("SELECT * FROM xl_download_task WHERE torrent_id=:torrentId")
+    suspend fun getTaskByTorrentId(torrentId:Long):XLDownloadTaskEntity?
+
     @Query("SELECT * FROM xl_download_task")
     fun observeTasksStream(): Flow<List<XLDownloadTaskEntity>>
     @Insert(onConflict = OnConflictStrategy.IGNORE)

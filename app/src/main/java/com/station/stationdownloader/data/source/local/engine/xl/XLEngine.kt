@@ -17,6 +17,7 @@ import com.station.stationdownloader.contants.tryDownloadDirectoryPath
 import com.station.stationdownloader.data.IResult
 import com.station.stationdownloader.data.source.IConfigurationDataSource
 import com.station.stationdownloader.data.source.ITorrentInfoRepository
+import com.station.stationdownloader.data.source.local.engine.EngineStatus
 import com.station.stationdownloader.data.source.local.engine.IEngine
 import com.station.stationdownloader.data.source.local.engine.NewTaskConfigModel
 import com.station.stationdownloader.data.source.local.model.TreeNode
@@ -77,7 +78,7 @@ class XLEngine internal constructor(
         }
     }
 
-    override suspend fun initUrl(originUrl: String): IResult<NewTaskConfigModel> =
+    suspend fun initUrl(originUrl: String): IResult<NewTaskConfigModel> =
         withContext(defaultDispatcher) {
             logger("initUrl=$originUrl")
             var decodeUrl = TaskTools.getUrlDecodeUrl(originUrl)
@@ -122,7 +123,7 @@ class XLEngine internal constructor(
         urlType: DownloadUrlType,
         fileCount: Int,
         selectIndexes: IntArray
-    ): IResult<Long> = withContext(defaultDispatcher) {
+    ): IResult<String> = withContext(defaultDispatcher) {
         when (urlType) {
             DownloadUrlType.NORMAL, DownloadUrlType.THUNDER, DownloadUrlType.HTTP, DownloadUrlType.ED2k, DownloadUrlType.DIRECT -> {
                 val taskId = XLTaskHelper.instance().addThunderTask(url, downloadPath, name)
@@ -133,7 +134,7 @@ class XLEngine internal constructor(
                         TaskExecuteError.START_TASK_FAILED.ordinal
                     )
                 }
-                return@withContext IResult.Success(taskId)
+                return@withContext IResult.Success(taskId.toString())
             }
 
             DownloadUrlType.TORRENT -> {
@@ -149,7 +150,7 @@ class XLEngine internal constructor(
                         TaskExecuteError.START_TASK_FAILED.ordinal
                     )
                 }
-                return@withContext IResult.Success(taskId)
+                return@withContext IResult.Success(taskId.toString())
             }
 
             DownloadUrlType.UNKNOWN, DownloadUrlType.MAGNET -> {
@@ -161,8 +162,8 @@ class XLEngine internal constructor(
         }
     }
 
-    override suspend fun stopTask(taskId: Long) {
-        XLTaskHelper.instance().stopTask(taskId)
+    override suspend fun stopTask(taskId: String) {
+        XLTaskHelper.instance().stopTask(taskId.toLong())
     }
 
     override suspend fun configure(key: String, value: String): IResult<String> {
@@ -185,14 +186,14 @@ class XLEngine internal constructor(
                 ConfigureError.NOT_SUPPORT_CONFIGURATION.ordinal
             )
         }
-        return IResult.Success(Pair(key,value).toString())
+        return IResult.Success(Pair(key, value).toString())
     }
 
-    override suspend fun getEngineStatus(): IEngine.EngineStatus {
+    suspend fun getEngineStatus(): EngineStatus {
         return if (hasInit)
-            IEngine.EngineStatus.ON
+            EngineStatus.ON
         else
-            IEngine.EngineStatus.OFF
+            EngineStatus.OFF
     }
 
     suspend fun getTaskInfo(taskId: Long): XLTaskInfo =

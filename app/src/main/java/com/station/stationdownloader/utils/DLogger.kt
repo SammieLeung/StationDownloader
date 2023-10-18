@@ -7,14 +7,22 @@ interface DLogger {
         Log.w(tag(), "[${tag()}]>>$message<<")
     }
 
-    fun logError(message: Any?) {
+    fun logError(message: String) {
         Log.e(tag(), "[${tag()}]$message")
     }
+
+    fun logError(ex: Exception, message: String? = null) {
+        message?.let {
+            Log.e(tag(), "[${tag()}]$message")
+        }
+        Log.e(tag(), "[${tag()}]${ex.message}")
+    }
+
 
     fun printCodeLine() {
         val stackTrace = Thread.currentThread().stackTrace
         if (stackTrace.size > 4) {
-            val className=stackTrace[4].className
+            val className = stackTrace[4].className
             val parentMethod = stackTrace[4].methodName
             val lineNumber = stackTrace[4].lineNumber
             Log.w(className, "$parentMethod()->line:$lineNumber")

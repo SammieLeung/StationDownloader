@@ -2,13 +2,17 @@ package com.station.stationdownloader.test
 
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
+import okhttp3.internal.notify
+import okhttp3.internal.notifyAll
 import org.junit.Test
 import org.junit.runner.RunWith
+import java.util.concurrent.ThreadLocalRandom
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 import kotlin.coroutines.suspendCoroutine
@@ -114,6 +118,68 @@ class CoroutineTest {
         Thread.sleep(2000)
     }
 
+    @Test
+    fun testCoroutineSync() {
+        runBlocking {
+            launch(Dispatchers.Default) {
+                init("launch1")
+            }
+            launch(Dispatchers.Default) {
+                init("launch2")
+            }
+            delay(5000)
+        }
+    }
+
+    var init = false
+    var lock = Any()
+    suspend fun init(name: String) {
+        if (!init) {
+            println("${Thread.currentThread().name} not init now $name")
+            delay(ThreadLocalRandom.current().nextInt(1000, 1010).toLong())
+            synchronized(lock) {
+                if (!init) {
+                    Thread.sleep(1000)
+                    println("${Thread.currentThread().name} I get lock $name")
+                    init = true
+                } else {
+                    println("${Thread.currentThread().name} I don't get lock $name")
+                }
+            }
+        }
+    }
+
+    public interface TestListener{
+        fun onTest(data:String)
+    }
+
+
+    @Test
+    fun testSuspendCoroutine(){
+        runBlocking {
+            println("start")
+            val data=testSuspend()
+            println("$data")
+        }
+    }
+    suspend fun testSend(message:String,listener:TestListener){
+        delay(3000)
+        listener.onTest(message)
+    }
+
+    suspend fun testSuspend():String{
+      val listener:TestListener
+      val testMessage= suspendCoroutine<String> {
+          runBlocking {    testSend("test",object : TestListener{
+              override fun onTest(data: String) {
+                  it.resume(data)
+              }
+          }) }
+
+      }
+
+        return testMessage
+    }
 
 }
 

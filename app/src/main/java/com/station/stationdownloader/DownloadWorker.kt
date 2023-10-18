@@ -8,7 +8,7 @@ import com.orhanobut.logger.Logger
 import com.station.stationdownloader.contants.TaskExecuteError
 import com.station.stationdownloader.data.IResult
 import com.station.stationdownloader.data.source.IDownloadTaskRepository
-import com.station.stationdownloader.data.source.IEngineRepository
+import com.station.stationdownloader.data.source.repository.DefaultEngineRepository
 import com.station.stationdownloader.utils.DLogger
 import dagger.hilt.EntryPoint
 import dagger.hilt.InstallIn
@@ -20,13 +20,13 @@ class DownloadWorker(
     context: Context, workerParameters: WorkerParameters
 ) : CoroutineWorker(context, workerParameters), DLogger {
     private var mWorkerEntryPoint: DownloadWorkerEntryPoint
-    private var mEngineRepo: IEngineRepository
+    private var mEngineRepo: DefaultEngineRepository
     private var mDownloadTaskRepo: IDownloadTaskRepository
 
     @EntryPoint
     @InstallIn(SingletonComponent::class)
     interface DownloadWorkerEntryPoint {
-        fun getEngineRepo(): IEngineRepository
+        fun getEngineRepo(): DefaultEngineRepository
 
         fun getDownloadTaskRepo(): IDownloadTaskRepository
     }

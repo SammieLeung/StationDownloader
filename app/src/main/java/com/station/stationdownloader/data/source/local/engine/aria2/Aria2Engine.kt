@@ -2,26 +2,37 @@ package com.station.stationdownloader.data.source.local.engine.aria2
 
 import android.content.Context
 import android.net.Uri
-import android.os.Messenger
 import android.util.Base64
+import android.util.Log
 import com.gianlu.aria2lib.Aria2Ui
 import com.gianlu.aria2lib.BadEnvironmentException
 import com.gianlu.aria2lib.commonutils.Prefs
+import com.gianlu.aria2lib.internal.Message
 import com.orhanobut.logger.Logger
+import com.station.stationdownloader.Aria2TorrentTask
 import com.station.stationdownloader.DownloadEngine
 import com.station.stationdownloader.DownloadUrlType
+import com.station.stationdownloader.TaskStatus
+import com.station.stationdownloader.contants.TaskExecuteError
 import com.station.stationdownloader.data.IResult
+import com.station.stationdownloader.data.source.local.engine.EngineStatus
 import com.station.stationdownloader.data.source.local.engine.IEngine
 import com.station.stationdownloader.data.source.local.engine.NewTaskConfigModel
+import com.station.stationdownloader.data.source.local.engine.aria2.connection.client.ClientInstanceHolder
+import com.station.stationdownloader.data.source.local.engine.aria2.connection.client.WebSocketClient
+import com.station.stationdownloader.data.source.local.engine.aria2.connection.common.OptionsMap
+import com.station.stationdownloader.data.source.local.engine.aria2.connection.profile.UserProfileManager
+import com.station.stationdownloader.data.source.local.engine.aria2.connection.transport.Aria2Requests
+import com.station.stationdownloader.utils.DLogger
 import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import okhttp3.internal.wait
-import org.json.JSONArray
-import org.json.JSONException
-import org.json.JSONObject
 import java.io.ByteArrayOutputStream
 import java.io.File
+import kotlin.coroutines.Continuation
 import kotlin.coroutines.resume
 import kotlin.coroutines.suspendCoroutine
 
@@ -31,13 +42,34 @@ import kotlin.coroutines.suspendCoroutine
  */
 class Aria2Engine internal constructor(
     private val appContext: Context,
+    private val profileManager: UserProfileManager,
     private val defaultDispatcher: CoroutineDispatcher = Dispatchers.Default
-) : IEngine {
+) : IEngine, DLogger {
     private var aria2Service: Aria2UiDispatcher = Aria2UiDispatcher(appContext)
+    private var isInit = false
+    private lateinit var reference: ClientInstanceHolder.Reference
+    private val listener = object : Aria2Ui.Listener {
+        override fun onUpdateLogs(msg: MutableList<Aria2Ui.LogMessage>) {
+        }
+
+        override fun onMessage(msg: Aria2Ui.LogMessage) {
+            dispatchMessage(msg)
+        }
+
+        override fun updateUi(on: Boolean) {
+            Log.e(tag(), "[Aria2][Status:$on]")
+        }
+    }
+
+
     override suspend fun init(): IResult<String> = withContext(defaultDispatcher) {
         try {
-            if (!aria2Service.ui.hasEnv()) {
-                aria2Service.ui.loadEnv(appContext)
+            if (!isInit) {
+                logger("Aria2 init!!!")
+                isInit = true
+                profileManager.getInAppProfile()
+                addAria2UiListener(listener)
+                loadAria2ServiceEnv()
                 aria2Service.ui.startService()
             }
         } catch (e: Exception) {
@@ -45,6 +77,20 @@ class Aria2Engine internal constructor(
             return@withContext IResult.Error(e)
         }
         return@withContext IResult.Success("${DownloadEngine.ARIA2}[${aria2Service.ui.version()}")
+    }
+
+
+    @Throws(BadEnvironmentException::class)
+    private fun loadAria2ServiceEnv() {
+        if (!aria2Service.ui.hasEnv()) {
+            aria2Service.ui.loadEnv(appContext)
+            aria2Service.ui.bind()
+            aria2Service.ui.askForStatus()
+        }
+    }
+
+    suspend fun connect() {
+        reference = ClientInstanceHolder.instantiate(profileManager.getInAppProfile())
     }
 
     fun addAria2UiListener(listener: Aria2Ui.Listener) {
@@ -57,10 +103,12 @@ class Aria2Engine internal constructor(
     }
 
     override suspend fun unInit() {
-        aria2Service.ui.unbind()
+        aria2Service.ui.stopService()
+        aria2Service.listeners.remove(listener)
+        isInit = false
     }
 
-    override suspend fun initUrl(url: String): IResult<NewTaskConfigModel> {
+    suspend fun initUrl(url: String): IResult<NewTaskConfigModel> {
         TODO("Not yet implemented")
     }
 
@@ -71,21 +119,63 @@ class Aria2Engine internal constructor(
         urlType: DownloadUrlType,
         fileCount: Int,
         selectIndexes: IntArray
-    ): IResult<Long> {
+    ): IResult<String> {
         when (urlType) {
             DownloadUrlType.TORRENT ->
-                addTorrent(url)
+                return addTorrent(
+                    url,
+                    downloadPath,
+                    selectIndexes,
+                    false
+                )
 
-            DownloadUrlType.HTTP ->
-                addUri(url)
-
-            else -> {}
+            else -> {
+                return IResult.Error(
+                    Exception(TaskExecuteError.NOT_SUPPORT_URL.name),
+                    TaskExecuteError.NOT_SUPPORT_URL.ordinal
+                )
+            }
         }
-        addTorrent(url)
-        return IResult.Success(1)
     }
 
-    override suspend fun stopTask(taskId: Long) {
+
+    private suspend fun addTorrent(
+        url: String,
+        downloadPath: String,
+        selectIndexes: IntArray,
+        isPause: Boolean
+    ): IResult<String> {
+        try {
+            val gid = sendToWebSocketSync { continuation ->
+                val base64 = base64(url)
+                reference.send(requestWithResult = Aria2Requests.addTorrent(
+                    base64 = base64,
+                    options = OptionsMap().apply {
+                        put("pause", OptionsMap.OptionValue(isPause.toString()))
+                        put("select-file", OptionsMap.OptionValue(selectIndexes.map {
+                            it + 1
+                        }.joinToString(",")))
+                        put("dir", OptionsMap.OptionValue(downloadPath))
+                    }
+                ),
+                    onResult = object : WebSocketClient.OnResult<String> {
+                        override fun onResult(result: String) {
+                            continuation.resume(result)
+                        }
+
+                        override fun onException(ex: Exception) {
+                            continuation.resumeWith(Result.failure(ex))
+                        }
+
+                    })
+            }
+            return IResult.Success(gid)
+        } catch (e: Exception) {
+            return IResult.Error(e)
+        }
+    }
+
+    override suspend fun stopTask(taskId: String) {
         TODO("Not yet implemented")
     }
 
@@ -94,64 +184,176 @@ class Aria2Engine internal constructor(
         return IResult.Success(Pair(key, values).toString())
     }
 
-    override suspend fun getEngineStatus(): IEngine.EngineStatus {
-            val data = suspendCoroutine {
-                val listener = object : Aria2Ui.Listener {
-                    override fun onUpdateLogs(msg: MutableList<Aria2Ui.LogMessage>) {
-                    }
-
-                    override fun onMessage(msg: Aria2Ui.LogMessage) {
-                    }
-
-                    override fun updateUi(on: Boolean) {
-                        it.resume(on)
-                        aria2Service.listeners.remove(this)
-                    }
+    suspend fun getEngineStatus(): EngineStatus {
+        val data = suspendCoroutine {
+            val listener = object : Aria2Ui.Listener {
+                override fun onUpdateLogs(msg: MutableList<Aria2Ui.LogMessage>) {
                 }
-                aria2Service.listeners.add(listener)
-                aria2Service.ui.askForStatus()
+
+                override fun onMessage(msg: Aria2Ui.LogMessage) {
+                }
+
+                override fun updateUi(on: Boolean) {
+                    it.resume(on)
+                    aria2Service.listeners.remove(this)
+                }
             }
-            return if (data)
-                IEngine.EngineStatus.ON
-            else
-                IEngine.EngineStatus.OFF
+            aria2Service.listeners.add(listener)
+            aria2Service.ui.askForStatus()
+        }
+        return if (data)
+            EngineStatus.ON
+        else
+            EngineStatus.OFF
+    }
+
+    suspend fun tellStatus(taskStatus: TaskStatus): IResult<TaskStatus> {
+        try {
+            val status = sendToWebSocketSync {
+                reference.send(requestWithResult = Aria2Requests.tellStatus(taskStatus),
+                    onResult = object : WebSocketClient.OnResult<TaskStatus> {
+                        override fun onResult(result: TaskStatus) {
+                            it.resume(result)
+                        }
+
+                        override fun onException(ex: Exception) {
+                            it.resumeWith(Result.failure(ex))
+                        }
+
+                    })
+            }
+            return IResult.Success(status)
+        } catch (e: Exception) {
+            return IResult.Error(e)
+        }
+    }
+
+    suspend fun tellActive(): List<Aria2TorrentTask> {
+        try {
+            val status = sendToWebSocketSync {
+                reference.send(requestWithResult = Aria2Requests.tellActive(),
+                    onResult = object : WebSocketClient.OnResult<List<Aria2TorrentTask>> {
+                        override fun onResult(result: List<Aria2TorrentTask>) {
+                            it.resume(result)
+                        }
+
+                        override fun onException(ex: Exception) {
+                            it.resumeWith(Result.failure(ex))
+                        }
+
+
+                    })
+            }
+            return status
+        } catch (e: Exception) {
+            return emptyList()
+        }
+    }
+
+    suspend fun tellWaiting(offset: Int, count: Int): List<Aria2TorrentTask> {
+        try {
+            val list = sendToWebSocketSync {
+                reference.send(requestWithResult = Aria2Requests.tellWaiting(offset, count),
+                    onResult = object : WebSocketClient.OnResult<List<Aria2TorrentTask>> {
+                        override fun onResult(result: List<Aria2TorrentTask>) {
+                            it.resume(result)
+                        }
+
+                        override fun onException(ex: Exception) {
+                            it.resumeWith(Result.failure(ex))
+                        }
+                    })
+            }
+            return list
+        } catch (e: Exception) {
+            return emptyList()
+        }
+    }
+
+    suspend fun tellStopped(offset: Int, count: Int): List<Aria2TorrentTask> {
+        try {
+            val list = sendToWebSocketSync {
+                reference.send(requestWithResult = Aria2Requests.tellStopped(offset, count),
+                    onResult = object : WebSocketClient.OnResult<List<Aria2TorrentTask>> {
+                        override fun onResult(result: List<Aria2TorrentTask>) {
+                            it.resume(result)
+                        }
+
+                        override fun onException(ex: Exception) {
+                            it.resumeWith(Result.failure(ex))
+                        }
+                    })
+            }
+            return list
+        } catch (e: Exception) {
+            return emptyList()
+        }
     }
 
 
-    private fun addUriRequest(url: String): AriaRequest {
-        val uriArray = JSONArray().put(url)
-        val configObj = JSONObject()
-        val params = arrayOf(uriArray, configObj, Int.MAX_VALUE)
-        return AriaRequest(
-            Aria2Method.ADD_URI,
-            params
-        )
-    }
-
-    private fun addTorrentRequest(url: String): AriaRequest {
-        val base64 = base64(url)
-        val uris = JSONArray()
-        val options = JSONObject()
-        val params = arrayOf(base64, uris, options, Int.MAX_VALUE)
-        return AriaRequest(
-            Aria2Method.ADD_TORRENT,
-            params
-        )
-    }
-
-    private fun addUri(url: String) {
-//        val request = addUriRequest(url).build(client)
-//        Logger.d("${request.toString()}")
-//        client.send(request.toString())
+    private suspend inline fun <R> sendToWebSocketSync(crossinline block: suspend (Continuation<R>) -> Unit): R {
+        val result = suspendCoroutine { continuation ->
+            val job = Job()
+            val scope = CoroutineScope(job)
+            scope.launch(defaultDispatcher) {
+                block(continuation)
+            }
+        }
+        return result
     }
 
 
-    private fun addTorrent(url: String) {
-//        val request = addTorrentRequest(url).build(client)
-//        Logger.d("${request}")
-//        client.send(request.toString())
+    private fun dispatchMessage(logMessage: Aria2Ui.LogMessage) {
+        when (logMessage.type) {
+            Message.Type.PROCESS_STARTED -> {
+                Log.d(tag(), "[PROCESS_STARTED]>>${logMessage.o}<<")
+                val job = Job()
+                val scope = CoroutineScope(job)
+                scope.launch {
+                    connect()
+                }
+            }
+
+            Message.Type.PROCESS_TERMINATED -> {
+                Log.d(tag(), "[PROCESS_TERMINATED]>>${logMessage.o}<<")
+                ClientInstanceHolder.close()
+            }
+
+            Message.Type.MONITOR_FAILED,
+            Message.Type.MONITOR_UPDATE -> {
+                if (!DEBUG) return
+
+                logger("dispatchMessage ${logMessage.type}")
+            }
+
+            Message.Type.PROCESS_WARN -> {
+                logWarn(logMessage.o.toString())
+            }
+
+            Message.Type.PROCESS_ERROR -> {
+                logErr(logMessage.o.toString())
+            }
+
+            Message.Type.PROCESS_INFO -> {
+                logInfo(logMessage.o.toString())
+            }
+        }
     }
 
+    private fun logInfo(info: String) {
+        if (!DEBUG) return
+        Log.i(tag(), "[INFO]>>$info<<")
+    }
+
+    private fun logWarn(info: String) {
+        if (!DEBUG) return
+        Log.w(tag(), "[WARN]>>$info<<")
+    }
+
+    private fun logErr(info: String) {
+        if (!DEBUG) return
+        Log.e(tag(), "[ERROR]>>$info<<")
+    }
 
     private fun base64(url: String): String {
         val uri = Uri.fromFile(File(url))
@@ -188,54 +390,16 @@ class Aria2Engine internal constructor(
             for (listener in listeners) listener.updateUi(on)
         }
     }
-}
 
-class AriaRequest(
-    method: Aria2Method,
-    params: Array<*>
-) {
-    val method: Aria2Method
-    val params: Array<*>
-    var id: Long = 1
-
-    init {
-        this.method = method
-        this.params = params
+    override fun DLogger.tag(): String {
+        return "Aria2Engine"
     }
 
-    @Throws(JSONException::class)
-    fun build(client: WebSocketClient): JSONObject {
-        val request = JSONObject()
-        request.put("jsonrpc", "2.0")
-        request.put("id", client.nextMsgId().toString())
-        request.put("method", method.method)
-        val params: JSONArray =
-            baseRequestParams()
-        for (obj in this.params) params.put(obj)
-        request.put("params", params)
-        return request
+
+    companion object {
+        const val DEBUG = true
     }
-
 }
 
-data class Request2(
-    val jsonrpc: String = "2.0",
-    val id: String,
-    val method: String,
-    val params: Array<Any>
-)
 
-
-private fun baseRequestParams(): JSONArray {
-    val array = JSONArray()
-    array.put("token:station")
-    return array
-}
-
-data class AriaResponse(
-    val id: String?,
-    val method: String?,
-    val result: Any?,
-    val error: Any?
-)
 

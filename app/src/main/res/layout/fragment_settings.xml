@@ -9,8 +9,12 @@
         <import type="com.station.stationdownloader.ui.fragment.setting.SettingItemState" />
 
         <variable
-            name="itemStateList"
+            name="commonItemStateList"
             type="List&lt;SettingItemState>" />
+        <variable
+            name="aria2ItemStateList"
+            type="List&lt;SettingItemState>" />
+
     </data>
 
     <RelativeLayout
@@ -38,6 +42,7 @@
             android:textSize="18sp" />
 
         <LinearLayout
+            android:id="@+id/common_setting_set"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_below="@id/commonSettingTitle"
@@ -50,23 +55,52 @@
             <include
                 android:id="@+id/common_setting_download_path"
                 layout="@layout/setting_item"
-                app:content="@{itemStateList.get(0).content}"
-                app:extraContent="@{itemStateList.get(0).extraContent}"
-                app:title="@{itemStateList.get(0).title}" />
+                app:content="@{commonItemStateList.get(0).content}"
+                app:extraContent="@{commonItemStateList.get(0).extraContent}"
+                app:title="@{commonItemStateList.get(0).title}" />
 
             <include
                 android:id="@+id/common_setting_simultaneous_download_tasks"
                 layout="@layout/setting_item"
-                app:content="@{itemStateList.get(1).content}"
-                app:extraContent="@{itemStateList.get(1).extraContent}"
-                app:title="@{itemStateList.get(1).title}" />
+                app:content="@{commonItemStateList.get(1).content}"
+                app:extraContent="@{commonItemStateList.get(1).extraContent}"
+                app:title="@{commonItemStateList.get(1).title}" />
 
             <include
                 android:id="@+id/common_setting_download_speed_limit"
                 layout="@layout/setting_item"
-                app:content="@{itemStateList.get(2).content}"
-                app:extraContent="@{itemStateList.get(2).extraContent}"
-                app:title="@{itemStateList.get(2).title}" />
+                app:content="@{commonItemStateList.get(2).content}"
+                app:extraContent="@{commonItemStateList.get(2).extraContent}"
+                app:title="@{commonItemStateList.get(2).title}" />
+        </LinearLayout>
+        <TextView
+            android:layout_below="@id/common_setting_set"
+            android:id="@+id/aria2SettingTitle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="51dp"
+            android:text="@string/aria2_setting"
+            android:textColor="@color/main_text_color"
+            android:textFontWeight="400"
+            android:textSize="23sp" />
+
+        <LinearLayout
+            android:id="@+id/aria2SettingSet"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_below="@id/aria2SettingTitle"
+            android:layout_marginTop="15dp"
+            android:background="@drawable/setting_content_background"
+            android:orientation="vertical"
+            android:paddingHorizontal="23dp"
+            android:paddingVertical="15dp">
+            <include
+                android:id="@+id/aria2_setting_host"
+                layout="@layout/setting_item"
+                app:content="@{aria2ItemStateList.get(0).content}"
+                app:extraContent="@{aria2ItemStateList.get(0).extraContent}"
+                app:title="@{aria2ItemStateList.get(0).title}" />
+
         </LinearLayout>
     </RelativeLayout>
 </layout>

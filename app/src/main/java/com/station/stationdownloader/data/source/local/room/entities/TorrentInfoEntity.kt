@@ -12,7 +12,7 @@ import java.io.File
 
 @Entity(
     tableName = "torrent_info",
-    indices = [Index(value = ["hash","torrent_path"], unique = true)]
+    indices = [Index(value = ["hash"], unique = true)]
 )
 data class TorrentInfoEntity @JvmOverloads constructor(
     @PrimaryKey(autoGenerate = true)
