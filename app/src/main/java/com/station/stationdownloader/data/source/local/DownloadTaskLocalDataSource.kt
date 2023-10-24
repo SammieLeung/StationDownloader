@@ -68,9 +68,10 @@ class DownloadTaskLocalDataSource internal constructor(
         }
     }
 
-    override suspend fun getTaskByTorrentId(torrentId: Long): XLDownloadTaskEntity? {
-        return downloadTaskDao.getTaskByTorrentId(torrentId)
-    }
+    override suspend fun getTaskByTorrentId(torrentId: Long): XLDownloadTaskEntity? =
+        withContext(ioDispatcher) {
+            return@withContext downloadTaskDao.getTaskByTorrentId(torrentId)
+        }
 
     override suspend fun updateTask(task: XLDownloadTaskEntity): IResult<Int> =
         withContext(ioDispatcher) {

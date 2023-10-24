@@ -10,15 +10,15 @@ data class Aria2TorrentTask(
         fun create(jsonObject: JSONObject): Aria2TorrentTask{
             val hash=jsonObject.getString("infoHash")
             val taskStatus=TaskStatus(
-                TaskId(
+                taskId = TaskId(
                     DownloadEngine.ARIA2,
                     jsonObject.getString("gid")
                 ),
-                "",
-                jsonObject.getString("bittorrent").toLong(),
-                jsonObject.getString("completedLength").toLong(),
-                jsonObject.getString("totalLength").toLong(),
-                when (jsonObject.getString("status")) {
+                url = "",
+                speed = jsonObject.getString("downloadSpeed").toLong(),
+                downloadSize = jsonObject.getString("completedLength").toLong(),
+                totalSize = jsonObject.getString("totalLength").toLong(),
+                status = when (jsonObject.getString("status")) {
                     "active" -> ITaskState.RUNNING.code
                     "waiting" -> ITaskState.LOADING.code
                     "paused" -> ITaskState.STOP.code

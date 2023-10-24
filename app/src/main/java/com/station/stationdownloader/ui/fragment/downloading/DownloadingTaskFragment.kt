@@ -10,6 +10,7 @@ import android.view.View
 import androidx.fragment.app.activityViewModels
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.viewModelScope
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import com.orhanobut.logger.Logger
 import com.station.stationdownloader.R
@@ -37,8 +38,8 @@ class DownloadingTaskFragment : BaseFragment<FragmentDownloadtaskBinding>(), DLo
         override fun onServiceConnected(name: ComponentName?, service: IBinder?) {
             Logger.w("onServiceConnected")
             service as TaskStatusServiceImpl
-            vm.collectTaskStatus(service.getService().getStatusFlow())
-            vm.accept(UiAction.TellAll)
+            vm.collectTaskStatus(service.getService().asTaskStatusStateFlow())
+
         }
 
         override fun onServiceDisconnected(name: ComponentName?) {
@@ -63,12 +64,15 @@ class DownloadingTaskFragment : BaseFragment<FragmentDownloadtaskBinding>(), DLo
         logger("onResume")
         vm.accept(UiAction.GetTaskList)
         vm.accept(UiAction.InitUiState)
+        vm.aria2Accept(Aria2Action.StartAria2TaskMonitor)
         bindService()
     }
 
 
     override fun onPause() {
+        logger(vm.viewModelScope)
         super.onPause()
+        vm.aria2Accept(Aria2Action.CancelAria2TaskMonitor)
         unbindService()
     }
 
@@ -115,7 +119,7 @@ class DownloadingTaskFragment : BaseFragment<FragmentDownloadtaskBinding>(), DLo
 
                     is UiState.DeleteTaskResultState -> {
                         taskListAdapter.deleteTask(it.deleteItem)
-                        isEmpty = taskListAdapter.itemCount==0
+                        isEmpty = taskListAdapter.itemCount == 0
                     }
                 }
             }

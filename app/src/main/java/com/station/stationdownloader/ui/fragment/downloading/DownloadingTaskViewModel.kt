@@ -10,11 +10,9 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
-import com.orhanobut.logger.Logger
 import com.station.stationdownloader.DownloadEngine
 import com.station.stationdownloader.DownloadTaskStatus
 import com.station.stationdownloader.ITaskState
-import com.station.stationdownloader.R
 import com.station.stationdownloader.TaskId
 import com.station.stationdownloader.TaskService
 import com.station.stationdownloader.TaskStatus
@@ -60,8 +58,9 @@ class DownloadingTaskViewModel @Inject constructor(
     val menuState = _menuState.asStateFlow()
 
     val accept: (UiAction) -> Unit
+    val aria2Accept: (Aria2Action) -> Unit
 
-    private val runningTaskItemList: MutableList<TaskItem> = mutableListOf()
+    private val downloadingTaskItemList: MutableList<TaskItem> = mutableListOf()
 
     val broadcastReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
@@ -85,6 +84,72 @@ class DownloadingTaskViewModel @Inject constructor(
 
     init {
         accept = initAction()
+        aria2Accept = initAria2Action()
+    }
+
+    private fun initAria2Action(): (Aria2Action) -> Unit {
+        val actionStateFlow: MutableSharedFlow<Aria2Action> = MutableSharedFlow()
+        val startAria2TaskMonitorFlow =
+            actionStateFlow.filterIsInstance<Aria2Action.StartAria2TaskMonitor>()
+        val cancelAria2TaskMonitorFlow =
+            actionStateFlow.filterIsInstance<Aria2Action.CancelAria2TaskMonitor>()
+
+        handleStartAria2TaskMonitorAction(startAria2TaskMonitorFlow)
+        handleCancelAria2TaskMonitorAction(cancelAria2TaskMonitorFlow)
+
+        return { action ->
+            viewModelScope.launch {
+                actionStateFlow.emit(action)
+            }
+        }
+    }
+
+    private fun handleStartAria2TaskMonitorAction(startTaskMonitorFlow: Flow<Aria2Action.StartAria2TaskMonitor>) {
+        viewModelScope.launch {
+            startTaskMonitorFlow.collect {
+                enginRepo.tellAll().forEach { aria2Task ->
+//                    val taskItem =
+//                        downloadingTaskItemList.find { it.url == aria2Task.taskStatus.url && it.engine == DownloadEngine.ARIA2.name }
+//                            ?: return@forEach
+//                    val index = downloadingTaskItemList.indexOf(taskItem)
+//                    downloadingTaskItemList[index] = taskItem.copy(
+//                        taskId = aria2Task.taskStatus.taskId,
+//                        status = aria2Task.taskStatus.status,
+//                        speed = formatSpeed(aria2Task.taskStatus.speed),
+//                        sizeInfo = formatSizeInfo(
+//                            aria2Task.taskStatus.downloadSize,
+//                            aria2Task.taskStatus.totalSize
+//                        ),
+//                        progress = formatProgress(
+//                            aria2Task.taskStatus.downloadSize,
+//                            aria2Task.taskStatus.totalSize
+//                        ),
+//                    )
+//                    _uiState.update {
+//                        UiState.UpdateProgress(downloadingTaskItemList[index])
+//                    }
+
+                    TaskService.ARIA2_URL_TO_GID[aria2Task.taskStatus.url] =
+                        aria2Task.taskStatus.taskId.id
+                    if (aria2Task.taskStatus.status == ITaskState.RUNNING.code) {
+                        TaskService.watchTask(
+                            application,
+                            aria2Task.taskStatus.url,
+                            aria2Task.taskStatus.taskId.id,
+                            aria2Task.taskStatus.taskId.engine.name
+                        )
+                    }
+                }
+            }
+        }
+    }
+
+    private fun handleCancelAria2TaskMonitorAction(cancelTaskMonitorFlow: Flow<Aria2Action.CancelAria2TaskMonitor>) {
+        viewModelScope.launch {
+            cancelTaskMonitorFlow.collect {
+                TaskService.cancelAllWatchTask(application)
+            }
+        }
     }
 
     private fun initAction(): (UiAction) -> Unit {
@@ -98,7 +163,6 @@ class DownloadingTaskViewModel @Inject constructor(
         val initTaskList = actionStateFlow.filterIsInstance<UiAction.CheckTaskList>()
         val showDeleteConfirmDialog =
             actionStateFlow.filterIsInstance<UiAction.ShowDeleteConfirmDialog>()
-        val tellAllFlow = actionStateFlow.filterIsInstance<UiAction.TellAll>()
 
         handleInitUiState(initUiState)
         handleGetTaskList(getTaskList)
@@ -108,7 +172,6 @@ class DownloadingTaskViewModel @Inject constructor(
         handleDeleteTask(deleteTask)
         handleInitTaskList(initTaskList)
         handleShowDeleteConfirmDialog(showDeleteConfirmDialog)
-        handleTellAll(tellAllFlow)
 
         return { action ->
             viewModelScope.launch {
@@ -128,20 +191,19 @@ class DownloadingTaskViewModel @Inject constructor(
 
     private fun handleGetTaskList(getTaskList: Flow<UiAction.GetTaskList>) = viewModelScope.launch {
         getTaskList.collect {
-            logger("getTaskList")
             taskRepo.getTasks().filter {
                 it.status != DownloadTaskStatus.COMPLETED
             }.map {
                 it.asStationDownloadTask().asTaskItem()
             }.let { taskItemList ->
-                logger("taskItemList size ${taskItemList.size}")
+                logger("getTaskList=>taskItemList size ${taskItemList.size}")
                 _uiState.update {
-                    runningTaskItemList.clear()
-                    runningTaskItemList.addAll(taskItemList)
+                    downloadingTaskItemList.clear()
+                    downloadingTaskItemList.addAll(taskItemList)
                     if (it is UiState.FillTaskList)
-                        it.copy(taskList = runningTaskItemList)
+                        it.copy(taskList = downloadingTaskItemList)
                     else
-                        UiState.FillTaskList(runningTaskItemList)
+                        UiState.FillTaskList(downloadingTaskItemList)
                 }
             }
         }
@@ -152,13 +214,13 @@ class DownloadingTaskViewModel @Inject constructor(
             withContext(Dispatchers.Default) {
                 Log.d(tag(), "handleStartTask")
                 val taskItem =
-                    runningTaskItemList.find { it.url == action.url } ?: return@withContext
-                val index = runningTaskItemList.indexOf(taskItem)
-                runningTaskItemList[index] = taskItem.copy(
+                    downloadingTaskItemList.find { it.url == action.url } ?: return@withContext
+                val index = downloadingTaskItemList.indexOf(taskItem)
+                downloadingTaskItemList[index] = taskItem.copy(
                     status = ITaskState.LOADING.code,
                 )
                 _uiState.update {
-                    UiState.UpdateProgress(runningTaskItemList[index])
+                    UiState.UpdateProgress(downloadingTaskItemList[index])
                 }
                 TaskService.startTask(application, action.url)
             }
@@ -169,14 +231,14 @@ class DownloadingTaskViewModel @Inject constructor(
         stopTask.collect { action ->
             withContext(Dispatchers.Default) {
                 val taskItem =
-                    runningTaskItemList.find { it.url == action.url } ?: return@withContext
-                val index = runningTaskItemList.indexOf(taskItem)
-                runningTaskItemList[index] = taskItem.copy(
+                    downloadingTaskItemList.find { it.url == action.url } ?: return@withContext
+                val index = downloadingTaskItemList.indexOf(taskItem)
+                downloadingTaskItemList[index] = taskItem.copy(
                     status = ITaskState.STOP.code,
                     speed = ""
                 )
                 _uiState.update {
-                    UiState.UpdateProgress(runningTaskItemList[index])
+                    UiState.UpdateProgress(downloadingTaskItemList[index])
                 }
                 TaskService.stopTask(application, action.url)
             }
@@ -187,13 +249,13 @@ class DownloadingTaskViewModel @Inject constructor(
         showTaskMenu.collect { action ->
             withContext(Dispatchers.Default) {
                 val taskItem =
-                    runningTaskItemList.find { it.url == action.url } ?: return@withContext
-                val index = runningTaskItemList.indexOf(taskItem)
+                    downloadingTaskItemList.find { it.url == action.url } ?: return@withContext
+                val index = downloadingTaskItemList.indexOf(taskItem)
                 if (action.isShow) {
                     _menuState.update {
                         it.copy(
                             url = action.url,
-                            isTaskRunning = runningTaskItemList[index].status == ITaskState.RUNNING.code,
+                            isTaskRunning = downloadingTaskItemList[index].status == ITaskState.RUNNING.code,
                             isDelete = false,
                             isShow = true,
                             isShowDelete = false
@@ -222,11 +284,11 @@ class DownloadingTaskViewModel @Inject constructor(
             initTaskList.collect {
                 withContext(Dispatchers.Default) {
                     logger("handleInitTaskList")
-                    val newList = runningTaskItemList.map {
+                    val newList = downloadingTaskItemList.map {
                         it.copy(status = ITaskState.STOP.code)
                     }
-                    runningTaskItemList.clear()
-                    runningTaskItemList.addAll(newList)
+                    downloadingTaskItemList.clear()
+                    downloadingTaskItemList.addAll(newList)
                     newList.forEach {
                         logger("handleInitTaskList over ${it.status} ${it.taskName}")
                     }
@@ -251,12 +313,12 @@ class DownloadingTaskViewModel @Inject constructor(
         }
 
     private fun handleDeleteTaskResult(url: String, result: Boolean) {
-        val taskItem = runningTaskItemList.find { it.url == url } ?: return
-        val index = runningTaskItemList.indexOf(taskItem)
+        val taskItem = downloadingTaskItemList.find { it.url == url } ?: return
+        val index = downloadingTaskItemList.indexOf(taskItem)
 
         _uiState.update {
-            val deleteItem = runningTaskItemList[index]
-            runningTaskItemList.remove(deleteItem)
+            val deleteItem = downloadingTaskItemList[index]
+            downloadingTaskItemList.remove(deleteItem)
             UiState.DeleteTaskResultState(result, deleteItem)
         }
 
@@ -271,48 +333,17 @@ class DownloadingTaskViewModel @Inject constructor(
         }
     }
 
-    private fun handleTellAll(tellAllFlow: Flow<UiAction.TellAll>) {
-        viewModelScope.launch {
-            Logger.d("handleTellAll")
-            tellAllFlow.collect {
-                enginRepo.tellAll().forEach { aria2Task ->
-                    val taskItem =
-                        runningTaskItemList.find { it.url == aria2Task.taskStatus.url && it.engine == DownloadEngine.ARIA2.name }
-                            ?: return@forEach
-                    val index = runningTaskItemList.indexOf(taskItem)
-                    runningTaskItemList[index] = taskItem.copy(
-                        taskId = aria2Task.taskStatus.taskId,
-                        status = aria2Task.taskStatus.status,
-                        speed = formatSpeed(aria2Task.taskStatus.speed),
-                        sizeInfo = formatSizeInfo(
-                            aria2Task.taskStatus.downloadSize,
-                            aria2Task.taskStatus.totalSize
-                        ),
-                        progress = formatProgress(
-                            aria2Task.taskStatus.downloadSize,
-                            aria2Task.taskStatus.totalSize
-                        ),
-
-                        )
-                    _uiState.update {
-                        UiState.UpdateProgress(runningTaskItemList[index])
-                    }
-                }
-            }
-        }
-    }
-
 
     fun collectTaskStatus(taskStatus: StateFlow<TaskStatus>) {
         viewModelScope.launch {
             taskStatus.collect { taskStatus ->
                 val url = taskStatus.url
-                val taskItem = runningTaskItemList.find {
+                val taskItem = downloadingTaskItemList.find {
                     it.url == url
                 } ?: return@collect
-                val index = runningTaskItemList.indexOf(taskItem)
+                val index = downloadingTaskItemList.indexOf(taskItem)
                 if (taskStatus.status == ITaskState.RUNNING.code) {
-                    runningTaskItemList[index] = taskItem.copy(
+                    downloadingTaskItemList[index] = taskItem.copy(
                         taskId = taskStatus.taskId,
                         speed = formatSpeed(taskStatus.speed),
                         sizeInfo = formatSizeInfo(
@@ -326,7 +357,7 @@ class DownloadingTaskViewModel @Inject constructor(
                         status = taskStatus.status
                     )
                 } else {
-                    runningTaskItemList[index] = taskItem.copy(
+                    downloadingTaskItemList[index] = taskItem.copy(
                         taskId = taskStatus.taskId,
                         speed = "",
                         status = taskStatus.status
@@ -334,7 +365,7 @@ class DownloadingTaskViewModel @Inject constructor(
                 }
 
                 _uiState.update {
-                    UiState.UpdateProgress(runningTaskItemList[index])
+                    UiState.UpdateProgress(downloadingTaskItemList[index])
                 }
 
                 if (taskStatus.status == ITaskState.DONE.code) {
@@ -359,18 +390,6 @@ class DownloadingTaskViewModel @Inject constructor(
 
     private fun formatSpeed(speed: Long): String {
         return TaskTools.formatSpeed(speed)
-    }
-
-    private fun formatStatusBtn(status: Int): Int {
-        return when (status) {
-            ITaskState.RUNNING.code -> {
-                R.drawable.ic_stop
-            }
-
-            else -> {
-                R.drawable.ic_start
-            }
-        }
     }
 
     override fun DLogger.tag(): String {
@@ -446,12 +465,17 @@ data class TaskItem(
 sealed class UiAction {
     object InitUiState : UiAction()
     object GetTaskList : UiAction()
-    object TellAll : UiAction()
+
     data class StartTask(val url: String) : UiAction()
     data class StopTask(val url: String) : UiAction()
     object CheckTaskList : UiAction()
     data class ShowTaskMenu(val url: String = "", val isShow: Boolean) : UiAction()
     data class DeleteTask(val url: String, val isDeleteFile: Boolean) : UiAction()
     data class ShowDeleteConfirmDialog(val isShowDelete: Boolean) : UiAction()
+}
+
+sealed class Aria2Action {
+    object StartAria2TaskMonitor : Aria2Action()
+    object CancelAria2TaskMonitor : Aria2Action()
 }
 

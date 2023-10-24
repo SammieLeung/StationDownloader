@@ -18,7 +18,6 @@ import androidx.work.WorkerParameters
 import com.orhanobut.logger.Logger
 import com.station.stationdownloader.TaskService
 import com.station.stationdownloader.TaskStatusServiceImpl
-import com.station.stationdownloader.data.IResult
 import com.station.stationdownloader.databinding.ActivityMainBinding
 import com.station.stationdownloader.navgator.AppNavigator
 import com.station.stationdownloader.navgator.Destination
@@ -26,15 +25,13 @@ import com.station.stationdownloader.ui.base.BaseActivity
 import com.station.stationdownloader.ui.fragment.AddUriDialogFragment
 import com.station.stationdownloader.ui.fragment.newtask.AddNewTaskDialogFragment
 import com.station.stationdownloader.ui.viewmodel.MainViewModel
-import com.station.stationdownloader.ui.viewmodel.NewTaskState
+import com.station.stationdownloader.ui.viewmodel.ToastAction
 import com.station.stationdownloader.ui.viewmodel.ToastState
 import com.station.stationdownloader.ui.viewmodel.UiAction
 import com.station.stationdownloader.utils.DLogger
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.collectLatest
-import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
@@ -86,12 +83,12 @@ class MainActivity : BaseActivity<ActivityMainBinding>(), DLogger {
                     }
                 }
                 launch {
-                    vm.toastState.filter { it is ToastState.Toast }
-                        .map { it as ToastState.Toast }
+                    vm.toastState.filter { it is ToastState.Show }
+                        .map { it as ToastState.Show }
                         .collect {
                             withContext(Dispatchers.Main) {
                                 showToast(applicationContext, it.msg)
-                                vm.accept(UiAction.ResetToast)
+                                vm.emitToast(ToastAction.InitToast)
                             }
                         }
                 }
@@ -117,6 +114,7 @@ class MainActivity : BaseActivity<ActivityMainBinding>(), DLogger {
 
     override fun onPause() {
         super.onPause()
+        vm.accept(UiAction.SaveSession)
         unbindService(serviceConnection)
     }
 

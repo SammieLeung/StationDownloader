@@ -31,6 +31,7 @@ import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flow
@@ -70,13 +71,18 @@ class MainViewModel @Inject constructor(
 
     val accept: (UiAction) -> Unit
     val dialogAccept: (DialogAction) -> Unit
+    val emitToast: (ToastAction) -> Unit
     var taskService: TaskService? = null
 
     init {
         accept = initAcceptAction()
         dialogAccept = initAddUriDialogAcceptAction()
+        emitToast = initEmitToastAction()
     }
 
+    override fun DLogger.tag(): String {
+        return MainViewModel::class.java.simpleName
+    }
 
     fun assertTorrentFile(path: String): Boolean {
         return XLEngineTools.assertTorrentFile(path)
@@ -86,11 +92,11 @@ class MainViewModel @Inject constructor(
         val actionStateFlow: MutableSharedFlow<UiAction> = MutableSharedFlow()
         val initTask = actionStateFlow.filterIsInstance<UiAction.InitTask>()
         val startTask = actionStateFlow.filterIsInstance<UiAction.StartDownloadTask>()
-        val resetToast = actionStateFlow.filterIsInstance<UiAction.ResetToast>()
+        val saveSession = actionStateFlow.filterIsInstance<UiAction.SaveSession>()
 
         handleInitTaskAction(initTask)
         handleStartTaskAction(startTask)
-        handleResetToast(resetToast)
+        handleSaveSessionAction(saveSession)
 
 
         return { action ->
@@ -99,6 +105,13 @@ class MainViewModel @Inject constructor(
             }
         }
     }
+
+    private fun handleSaveSessionAction(saveSession: Flow<UiAction.SaveSession>) =
+        viewModelScope.launch {
+            saveSession.collect {
+                engineRepo.saveSession()
+            }
+        }
 
     private fun handleStartTaskAction(startTaskFlow: Flow<UiAction.StartDownloadTask>) =
         viewModelScope.launch {
@@ -120,7 +133,7 @@ class MainViewModel @Inject constructor(
                                 }
                             }
                             _toastState.update {
-                                ToastState.Toast(application.getString(R.string.repeating_task_nothing_changed))
+                                ToastState.Show(application.getString(R.string.repeating_task_nothing_changed))
                             }
                             _newTaskState.update {
                                 NewTaskState.Success
@@ -129,7 +142,7 @@ class MainViewModel @Inject constructor(
 
                         else -> _toastState.update {
                             Logger.e(saveTaskResult.exception.message.toString())
-                            ToastState.Toast(saveTaskResult.exception.message.toString())
+                            ToastState.Show(saveTaskResult.exception.message.toString())
                         }
                     }
                     return@collect
@@ -140,7 +153,7 @@ class MainViewModel @Inject constructor(
                 TaskService.startTask(application, saveTaskResult.data.url)
 
                 _toastState.update {
-                    ToastState.Toast(application.getString(R.string.start_to_download))
+                    ToastState.Show(application.getString(R.string.start_to_download))
                 }
                 _newTaskState.update {
                     NewTaskState.Success
@@ -187,15 +200,6 @@ class MainViewModel @Inject constructor(
                     it.copy(isShowAddNewTask = true)
                 }
                 dialogAccept(DialogAction.CalculateSizeInfo)
-            }
-        }
-
-    private fun handleResetToast(resetToastFlow: Flow<UiAction.ResetToast>) =
-        viewModelScope.launch {
-            resetToastFlow.collect {
-                _toastState.update {
-                    ToastState.INIT
-                }
             }
         }
 
@@ -347,16 +351,47 @@ class MainViewModel @Inject constructor(
             }
         }
 
-    override fun DLogger.tag(): String {
-        return MainViewModel::class.java.simpleName
+
+    private fun initEmitToastAction(): (ToastAction) -> Unit {
+        val actionStateFlow: MutableSharedFlow<ToastAction> = MutableSharedFlow()
+        val initToast = actionStateFlow.filterIsInstance<ToastAction.InitToast>()
+        val emitToast = actionStateFlow.filterIsInstance<ToastAction.EmitToast>()
+
+        handleInitToast(initToast)
+        handleEmitToast(emitToast)
+
+        return { action ->
+            viewModelScope.launch {
+                actionStateFlow.emit(action)
+            }
+        }
     }
+
+    private fun handleInitToast(initToastFlow: Flow<ToastAction.InitToast>) =
+        viewModelScope.launch {
+            initToastFlow.collect {
+                _toastState.update {
+                    ToastState.INIT
+                }
+            }
+        }
+
+    private fun handleEmitToast(emitToastFlow: Flow<ToastAction.EmitToast>) =
+        viewModelScope.launch {
+            emitToastFlow.collect { emitToast ->
+                _toastState.update {
+                    ToastState.Show(emitToast.msg)
+                }
+                emitToast(ToastAction.InitToast)
+            }
+        }
 
 }
 
 sealed class UiAction {
     data class InitTask(val url: String) : UiAction()
-    object ResetToast : UiAction()
     data class StartDownloadTask(val engine: DownloadEngine) : UiAction()
+    object SaveSession : UiAction()
 }
 
 sealed class DialogAction {
@@ -369,6 +404,11 @@ sealed class DialogAction {
     object CalculateSizeInfo : DialogAction()
 }
 
+sealed class ToastAction {
+    object InitToast : ToastAction()
+    data class EmitToast(val msg: String) : ToastAction()
+}
+
 data class MainUiState(
     val isLoading: Boolean = false,
     val isShowAddNewTask: Boolean = false,
@@ -376,7 +416,7 @@ data class MainUiState(
 
 sealed class ToastState {
     object INIT : ToastState()
-    data class Toast(val msg: String) : ToastState()
+    data class Show(val msg: String) : ToastState()
 }
 
 sealed class NewTaskState {

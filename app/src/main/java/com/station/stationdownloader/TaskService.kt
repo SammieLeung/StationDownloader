@@ -6,6 +6,7 @@ import android.content.Intent
 import android.os.IBinder
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import com.orhanobut.logger.Logger
+import com.station.stationdownloader.TaskId.Companion.INVALID_ID
 import com.station.stationdownloader.TaskId.Companion.INVALID_TASK_ID
 import com.station.stationdownloader.contants.TaskExecuteError
 import com.station.stationdownloader.data.IResult
@@ -54,9 +55,15 @@ class TaskService : Service(), DLogger {
     var taskStatusBinder: TaskStatusServiceImpl? = null
 
     private val watchTaskJobMap = mutableMapOf<String, Job>()
+
+    //开始任务 job，用于防止重复点击开始任务
     private var startTaskJobMap = mutableMapOf<String, Job>()
+
+    //停止任务 job，用于防止重复点击停止任务
     private var stopTaskJobMap = mutableMapOf<String, Job>()
-    private val taskStatusFlow: MutableStateFlow<TaskStatus> =
+
+    //任务状态流
+    private val _taskStatusFlow: MutableStateFlow<TaskStatus> =
         MutableStateFlow(
             TaskStatus(
                 taskId = INVALID_TASK_ID,
@@ -68,7 +75,8 @@ class TaskService : Service(), DLogger {
             )
         )
 
-    private val runningTaskMap: MutableMap<String, TaskStatus> = mutableMapOf()
+    private val downloadingTasks: MutableMap<String, TaskStatus> = mutableMapOf()
+
 
     override fun onCreate() {
         super.onCreate()
@@ -81,7 +89,6 @@ class TaskService : Service(), DLogger {
                 engineRepoUseCase.initEngine()
             }
         }
-
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -89,23 +96,47 @@ class TaskService : Service(), DLogger {
             when (intent.action) {
                 ACTION_WATCH_TASK -> {
                     val url = intent.getStringExtra("url") ?: return START_NOT_STICKY
-                    val taskId = intent.getStringExtra("taskId")
-                    val taskEngineName = intent.getStringExtra("engine")
+                    val taskId = intent.getStringExtra("taskId") ?: return START_NOT_STICKY
+                    if (taskId == INVALID_ID)
+                        return START_NOT_STICKY
+                    val taskEngineName = intent.getStringExtra("engine") ?: return START_NOT_STICKY
+                    if (taskEngineName == DownloadEngine.INVALID_ENGINE.name)
+                        return START_NOT_STICKY
                     watchTaskJobMap[url]?.apply { cancel() }
                     watchTaskJobMap[url] =
-                        createWatchTask(TaskId(taskEngineName?.let { DownloadEngine.valueOf(it) }
-                            ?: DownloadEngine.XL, taskId ?: ""), url)
+                        createWatchTask(
+                            TaskId(
+                                taskEngineName.let { DownloadEngine.valueOf(it) },
+                                taskId
+                            ), url
+                        )
                 }
 
                 ACTION_CANCEL_WATCH_TASK -> {
                     val url = intent.getStringExtra("url") ?: return START_NOT_STICKY
-                    runningTaskMap.remove(url)
+                    downloadingTasks.remove(url)
                     watchTaskJobMap.remove(url)?.apply { cancel() }
+                }
+
+                ACTION_CANCEL_ALL_ARIA2_WATCH_TASK -> {
+                    watchTaskJobMap.filter {
+                        downloadingTasks[it.key]?.taskId?.engine == DownloadEngine.ARIA2
+                    }.forEach {
+                        watchTaskJobMap.remove(it.key).apply {
+                            this?.cancel()
+                        }
+                    }
                 }
 
                 ACTION_START_TASK -> {
                     val url = intent.getStringExtra("url") ?: return START_NOT_STICKY
-                    startTaskJobMap[url] = startTask(url)
+                    if(ARIA2_URL_TO_GID[url]!=null){
+                        Logger.d("ARIA2_URL_TO_GID[url] = ${ARIA2_URL_TO_GID[url]}")
+                    }else{
+                        logger("url=$url")
+                        startTaskJobMap[url] = startTask(url)
+                    }
+
                 }
 
                 ACTION_STOP_TASK -> {
@@ -147,7 +178,7 @@ class TaskService : Service(), DLogger {
     private fun startTask(url: String) = serviceScope.launch {
         try {
             val xlEntity = taskRepo.getTaskByUrl(url) ?: return@launch
-            if (runningTaskMap[url] != null)
+            if (downloadingTasks[url] != null)
                 stopTask(url).join()
             val downloadTask = xlEntity.asStationDownloadTask()
             val taskIdResult = engineRepo.startTask(downloadTask)
@@ -177,7 +208,7 @@ class TaskService : Service(), DLogger {
                 totalSize = 0,
                 status = ITaskState.UNKNOWN.code
             )
-            runningTaskMap[url] = status
+            downloadingTasks[url] = status
             updateTaskStatusNow(url, taskId, ITaskState.RUNNING.code)
             sendToClient(
                 "start_task",
@@ -212,7 +243,7 @@ class TaskService : Service(), DLogger {
                     )
                     return@launch
                 }
-                val taskId = runningTaskMap[url]?.taskId
+                val taskId = downloadingTasks[url]?.taskId
                 if (taskId == null) {
                     taskRepo.updateTask(entity.copy(status = DownloadTaskStatus.PAUSE))
                 } else {
@@ -229,8 +260,8 @@ class TaskService : Service(), DLogger {
                 )
             } finally {
                 stopTaskJobMap.remove(url)
-                runningTaskMap.remove(url)
-                if (runningTaskMap[url] == null && watchTaskJobMap[url] == null && stopTaskJobMap[url] == null) {
+                downloadingTasks.remove(url)
+                if (downloadingTasks[url] == null && watchTaskJobMap[url] == null && stopTaskJobMap[url] == null) {
                     logger("stopTask finally clear!")
                 }
             }
@@ -309,8 +340,6 @@ class TaskService : Service(), DLogger {
         var isRestart = false
         val isStopRetry = retryFailedCount >= 5
 
-
-
         while (true) {
             val taskInfo = XLTaskHelper.instance().getTaskInfo(taskId.id.toLong())
             if (taskInfo == null) {
@@ -368,7 +397,7 @@ class TaskService : Service(), DLogger {
                     Logger.w("下载完成 [${taskId}]")
                     engineRepo.stopTask(taskId, task.asStationDownloadTask())
                 }
-                runningTaskMap.remove(url)
+                downloadingTasks.remove(url)
                 watchTaskJobMap.remove(url)?.cancel()
                 return
             }
@@ -410,7 +439,7 @@ class TaskService : Service(), DLogger {
 
     private suspend fun aria2TellStatus(taskId: TaskId, url: String) {
         while (true) {
-            val taskStatusResult = engineRepo.getTaskStatus(TaskStatus(taskId = taskId, url = url))
+            val taskStatusResult = engineRepo.getAria2TaskStatus(taskId.id,url)
             if (taskStatusResult is IResult.Error) {
                 logError(taskStatusResult.exception)
                 return
@@ -425,11 +454,22 @@ class TaskService : Service(), DLogger {
                         taskRepo.getTaskByUrl(url)?.asStationDownloadTask() ?: return
                     )
                 }
-                runningTaskMap.remove(url)
+                downloadingTasks.remove(url)
                 watchTaskJobMap.remove(url)?.cancel()
                 return
             }
             delay(1000)
+        }
+    }
+
+    private var shouldStop = false
+    private suspend fun aria2TellAll() {
+        while (!shouldStop) {
+            val list = engineRepo.tellAll()
+            list.forEach {
+
+                updateTaskStatus(it.taskStatus.url, it.taskStatus)
+            }
         }
     }
 
@@ -458,8 +498,8 @@ class TaskService : Service(), DLogger {
     }
 
     private fun updateTaskStatus(url: String, status: TaskStatus) {
-        runningTaskMap[url] = status
-        taskStatusFlow.update {
+        downloadingTasks[url] = status
+        _taskStatusFlow.update {
             status
         }
     }
@@ -469,12 +509,12 @@ class TaskService : Service(), DLogger {
         if (watchTaskJobMap.isEmpty()) stopSelf()
     }
 
-    fun getStatusFlow(): StateFlow<TaskStatus> {
-        return taskStatusFlow.asStateFlow()
+    fun asTaskStatusStateFlow(): StateFlow<TaskStatus> {
+        return _taskStatusFlow.asStateFlow()
     }
 
     fun getRunningTaskMap(): MutableMap<String, TaskStatus> {
-        return runningTaskMap
+        return downloadingTasks
     }
 
     private fun sendLocalBroadcast(intent: Intent) {
@@ -493,9 +533,14 @@ class TaskService : Service(), DLogger {
         return TaskService.javaClass.simpleName
     }
 
+
     companion object {
         private const val ACTION_WATCH_TASK = "action.watch.task"
+        private const val ACTION_ARIA2_WATCH_TASK = "action.aria2.watch.task"
+
         private const val ACTION_CANCEL_WATCH_TASK = "action.cancel.watch.task"
+        private const val ACTION_CANCEL_ARIA2_WATCH_TASK = "action.cancel.aria2.watch.task"
+        private const val ACTION_CANCEL_ALL_ARIA2_WATCH_TASK = "action.cancel.all.aria2.watch.task"
 
         private const val ACTION_START_TASK = "action.start.task"
         private const val ACTION_STOP_TASK = "action.stop.task"
@@ -505,8 +550,11 @@ class TaskService : Service(), DLogger {
         const val ACTION_START_TASK_RESULT = "action.start.task.result"
         const val ACTION_DELETE_TASK_RESULT = "action.delete.task.result"
 
+        @JvmField
+        val ARIA2_URL_TO_GID = mutableMapOf<String, String>()
+
         @JvmStatic
-        fun watchTask(context: Context, url: String, taskId: String, engine: DownloadEngine) {
+        fun watchTask(context: Context, url: String, taskId: String, engine: String) {
             val intent = Intent(context, TaskService::class.java).setAction(ACTION_WATCH_TASK)
             intent.putExtra("url", url)
             intent.putExtra("taskId", taskId)
@@ -522,6 +570,14 @@ class TaskService : Service(), DLogger {
             context.startService(intent)
         }
 
+        @JvmStatic
+        fun cancelAllWatchTask(context: Context) {
+            val intent =
+                Intent(context, TaskService::class.java).setAction(
+                    ACTION_CANCEL_ALL_ARIA2_WATCH_TASK
+                )
+            context.startService(intent)
+        }
 
         @JvmStatic
         fun startTask(context: Context, url: String) {

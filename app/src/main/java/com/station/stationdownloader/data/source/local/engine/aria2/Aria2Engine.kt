@@ -15,6 +15,8 @@ import com.station.stationdownloader.DownloadUrlType
 import com.station.stationdownloader.TaskStatus
 import com.station.stationdownloader.contants.TaskExecuteError
 import com.station.stationdownloader.data.IResult
+import com.station.stationdownloader.data.source.IDownloadTaskRepository
+import com.station.stationdownloader.data.source.local.DownloadTaskLocalDataSource
 import com.station.stationdownloader.data.source.local.engine.EngineStatus
 import com.station.stationdownloader.data.source.local.engine.IEngine
 import com.station.stationdownloader.data.source.local.engine.NewTaskConfigModel
@@ -22,12 +24,15 @@ import com.station.stationdownloader.data.source.local.engine.aria2.connection.c
 import com.station.stationdownloader.data.source.local.engine.aria2.connection.client.WebSocketClient
 import com.station.stationdownloader.data.source.local.engine.aria2.connection.common.OptionsMap
 import com.station.stationdownloader.data.source.local.engine.aria2.connection.profile.UserProfileManager
+import com.station.stationdownloader.data.source.local.engine.aria2.connection.transport.Aria2Request
 import com.station.stationdownloader.data.source.local.engine.aria2.connection.transport.Aria2Requests
+import com.station.stationdownloader.data.source.repository.DefaultDownloadTaskRepository
 import com.station.stationdownloader.utils.DLogger
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.async
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.ByteArrayOutputStream
@@ -43,11 +48,13 @@ import kotlin.coroutines.suspendCoroutine
 class Aria2Engine internal constructor(
     private val appContext: Context,
     private val profileManager: UserProfileManager,
+    private val taskRepo: IDownloadTaskRepository,
     private val defaultDispatcher: CoroutineDispatcher = Dispatchers.Default
 ) : IEngine, DLogger {
     private var aria2Service: Aria2UiDispatcher = Aria2UiDispatcher(appContext)
     private var isInit = false
     private lateinit var reference: ClientInstanceHolder.Reference
+    private val aria2GidData = mutableMapOf<String, String>()
     private val listener = object : Aria2Ui.Listener {
         override fun onUpdateLogs(msg: MutableList<Aria2Ui.LogMessage>) {
         }
@@ -61,6 +68,10 @@ class Aria2Engine internal constructor(
         }
     }
 
+
+    override fun DLogger.tag(): String {
+        return "Aria2Engine"
+    }
 
     override suspend fun init(): IResult<String> = withContext(defaultDispatcher) {
         try {
@@ -108,10 +119,6 @@ class Aria2Engine internal constructor(
         isInit = false
     }
 
-    suspend fun initUrl(url: String): IResult<NewTaskConfigModel> {
-        TODO("Not yet implemented")
-    }
-
     override suspend fun startTask(
         url: String,
         downloadPath: String,
@@ -156,6 +163,7 @@ class Aria2Engine internal constructor(
                             it + 1
                         }.joinToString(",")))
                         put("dir", OptionsMap.OptionValue(downloadPath))
+                        put("seed-time", OptionsMap.OptionValue("0")) //不做种
                     }
                 ),
                     onResult = object : WebSocketClient.OnResult<String> {
@@ -176,7 +184,22 @@ class Aria2Engine internal constructor(
     }
 
     override suspend fun stopTask(taskId: String) {
-        TODO("Not yet implemented")
+        try {
+            sendToWebSocketSync {
+                reference.send(request = Aria2Requests.pause(taskId),
+                    onSuccess = object : WebSocketClient.OnSuccess {
+                        override fun onSuccess() {
+                            it.resume(Unit)
+                        }
+
+                        override fun onException(ex: Exception) {
+                            it.resumeWith(Result.failure(ex))
+                        }
+                    })
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
     }
 
 
@@ -207,13 +230,17 @@ class Aria2Engine internal constructor(
             EngineStatus.OFF
     }
 
-    suspend fun tellStatus(taskStatus: TaskStatus): IResult<TaskStatus> {
+    suspend fun tellStatus(gid: String, url: String? = null): IResult<TaskStatus> {
         try {
             val status = sendToWebSocketSync {
-                reference.send(requestWithResult = Aria2Requests.tellStatus(taskStatus),
+                reference.send(requestWithResult = Aria2Requests.tellStatus(gid),
                     onResult = object : WebSocketClient.OnResult<TaskStatus> {
                         override fun onResult(result: TaskStatus) {
-                            it.resume(result)
+                            if (url != null) {
+                                it.resume(result.copy(url = url))
+                            } else {
+                                it.resume(result)
+                            }
                         }
 
                         override fun onException(ex: Exception) {
@@ -234,7 +261,23 @@ class Aria2Engine internal constructor(
                 reference.send(requestWithResult = Aria2Requests.tellActive(),
                     onResult = object : WebSocketClient.OnResult<List<Aria2TorrentTask>> {
                         override fun onResult(result: List<Aria2TorrentTask>) {
-                            it.resume(result)
+                            val scope = CoroutineScope(Job())
+                            scope.launch(defaultDispatcher) {
+                                it.resume(result
+                                    .map { task ->
+                                        val info = task.hashInfo
+                                        val status = task.taskStatus
+                                        val entity =
+                                            taskRepo.getTorrentTaskByHash(info)
+                                        if(entity==null){
+                                        }
+                                        entity!!.let {
+                                            aria2GidData[it.url] = task.taskStatus.taskId.id
+                                            task.copy(taskStatus = status.copy(url = it.url))
+                                        }
+
+                                    })
+                            }
                         }
 
                         override fun onException(ex: Exception) {
@@ -246,6 +289,7 @@ class Aria2Engine internal constructor(
             }
             return status
         } catch (e: Exception) {
+            e.printStackTrace()
             return emptyList()
         }
     }
@@ -266,6 +310,7 @@ class Aria2Engine internal constructor(
             }
             return list
         } catch (e: Exception) {
+            e.printStackTrace()
             return emptyList()
         }
     }
@@ -286,7 +331,30 @@ class Aria2Engine internal constructor(
             }
             return list
         } catch (e: Exception) {
+            e.printStackTrace()
             return emptyList()
+        }
+    }
+
+    suspend fun saveSession(): Boolean {
+        try {
+            return sendToWebSocketSync {
+                reference.send(
+                    request = Aria2Requests.saveSession(),
+                    object : WebSocketClient.OnSuccess {
+                        override fun onSuccess() {
+                            it.resume(true)
+                        }
+
+                        override fun onException(ex: Exception) {
+                            it.resume(false)
+                        }
+                    }
+                )
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+            return false
         }
     }
 
@@ -370,6 +438,7 @@ class Aria2Engine internal constructor(
         return Base64.encodeToString(out.toByteArray(), Base64.NO_WRAP)
     }
 
+
     private inner class Aria2UiDispatcher(context: Context) : Aria2Ui.Listener {
         init {
             Prefs.init(context)
@@ -389,10 +458,6 @@ class Aria2Engine internal constructor(
         override fun updateUi(on: Boolean) {
             for (listener in listeners) listener.updateUi(on)
         }
-    }
-
-    override fun DLogger.tag(): String {
-        return "Aria2Engine"
     }
 
 

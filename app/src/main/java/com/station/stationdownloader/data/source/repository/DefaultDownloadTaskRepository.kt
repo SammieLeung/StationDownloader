@@ -1,7 +1,6 @@
 package com.station.stationdownloader.data.source.repository
 
 import com.orhanobut.logger.Logger
-import com.squareup.moshi.Moshi
 import com.station.stationdownloader.DownloadEngine
 import com.station.stationdownloader.DownloadTaskStatus
 import com.station.stationdownloader.DownloadUrlType
@@ -17,7 +16,6 @@ import com.station.stationdownloader.data.source.local.model.getSelectedFileInde
 import com.station.stationdownloader.data.source.local.room.entities.XLDownloadTaskEntity
 import com.station.stationdownloader.data.succeeded
 import com.station.stationdownloader.utils.TaskTools
-import com.station.stationkitkt.MoshiHelper
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
@@ -31,7 +29,7 @@ import java.io.File
 class DefaultDownloadTaskRepository(
     private val localDataSource: IDownloadTaskDataSource,
     private val torrentDataSource: ITorrentInfoDataSource,
-    private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO
+    private val defaultDispatcher: CoroutineDispatcher = Dispatchers.Default
 ) : IDownloadTaskRepository {
     override suspend fun getTasks(): List<XLDownloadTaskEntity> {
         return when (val result = localDataSource.getTasks()) {
@@ -73,13 +71,12 @@ class DefaultDownloadTaskRepository(
 
     }
 
-    override suspend fun getTorrentTaskByHash(infoHash: String): XLDownloadTaskEntity? {
+    override suspend fun getTorrentTaskByHash(infoHash: String): XLDownloadTaskEntity?= withContext(defaultDispatcher) {
         val torrentInfoResult = torrentDataSource.getTorrentByHash(infoHash)
-        if (torrentInfoResult is IResult.Error) {
-            return null
-        }
         torrentInfoResult as IResult.Success
-        return localDataSource.getTaskByUrl(infoHash)
+        if (torrentInfoResult.data.isEmpty())
+            return@withContext null
+        return@withContext localDataSource.getTaskByTorrentId(torrentInfoResult.data.keys.first().id)
     }
 
     override fun getTasksStream(): Flow<IResult<List<XLDownloadTaskEntity>>> {
@@ -107,7 +104,7 @@ class DefaultDownloadTaskRepository(
         selectIndexes: List<Int>,
         fileList: List<String>,
         fileCount: Int
-    ): IResult<XLDownloadTaskEntity> = withContext(ioDispatcher)
+    ): IResult<XLDownloadTaskEntity> = withContext(defaultDispatcher)
     {
         val existsTask = getTaskByUrl(originUrl)
         if (existsTask == null) {
@@ -175,7 +172,7 @@ class DefaultDownloadTaskRepository(
 
 
     override suspend fun saveTask(newTask: NewTaskConfigModel): IResult<XLDownloadTaskEntity> =
-        withContext(ioDispatcher) {
+        withContext(defaultDispatcher) {
             val rootDir = newTask._fileTree as TreeNode.Directory
             val fileSize = rootDir.totalCheckedFileSize
             val fileCount = rootDir.totalFileCount
@@ -240,9 +237,7 @@ class DefaultDownloadTaskRepository(
                 TaskTools.deleteFolder(fileDirectory)
             }
         }
-
         return localDataSource.deleteTask(url)
-
     }
 
 

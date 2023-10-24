@@ -65,10 +65,10 @@ object DownloadTaskModule {
     fun provideDownloadTaskRepository(
         localDataSource: IDownloadTaskDataSource,
         torrentDataSource: ITorrentInfoDataSource,
-        @IoDispatcher
-        ioDispatcher: CoroutineDispatcher,
+        @DefaultDispatcher
+        defaultDispatcher: CoroutineDispatcher,
     ): IDownloadTaskRepository {
-        return DefaultDownloadTaskRepository(localDataSource, torrentDataSource, ioDispatcher)
+        return DefaultDownloadTaskRepository(localDataSource, torrentDataSource, defaultDispatcher)
     }
 
     @Provides
@@ -134,9 +134,10 @@ object EngineModule {
     fun provideAria2Engine(
         @ApplicationContext context: Context,
         profileManager: UserProfileManager,
+        taskRepo:IDownloadTaskRepository,
         @DefaultDispatcher defaultDispatcher: CoroutineDispatcher
     ): Aria2Engine {
-        return Aria2Engine(context, profileManager, defaultDispatcher)
+        return Aria2Engine(context, profileManager, taskRepo,defaultDispatcher)
     }
 
 }

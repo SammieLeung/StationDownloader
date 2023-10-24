@@ -1,5 +1,6 @@
 package com.station.stationdownloader.data.source.local
 
+import android.util.Log
 import com.station.stationdownloader.contants.TaskExecuteError
 import com.station.stationdownloader.data.IResult
 import com.station.stationdownloader.data.source.ITorrentInfoDataSource
@@ -75,7 +76,7 @@ class TorrentInfoLocalDataSource internal constructor(
         hash: String,
     ): IResult<Map<TorrentInfoEntity, List<TorrentFileInfoEntity>>> =
         withContext(ioDispatcher) {
-            val result = torrentInfoDao.getTorrentByHash(hash)
+            val result = torrentInfoDao.getTorrentByHash(hash.uppercase())
             IResult.Success(result)
         }
 

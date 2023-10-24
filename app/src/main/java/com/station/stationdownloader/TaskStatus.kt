@@ -15,13 +15,13 @@ data class TaskStatus(
     val status: Int
 ) : Parcelable {
 
-    constructor(taskId: TaskId, url: String) : this(
-        taskId,
-        url,
-        0,
-        0,
-        0,
-        ITaskState.STOP.code
+    constructor(taskId: TaskId) : this(
+        taskId = taskId,
+        url="",
+        speed = 0,
+        downloadSize = 0,
+        totalSize = 0,
+        status = ITaskState.STOP.code
     )
 
     constructor(parcel: Parcel) : this(

@@ -1,6 +1,8 @@
 package com.station.stationdownloader.data.source.local.engine.aria2.connection.transport
 
 import com.station.stationdownloader.Aria2TorrentTask
+import com.station.stationdownloader.DownloadEngine
+import com.station.stationdownloader.TaskId
 import com.station.stationdownloader.TaskStatus
 import com.station.stationdownloader.data.source.local.engine.aria2.connection.client.WebSocketClient
 import com.station.stationdownloader.data.source.local.engine.aria2.connection.common.OptionsMap
@@ -9,9 +11,10 @@ import org.json.JSONException
 import org.json.JSONObject
 
 object Aria2Requests {
-    private val ACTIVE_KEYS = CommonUtils.toJSONArray(
+    private val TASKLIST_KEYS = CommonUtils.toJSONArray(
         listOf(
             "gid",
+            "bittorrent",
             "totalLength",
             "completedLength",
             "downloadSpeed",
@@ -48,7 +51,11 @@ object Aria2Requests {
                 val aria2TaskList = mutableListOf<Aria2TorrentTask>()
                 val array = obj.getJSONArray("result")
                 for (i in 0 until array.length()) {
-                    aria2TaskList.add(Aria2TorrentTask.create(array.getJSONObject(i)))
+                    val taskJSONObject = array.getJSONObject(i)
+                    if (!taskJSONObject.has("bittorrent"))
+                        continue
+                    if (taskJSONObject.getJSONObject("bittorrent").has("info"))
+                        aria2TaskList.add(Aria2TorrentTask.create(array.getJSONObject(i)))
                 }
                 return aria2TaskList
             }
@@ -77,20 +84,31 @@ object Aria2Requests {
         return Aria2Request(WebSocketClient.Method.PAUSE, arrayOf(gid))
     }
 
-    fun unpause(gid:String):Aria2Request{
+    fun unpause(gid: String): Aria2Request {
         return Aria2Request(WebSocketClient.Method.PAUSE, arrayOf(gid))
     }
 
-    fun tellStatus(taskStatus: TaskStatus): Aria2RequestWithResult<TaskStatus> {
+    fun remove(gid: String): Aria2Request {
+        return Aria2Request(WebSocketClient.Method.REMOVE, arrayOf(gid))
+    }
+
+
+    fun saveSession(): Aria2Request {
+        return Aria2Request(WebSocketClient.Method.SAVE_SESSION, emptyArray())
+    }
+
+    fun tellStatus(gid: String): Aria2RequestWithResult<TaskStatus> {
         return Aria2RequestWithResult(
             WebSocketClient.Method.TELL_STATUS,
             object : ResponseProcessor<TaskStatus>() {
                 override fun process(client: WebSocketClient, obj: JSONObject): TaskStatus {
-                    return taskStatus.parseJSONObject(obj.getJSONObject("result"))
+                    return TaskStatus(taskId = TaskId(DownloadEngine.ARIA2, gid)).parseJSONObject(
+                        obj.getJSONObject("result")
+                    )
                 }
             },
             arrayOf(
-                taskStatus.taskId.id,
+                gid,
                 STATUS_KEYS
             )
         )
@@ -101,7 +119,7 @@ object Aria2Requests {
             WebSocketClient.Method.TELL_ACTIVE,
             DOWNLOADS_LIST_PROCESSOR,
             arrayOf(
-                ACTIVE_KEYS
+                TASKLIST_KEYS
             )
         )
     }
@@ -113,7 +131,7 @@ object Aria2Requests {
             arrayOf(
                 offset,
                 count,
-                ACTIVE_KEYS
+                TASKLIST_KEYS
             )
         )
     }
@@ -125,7 +143,7 @@ object Aria2Requests {
             arrayOf(
                 offset,
                 count,
-                ACTIVE_KEYS
+                TASKLIST_KEYS
             )
         )
     }

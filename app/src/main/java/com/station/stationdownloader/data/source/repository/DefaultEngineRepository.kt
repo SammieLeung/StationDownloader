@@ -1,6 +1,5 @@
 package com.station.stationdownloader.data.source.repository
 
-import com.gianlu.aria2lib.Aria2Ui
 import com.orhanobut.logger.Logger
 import com.station.stationdownloader.Aria2TorrentTask
 import com.station.stationdownloader.DownloadEngine
@@ -214,7 +213,25 @@ class DefaultEngineRepository(
             }
 
             DownloadEngine.ARIA2 -> {
-
+                aria2Engine.stopTask(taskId.id)
+                if (maxThreadCount.get() > 0) maxThreadCount.decrementAndGet()
+                val ariaTaskStatus =
+                    aria2Engine.tellStatus(taskId.id, url = stationDownloadTask.url)
+                if (ariaTaskStatus is IResult.Error) {
+                    Logger.e(ariaTaskStatus.exception.message.toString())
+                }
+                val taskInfo=(ariaTaskStatus as IResult.Success).data
+                val taskStatus = when (taskInfo.status) {
+                    ITaskState.DONE.code -> DownloadTaskStatus.COMPLETED
+                    else -> DownloadTaskStatus.PAUSE
+                }
+                downloadTaskRepo.updateTask(
+                    stationDownloadTask.copy(
+                        status = taskStatus,
+                        downloadSize = taskInfo.downloadSize,
+                        totalSize = taskInfo.totalSize
+                    ).asXLDownloadTaskEntity()
+                )
             }
 
             DownloadEngine.INVALID_ENGINE -> {
@@ -243,15 +260,8 @@ class DefaultEngineRepository(
 
     }
 
-    suspend fun getTaskStatus(taskStatus: TaskStatus): IResult<TaskStatus> {
-        return when (taskStatus.taskId.engine) {
-
-            DownloadEngine.ARIA2 -> {
-                aria2Engine.tellStatus(taskStatus)
-            }
-
-           else-> TODO()
-        }
+    suspend fun getAria2TaskStatus(gid: String, url: String): IResult<TaskStatus> {
+        return aria2Engine.tellStatus(gid, url)
     }
 
     suspend fun tellAll(): List<Aria2TorrentTask> = withContext(defaultDispatcher) {
@@ -259,7 +269,7 @@ class DefaultEngineRepository(
         val activeTaskList = aria2Engine.tellActive()
         val waitingTaskList = aria2Engine.tellWaiting(0, Int.MAX_VALUE)
         val stoppedTaskList = aria2Engine.tellStopped(0, Int.MAX_VALUE)
-        list.addAll(formatTorrentList(activeTaskList))
+        list.addAll(activeTaskList)
         list.addAll(formatTorrentList(waitingTaskList))
         list.addAll(formatTorrentList(stoppedTaskList))
         return@withContext list
@@ -298,6 +308,10 @@ class DefaultEngineRepository(
         if (aria2ConfigResult is IResult.Error)
             return aria2ConfigResult.copy(exception = Exception("[${DownloadEngine.ARIA2}] ${aria2ConfigResult.exception.message}"))
         return aria2ConfigResult
+    }
+
+    suspend fun saveSession(): Boolean {
+        return aria2Engine.saveSession()
     }
 
     suspend fun configure(key: String, value: String): IResult<Unit> {
