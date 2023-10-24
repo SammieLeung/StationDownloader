@@ -115,7 +115,7 @@ data class UserProfile private constructor(
             if (length < 1) throw IllegalArgumentException("length < 1: $length")
 
             val chars =
-                "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!\"£$%&/()=?^-_.:,;<>|\\*[]"
+                "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjklmnpqrstuvwxyz23456789"
             val str: StringBuilder = StringBuilder(length)
             val random = ThreadLocalRandom.current()
             for (i in 0 until length) str.append(chars[random.nextInt(chars.length)])
