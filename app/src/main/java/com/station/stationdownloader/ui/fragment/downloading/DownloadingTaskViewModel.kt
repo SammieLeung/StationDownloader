@@ -33,6 +33,7 @@ import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.util.logging.Logger
 import javax.inject.Inject
 
 @HiltViewModel
@@ -128,9 +129,8 @@ class DownloadingTaskViewModel @Inject constructor(
 //                    _uiState.update {
 //                        UiState.UpdateProgress(downloadingTaskItemList[index])
 //                    }
+                    logger("tellAll item:$aria2Task")
 
-                    TaskService.ARIA2_URL_TO_GID[aria2Task.taskStatus.url] =
-                        aria2Task.taskStatus.taskId.id
                     if (aria2Task.taskStatus.status == ITaskState.RUNNING.code) {
                         TaskService.watchTask(
                             application,
@@ -196,7 +196,6 @@ class DownloadingTaskViewModel @Inject constructor(
             }.map {
                 it.asStationDownloadTask().asTaskItem()
             }.let { taskItemList ->
-                logger("getTaskList=>taskItemList size ${taskItemList.size}")
                 _uiState.update {
                     downloadingTaskItemList.clear()
                     downloadingTaskItemList.addAll(taskItemList)
@@ -339,7 +338,7 @@ class DownloadingTaskViewModel @Inject constructor(
             taskStatus.collect { taskStatus ->
                 val url = taskStatus.url
                 val taskItem = downloadingTaskItemList.find {
-                    it.url == url
+                        it.url == url
                 } ?: return@collect
                 val index = downloadingTaskItemList.indexOf(taskItem)
                 if (taskStatus.status == ITaskState.RUNNING.code) {
@@ -399,6 +398,7 @@ class DownloadingTaskViewModel @Inject constructor(
     fun StationDownloadTask.asTaskItem(): TaskItem {
         return TaskItem(
             url = this.url,
+            realUrl = this.realUrl,
             taskName = this.name,
             status = when (this.status) {
                 DownloadTaskStatus.DOWNLOADING -> {
@@ -453,6 +453,7 @@ sealed class UiState {
 data class TaskItem(
     val taskId: TaskId = TaskId.INVALID_TASK_ID,
     val url: String,
+    val realUrl: String,
     val taskName: String,
     val status: Int,
     val progress: Int = 50,

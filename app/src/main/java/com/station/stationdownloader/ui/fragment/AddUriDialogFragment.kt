@@ -73,7 +73,7 @@ class AddUriDialogFragment : BaseDialogFragment<DialogFragmentAddUriBinding>() {
         uiState: Flow<AddUriUiState<StationDownloadTask>>,
         accept: (UiAction) -> Unit,
     ) {
-        inputView.setText("magnet:?xt=urn:btih:2556a1cea083256b48caf891f7936be64af7c8ea&dn=%E4%BA%BA%E7%94%9F%E8%B7%AF%E4%B8%8D%E7%86%9F%5B%E6%9D%9C%E6%AF%94%E8%A7%86%E7%95%8C%E7%89%88%E6%9C%AC%5D%5B%E5%9B%BD%E8%AF%AD%E9%85%8D%E9%9F%B3%2B%E4%B8%AD%E6%96%87%E5%AD%97%E5%B9%95%5D.Godspeed.2023.2160p.TX.WEB-DL.H265.DV.DDP5.1-DreamHD")
+        inputView.setText(DEBUG_URL)
         okBtn.setOnClickListener {
             done(accept)
         }
@@ -134,5 +134,7 @@ class AddUriDialogFragment : BaseDialogFragment<DialogFragmentAddUriBinding>() {
             accept(UiAction.InitTask(mBinding.inputView.text.toString()))
     }
 
-
+    companion object{
+        const val DEBUG_URL = "magnet:?xt=urn:btih:2CDFF8D7D794A0A623357386DFFDDE405BA7F4D7"
+    }
 }

@@ -16,10 +16,8 @@ import com.station.stationdownloader.TaskStatus
 import com.station.stationdownloader.contants.TaskExecuteError
 import com.station.stationdownloader.data.IResult
 import com.station.stationdownloader.data.source.IDownloadTaskRepository
-import com.station.stationdownloader.data.source.local.DownloadTaskLocalDataSource
 import com.station.stationdownloader.data.source.local.engine.EngineStatus
 import com.station.stationdownloader.data.source.local.engine.IEngine
-import com.station.stationdownloader.data.source.local.engine.NewTaskConfigModel
 import com.station.stationdownloader.data.source.local.engine.aria2.connection.client.ClientInstanceHolder
 import com.station.stationdownloader.data.source.local.engine.aria2.connection.client.WebSocketClient
 import com.station.stationdownloader.data.source.local.engine.aria2.connection.common.OptionsMap
@@ -27,8 +25,6 @@ import com.station.stationdownloader.data.source.local.engine.aria2.connection.p
 import com.station.stationdownloader.data.source.local.engine.aria2.connection.transport.Aria2Request
 import com.station.stationdownloader.data.source.local.engine.aria2.connection.transport.Aria2RequestWithResult
 import com.station.stationdownloader.data.source.local.engine.aria2.connection.transport.Aria2Requests
-import com.station.stationdownloader.data.source.local.room.entities.XLDownloadTaskEntity
-import com.station.stationdownloader.data.source.repository.DefaultDownloadTaskRepository
 import com.station.stationdownloader.utils.DLogger
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
@@ -39,7 +35,6 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.ByteArrayOutputStream
 import java.io.File
-import kotlin.coroutines.Continuation
 import kotlin.coroutines.resume
 import kotlin.coroutines.suspendCoroutine
 
@@ -122,7 +117,7 @@ class Aria2Engine internal constructor(
     }
 
     override suspend fun startTask(
-        url: String,
+        realUrl: String,
         downloadPath: String,
         name: String,
         urlType: DownloadUrlType,
@@ -131,8 +126,7 @@ class Aria2Engine internal constructor(
     ): IResult<String> {
         when (urlType) {
             DownloadUrlType.TORRENT -> {
-                Logger.d("startTask Aria2 [TORRENT] $url")
-                val gid = aria2GidData[url]
+                val gid = aria2GidData[realUrl]
                 gid?.let {
                     val unpauseResponse = sendToWebSocketSync(Aria2Requests.unpause(gid))
                     if (unpauseResponse is IResult.Error) {
@@ -141,7 +135,7 @@ class Aria2Engine internal constructor(
                     return IResult.Success(it)
                 } ?: run {
                     val gidResponse = addTorrent(
-                        url,
+                        realUrl,
                         downloadPath,
                         selectIndexes,
                         false
@@ -149,7 +143,7 @@ class Aria2Engine internal constructor(
                     if (gidResponse is IResult.Error) {
                         return gidResponse
                     }
-                    aria2GidData[url] = (gidResponse as IResult.Success).data
+                    aria2GidData[realUrl] = (gidResponse as IResult.Success).data
                     return gidResponse
                 }
             }
@@ -165,12 +159,12 @@ class Aria2Engine internal constructor(
 
 
     private suspend fun addTorrent(
-        url: String,
+        realUrl: String,
         downloadPath: String,
         selectIndexes: IntArray,
         isPause: Boolean
     ): IResult<String> {
-        val base64 = base64(url)
+        val base64 = base64(realUrl)
         val gidResponse = sendToWebSocketSync(Aria2Requests.addTorrent(
             base64 = base64,
             options = OptionsMap().apply {
@@ -236,8 +230,8 @@ class Aria2Engine internal constructor(
             val task = it.first
             val entity = it.second
             val status = task.taskStatus
-            aria2GidData[entity.url] = task.taskStatus.taskId.id
-            task.copy(taskStatus = status.copy(url = entity.realUrl))
+            aria2GidData[entity.realUrl] = task.taskStatus.taskId.id
+            task.copy(taskStatus = status.copy(url = entity.url))
         }
 
     suspend fun tellActive(): List<Aria2TorrentTask> {
@@ -301,7 +295,7 @@ class Aria2Engine internal constructor(
             }
             return IResult.Success(result)
         } catch (e: Exception) {
-            logger("sendToWebSocketSync[Aria2Request] $e")
+            logErr("sendToWebSocketSync[Aria2Request] $e")
             return IResult.Error(e)
         }
     }
@@ -328,7 +322,7 @@ class Aria2Engine internal constructor(
             }
             return IResult.Success(result)
         } catch (e: Exception) {
-            logger("sendToWebSocketSync[Aria2RequestWithResult] $e")
+            logErr("sendToWebSocketSync[Aria2RequestWithResult] $e")
             return IResult.Error(e)
         }
     }
@@ -361,7 +355,7 @@ class Aria2Engine internal constructor(
             }
             return IResult.Success(result)
         } catch (e: Exception) {
-            logger("sendToWebSocketSync[Aria2RequestWithResult] $e")
+            logErr("sendToWebSocketSync[Aria2RequestWithResult] $e")
             return IResult.Error(e)
         }
     }

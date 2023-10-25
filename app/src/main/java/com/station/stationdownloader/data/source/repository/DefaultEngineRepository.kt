@@ -131,7 +131,7 @@ class DefaultEngineRepository(
 
     suspend fun startTask(stationDownloadTask: StationDownloadTask): IResult<TaskId> =
         withContext(defaultDispatcher) {
-            val url: String = stationDownloadTask.realUrl
+            val realUrl: String = stationDownloadTask.realUrl
             val downloadPath: String = stationDownloadTask.downloadPath
             val name: String = stationDownloadTask.name
             val urlType: DownloadUrlType = stationDownloadTask.urlType
@@ -144,20 +144,23 @@ class DefaultEngineRepository(
                 )
             }
             maxThreadCount.incrementAndGet()
+            var downloadStatus = DownloadTaskStatus.DOWNLOADING
             return@withContext when (stationDownloadTask.engine) {
                 DownloadEngine.XL -> {
                     val taskIdResult = xlEngine.startTask(
-                        url, downloadPath, name, urlType, fileCount, selectIndexes
+                        realUrl, downloadPath, name, urlType, fileCount, selectIndexes
                     )
-                    var downloadStatus = DownloadTaskStatus.DOWNLOADING
+
                     if (taskIdResult is IResult.Error) {
                         maxThreadCount.decrementAndGet()
                         return@withContext taskIdResult
                     }
                     taskIdResult as IResult.Success
                     val taskId = taskIdResult.data
-                    if (taskId.toLong() <= 0L)
+                    if (taskId.toLong() <= 0L) {
                         maxThreadCount.decrementAndGet()
+                        downloadStatus = DownloadTaskStatus.FAILED
+                    }
                     downloadTaskRepo.updateTask(
                         stationDownloadTask.copy(status = downloadStatus).asXLDownloadTaskEntity()
                     )
@@ -168,13 +171,20 @@ class DefaultEngineRepository(
 
                 DownloadEngine.ARIA2 -> {
                     val startTaskResult = aria2Engine.startTask(
-                        url, downloadPath, name, urlType, fileCount, selectIndexes
+                        realUrl, downloadPath, name, urlType, fileCount, selectIndexes
                     )
                     if (startTaskResult is IResult.Error) {
-
+                        maxThreadCount.decrementAndGet()
+                        startTaskResult.exception.printStackTrace()
+                        return@withContext startTaskResult
                     }
+                    startTaskResult as IResult.Success
+                    val taskId = startTaskResult.data
+                    downloadTaskRepo.updateTask(
+                        stationDownloadTask.copy(status = downloadStatus).asXLDownloadTaskEntity()
+                    )
                     IResult.Success(
-                        TaskId(DownloadEngine.ARIA2, (startTaskResult as IResult.Success).data)
+                        TaskId(DownloadEngine.ARIA2, taskId)
                     )
                 }
 
@@ -270,8 +280,8 @@ class DefaultEngineRepository(
         val waitingTaskList = aria2Engine.tellWaiting(0, Int.MAX_VALUE)
         val stoppedTaskList = aria2Engine.tellStopped(0, Int.MAX_VALUE)
         list.addAll(activeTaskList)
-        list.addAll(formatTorrentList(waitingTaskList))
-        list.addAll(formatTorrentList(stoppedTaskList))
+        list.addAll(waitingTaskList)
+        list.addAll(stoppedTaskList)
         return@withContext list
     }
 
@@ -310,7 +320,7 @@ class DefaultEngineRepository(
         return aria2ConfigResult
     }
 
-    suspend fun saveSession(): Boolean {
+    suspend fun saveSession(): IResult<Boolean> {
         return aria2Engine.saveSession()
     }
 

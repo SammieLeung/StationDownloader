@@ -82,7 +82,7 @@ object Aria2Requests {
     }
 
     fun pause(gid: String): Aria2Request {
-        return Aria2Request(WebSocketClient.Method.PAUSE, arrayOf(gid))
+        return Aria2Request(WebSocketClient.Method.FORCE_PAUSE, arrayOf(gid))
     }
 
     fun unpause(gid: String): Aria2Request {
@@ -93,6 +93,9 @@ object Aria2Requests {
         return Aria2Request(WebSocketClient.Method.REMOVE, arrayOf(gid))
     }
 
+    fun changeGlobalOption(options: OptionsMap): Aria2Request {
+        return Aria2Request(WebSocketClient.Method.CHANGE_GLOBAL_OPTIONS, arrayOf(options.toJson()))
+    }
 
     fun saveSession(): Aria2Request {
         return Aria2Request(WebSocketClient.Method.SAVE_SESSION, emptyArray())

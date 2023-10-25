@@ -49,6 +49,8 @@ class DefaultDownloadTaskRepository(
         return localDataSource.getTaskByUrl(url)
     }
 
+
+
     override suspend fun getTaskByUrl(
         url: String,
         engine: DownloadEngine,
@@ -69,6 +71,10 @@ class DefaultDownloadTaskRepository(
             }
         }
 
+    }
+
+    override suspend fun getTaskByRealUrl(realUrl: String): XLDownloadTaskEntity? {
+        return localDataSource.getTaskByRealUrl(realUrl)
     }
 
     override suspend fun getTorrentTaskByHash(infoHash: String): XLDownloadTaskEntity?= withContext(defaultDispatcher) {

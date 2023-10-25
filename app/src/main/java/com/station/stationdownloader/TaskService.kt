@@ -130,13 +130,7 @@ class TaskService : Service(), DLogger {
 
                 ACTION_START_TASK -> {
                     val url = intent.getStringExtra("url") ?: return START_NOT_STICKY
-                    if(ARIA2_URL_TO_GID[url]!=null){
-                        Logger.d("ARIA2_URL_TO_GID[url] = ${ARIA2_URL_TO_GID[url]}")
-                    }else{
-                        logger("url=$url")
-                        startTaskJobMap[url] = startTask(url)
-                    }
-
+                    startTaskJobMap[url] = startTask(url)
                 }
 
                 ACTION_STOP_TASK -> {
@@ -439,7 +433,7 @@ class TaskService : Service(), DLogger {
 
     private suspend fun aria2TellStatus(taskId: TaskId, url: String) {
         while (true) {
-            val taskStatusResult = engineRepo.getAria2TaskStatus(taskId.id,url)
+            val taskStatusResult = engineRepo.getAria2TaskStatus(taskId.id, url)
             if (taskStatusResult is IResult.Error) {
                 logError(taskStatusResult.exception)
                 return
@@ -550,8 +544,6 @@ class TaskService : Service(), DLogger {
         const val ACTION_START_TASK_RESULT = "action.start.task.result"
         const val ACTION_DELETE_TASK_RESULT = "action.delete.task.result"
 
-        @JvmField
-        val ARIA2_URL_TO_GID = mutableMapOf<String, String>()
 
         @JvmStatic
         fun watchTask(context: Context, url: String, taskId: String, engine: String) {

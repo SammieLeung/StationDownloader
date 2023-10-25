@@ -50,7 +50,6 @@ class DownloadingTaskFragment : BaseFragment<FragmentDownloadtaskBinding>(), DLo
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-        Logger.d("onViewCreated")
         mBinding.bindState(
             pVm.newTaskState,
             vm.uiState,
@@ -61,7 +60,6 @@ class DownloadingTaskFragment : BaseFragment<FragmentDownloadtaskBinding>(), DLo
 
     override fun onResume() {
         super.onResume()
-        logger("onResume")
         vm.accept(UiAction.GetTaskList)
         vm.accept(UiAction.InitUiState)
         vm.aria2Accept(Aria2Action.StartAria2TaskMonitor)

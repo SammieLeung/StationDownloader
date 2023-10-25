@@ -53,6 +53,12 @@ class DownloadTaskLocalDataSource internal constructor(
             downloadTaskDao.getTaskByUrl(url)
         }
 
+
+    override suspend fun getTaskByRealUrl(realUrl: String): XLDownloadTaskEntity? =
+        withContext(ioDispatcher) {
+            downloadTaskDao.getTaskByRealUrl(realUrl)
+        }
+
     override suspend fun getTaskByUrl(
         url: String,
         downloadPath: String
@@ -67,6 +73,7 @@ class DownloadTaskLocalDataSource internal constructor(
             IResult.Success(xlDownloadTaskEntity)
         }
     }
+
 
     override suspend fun getTaskByTorrentId(torrentId: Long): XLDownloadTaskEntity? =
         withContext(ioDispatcher) {

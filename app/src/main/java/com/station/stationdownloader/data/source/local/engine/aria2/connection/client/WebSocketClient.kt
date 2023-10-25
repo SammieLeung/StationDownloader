@@ -61,7 +61,7 @@ open class WebSocketClient private constructor(
             val response = InternalResponse()
 
             requests[id] = response
-            Logger.d("sendRequestSync:\n $request")
+            logger("sendRequestSync:\n  $request")
 
             webSocket.get()?.send(request.toString())
                 ?: throw IllegalStateException("WebSocket is closed")
@@ -193,7 +193,6 @@ open class WebSocketClient private constructor(
     inner class Aria2WebSocketListener : WebSocketListener() {
         override fun onMessage(webSocket: WebSocket, text: String) {
             if (closed) return
-            logger("onMessage:\n $text")
 
             val response =
                 try {
@@ -205,6 +204,7 @@ open class WebSocketClient private constructor(
                 }
 
             val method: String = response.optString("method", "")
+            logger("onMessage:\n  $text")
             if (method.isNotEmpty() && method.startsWith("aria2.on")) return
             val internal: InternalResponse =
                 requests[response.getString("id").toLong()]
@@ -222,11 +222,11 @@ open class WebSocketClient private constructor(
         }
 
         override fun onOpen(webSocket: WebSocket, response: Response) {
-            Logger.d("websocket Open $response")
+            logger("WebSocket: onOpen")
         }
 
         override fun onFailure(webSocket: WebSocket, t: Throwable, response: Response?) {
-            logger("onFailure:\n $t\n $response")
+            logger("WebSocket: onFailure \n $t \n $response")
         }
 
     }
@@ -289,7 +289,8 @@ open class WebSocketClient private constructor(
         TELL_WAITING("aria2.tellWaiting"),
         TELL_STOPPED("aria2.tellStopped"),
         UNPAUSE("aria2.unpause"),
-        REMOVE("aria2.remove"), FORCE_PAUSE("aria2.forcePause"),
+        REMOVE("aria2.remove"),
+        FORCE_PAUSE("aria2.forcePause"),
         FORCE_REMOVE("aria2.forceRemove"),
         REMOVE_RESULT("aria2.removeDownloadResult"),
         GET_VERSION("aria2.getVersion"),

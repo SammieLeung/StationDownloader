@@ -1,10 +1,22 @@
 package com.station.stationdownloader.utils
 
 import android.util.Log
+import java.lang.StringBuilder
 
 interface DLogger {
     fun logger(message: Any?) {
-        Log.w(tag(), "[${tag()}]>>$message<<")
+            Log.w(tag(), ">>$message<<")
+    }
+
+    fun logLine(message: Any?) {
+        val stackTrace = Thread.currentThread().stackTrace
+        if (stackTrace.size > 4) {
+            val className = stackTrace[4].className
+            val lineNumber = stackTrace[4].lineNumber
+            Log.w(tag(), "[${Thread.currentThread().name}]{$className($lineNumber)}\n>>$message<<")
+        }else{
+            Log.w(tag(), "[${Thread.currentThread().name}]\n>>$message<<")
+        }
     }
 
     fun logError(message: String) {

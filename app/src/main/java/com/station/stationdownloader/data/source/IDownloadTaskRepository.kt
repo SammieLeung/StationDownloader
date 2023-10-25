@@ -16,6 +16,7 @@ import kotlinx.coroutines.flow.Flow
 interface IDownloadTaskRepository {
     suspend fun getTasks(): List<XLDownloadTaskEntity>
     suspend fun getTaskByUrl(url: String): XLDownloadTaskEntity?
+    suspend fun getTaskByRealUrl(realUrl: String): XLDownloadTaskEntity?
     suspend fun getTaskByUrl(
         url: String,
         engine: DownloadEngine,

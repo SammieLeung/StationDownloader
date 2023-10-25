@@ -20,6 +20,10 @@ interface XLDownloadTaskDao {
     suspend fun getTasks(): List<XLDownloadTaskEntity>
     @Query("SELECT * FROM xl_download_task WHERE url=:url")
     suspend fun getTaskByUrl(url:String):XLDownloadTaskEntity?
+
+    @Query("SELECT * FROM xl_download_task WHERE real_url=:realUrl")
+    suspend fun getTaskByRealUrl(realUrl:String):XLDownloadTaskEntity?
+
     @Query("SELECT * FROM xl_download_task WHERE url=:url AND download_path=:downloadPath")
     suspend fun getTaskByUrl(url:String,downloadPath:String):XLDownloadTaskEntity?
 
