@@ -25,7 +25,9 @@ import com.station.stationdownloader.data.source.local.engine.aria2.connection.c
 import com.station.stationdownloader.data.source.local.engine.aria2.connection.common.OptionsMap
 import com.station.stationdownloader.data.source.local.engine.aria2.connection.profile.UserProfileManager
 import com.station.stationdownloader.data.source.local.engine.aria2.connection.transport.Aria2Request
+import com.station.stationdownloader.data.source.local.engine.aria2.connection.transport.Aria2RequestWithResult
 import com.station.stationdownloader.data.source.local.engine.aria2.connection.transport.Aria2Requests
+import com.station.stationdownloader.data.source.local.room.entities.XLDownloadTaskEntity
 import com.station.stationdownloader.data.source.repository.DefaultDownloadTaskRepository
 import com.station.stationdownloader.utils.DLogger
 import kotlinx.coroutines.CoroutineDispatcher
@@ -128,13 +130,29 @@ class Aria2Engine internal constructor(
         selectIndexes: IntArray
     ): IResult<String> {
         when (urlType) {
-            DownloadUrlType.TORRENT ->
-                return addTorrent(
-                    url,
-                    downloadPath,
-                    selectIndexes,
-                    false
-                )
+            DownloadUrlType.TORRENT -> {
+                Logger.d("startTask Aria2 [TORRENT] $url")
+                val gid = aria2GidData[url]
+                gid?.let {
+                    val unpauseResponse = sendToWebSocketSync(Aria2Requests.unpause(gid))
+                    if (unpauseResponse is IResult.Error) {
+                        return unpauseResponse
+                    }
+                    return IResult.Success(it)
+                } ?: run {
+                    val gidResponse = addTorrent(
+                        url,
+                        downloadPath,
+                        selectIndexes,
+                        false
+                    )
+                    if (gidResponse is IResult.Error) {
+                        return gidResponse
+                    }
+                    aria2GidData[url] = (gidResponse as IResult.Success).data
+                    return gidResponse
+                }
+            }
 
             else -> {
                 return IResult.Error(
@@ -152,54 +170,23 @@ class Aria2Engine internal constructor(
         selectIndexes: IntArray,
         isPause: Boolean
     ): IResult<String> {
-        try {
-            val gid = sendToWebSocketSync { continuation ->
-                val base64 = base64(url)
-                reference.send(requestWithResult = Aria2Requests.addTorrent(
-                    base64 = base64,
-                    options = OptionsMap().apply {
-                        put("pause", OptionsMap.OptionValue(isPause.toString()))
-                        put("select-file", OptionsMap.OptionValue(selectIndexes.map {
-                            it + 1
-                        }.joinToString(",")))
-                        put("dir", OptionsMap.OptionValue(downloadPath))
-                        put("seed-time", OptionsMap.OptionValue("0")) //不做种
-                    }
-                ),
-                    onResult = object : WebSocketClient.OnResult<String> {
-                        override fun onResult(result: String) {
-                            continuation.resume(result)
-                        }
-
-                        override fun onException(ex: Exception) {
-                            continuation.resumeWith(Result.failure(ex))
-                        }
-
-                    })
+        val base64 = base64(url)
+        val gidResponse = sendToWebSocketSync(Aria2Requests.addTorrent(
+            base64 = base64,
+            options = OptionsMap().apply {
+                put("pause", OptionsMap.OptionValue(isPause.toString()))
+                put("select-file", OptionsMap.OptionValue(selectIndexes.map {
+                    it + 1
+                }.joinToString(",")))
+                put("dir", OptionsMap.OptionValue(downloadPath))
+                put("seed-time", OptionsMap.OptionValue("0")) //不做种
             }
-            return IResult.Success(gid)
-        } catch (e: Exception) {
-            return IResult.Error(e)
-        }
+        ))
+        return gidResponse
     }
 
     override suspend fun stopTask(taskId: String) {
-        try {
-            sendToWebSocketSync {
-                reference.send(request = Aria2Requests.pause(taskId),
-                    onSuccess = object : WebSocketClient.OnSuccess {
-                        override fun onSuccess() {
-                            it.resume(Unit)
-                        }
-
-                        override fun onException(ex: Exception) {
-                            it.resumeWith(Result.failure(ex))
-                        }
-                    })
-            }
-        } catch (e: Exception) {
-            e.printStackTrace()
-        }
+        sendToWebSocketSync(Aria2Requests.pause(taskId))
     }
 
 
@@ -231,143 +218,152 @@ class Aria2Engine internal constructor(
     }
 
     suspend fun tellStatus(gid: String, url: String? = null): IResult<TaskStatus> {
+        return sendToWebSocketSync(Aria2Requests.tellStatus(gid)) {
+            if (url != null) {
+                it.copy(url = url)
+            } else {
+                it
+            }
+        }
+    }
+
+    private suspend fun filterTask(tasks: List<Aria2TorrentTask>): List<Aria2TorrentTask> =
+        tasks.mapNotNull { aria2Task ->
+            taskRepo.getTorrentTaskByHash(aria2Task.hashInfo)?.let {
+                Pair(aria2Task, it)
+            }
+        }.map {
+            val task = it.first
+            val entity = it.second
+            val status = task.taskStatus
+            aria2GidData[entity.url] = task.taskStatus.taskId.id
+            task.copy(taskStatus = status.copy(url = entity.realUrl))
+        }
+
+    suspend fun tellActive(): List<Aria2TorrentTask> {
+        val listResponse = sendToWebSocketSync(Aria2Requests.tellActive()) {
+            filterTask(it)
+        }
+        if (listResponse is IResult.Success) {
+            return listResponse.data
+        }
+        return emptyList()
+    }
+
+    suspend fun tellWaiting(offset: Int, count: Int): List<Aria2TorrentTask> {
+        val listResponse = sendToWebSocketSync(Aria2Requests.tellWaiting(offset, count)) {
+            filterTask(it)
+        }
+        if (listResponse is IResult.Success) {
+            return listResponse.data
+        }
+        return emptyList()
+    }
+
+    suspend fun tellStopped(offset: Int, count: Int): List<Aria2TorrentTask> {
+        val listResponse = sendToWebSocketSync(Aria2Requests.tellStopped(offset, count)) {
+            filterTask(it)
+        }
+        if (listResponse is IResult.Success) {
+            return listResponse.data
+        }
+        return emptyList()
+    }
+
+    suspend fun saveSession(): IResult<Boolean> {
+        return try {
+            sendToWebSocketSync(Aria2Requests.saveSession())
+        } catch (e: Exception) {
+            IResult.Error(e)
+        }
+    }
+
+
+    private suspend inline fun sendToWebSocketSync(request: Aria2Request): IResult<Boolean> {
         try {
-            val status = sendToWebSocketSync {
-                reference.send(requestWithResult = Aria2Requests.tellStatus(gid),
-                    onResult = object : WebSocketClient.OnResult<TaskStatus> {
-                        override fun onResult(result: TaskStatus) {
-                            if (url != null) {
-                                it.resume(result.copy(url = url))
-                            } else {
-                                it.resume(result)
+            val result = suspendCoroutine { continuation ->
+                val job = Job()
+                val scope = CoroutineScope(job)
+                scope.launch(defaultDispatcher) {
+                    reference.send(
+                        request = request,
+                        onSuccess = object : WebSocketClient.OnSuccess {
+                            override fun onSuccess() {
+                                continuation.resume(true)
+                            }
+
+                            override fun onException(ex: Exception) {
+                                continuation.resumeWith(Result.failure(ex))
                             }
                         }
-
-                        override fun onException(ex: Exception) {
-                            it.resumeWith(Result.failure(ex))
-                        }
-
-                    })
+                    )
+                }
             }
-            return IResult.Success(status)
+            return IResult.Success(result)
         } catch (e: Exception) {
+            logger("sendToWebSocketSync[Aria2Request] $e")
             return IResult.Error(e)
         }
     }
 
-    suspend fun tellActive(): List<Aria2TorrentTask> {
+    private suspend inline fun <R> sendToWebSocketSync(requestWithResult: Aria2RequestWithResult<R>): IResult<R> {
         try {
-            val status = sendToWebSocketSync {
-                reference.send(requestWithResult = Aria2Requests.tellActive(),
-                    onResult = object : WebSocketClient.OnResult<List<Aria2TorrentTask>> {
-                        override fun onResult(result: List<Aria2TorrentTask>) {
-                            val scope = CoroutineScope(Job())
-                            scope.launch(defaultDispatcher) {
-                                it.resume(result
-                                    .map { task ->
-                                        val info = task.hashInfo
-                                        val status = task.taskStatus
-                                        val entity =
-                                            taskRepo.getTorrentTaskByHash(info)
-                                        if(entity==null){
-                                        }
-                                        entity!!.let {
-                                            aria2GidData[it.url] = task.taskStatus.taskId.id
-                                            task.copy(taskStatus = status.copy(url = it.url))
-                                        }
+            val result = suspendCoroutine { continuation ->
+                val job = Job()
+                val scope = CoroutineScope(job)
+                scope.launch(defaultDispatcher) {
+                    reference.send(
+                        requestWithResult = requestWithResult,
+                        onResult = object : WebSocketClient.OnResult<R> {
+                            override fun onResult(result: R) {
+                                continuation.resume(result)
+                            }
 
-                                    })
+                            override fun onException(ex: Exception) {
+                                continuation.resumeWith(Result.failure(ex))
                             }
                         }
-
-                        override fun onException(ex: Exception) {
-                            it.resumeWith(Result.failure(ex))
-                        }
-
-
-                    })
+                    )
+                }
             }
-            return status
+            return IResult.Success(result)
         } catch (e: Exception) {
-            e.printStackTrace()
-            return emptyList()
+            logger("sendToWebSocketSync[Aria2RequestWithResult] $e")
+            return IResult.Error(e)
         }
     }
 
-    suspend fun tellWaiting(offset: Int, count: Int): List<Aria2TorrentTask> {
+    private suspend inline fun <R> sendToWebSocketSync(
+        requestWithResult: Aria2RequestWithResult<R>,
+        crossinline block: suspend (R) -> R
+    ): IResult<R> {
         try {
-            val list = sendToWebSocketSync {
-                reference.send(requestWithResult = Aria2Requests.tellWaiting(offset, count),
-                    onResult = object : WebSocketClient.OnResult<List<Aria2TorrentTask>> {
-                        override fun onResult(result: List<Aria2TorrentTask>) {
-                            it.resume(result)
-                        }
+            val result = suspendCoroutine { continuation ->
+                val job = Job()
+                val scope = CoroutineScope(job)
+                scope.launch(defaultDispatcher) {
+                    reference.send(
+                        requestWithResult = requestWithResult,
+                        onResult = object : WebSocketClient.OnResult<R> {
+                            override fun onResult(result: R) {
+                                scope.launch {
+                                    val deferred = scope.async { block(result) }
+                                    continuation.resume(deferred.await())
+                                }
+                            }
 
-                        override fun onException(ex: Exception) {
-                            it.resumeWith(Result.failure(ex))
+                            override fun onException(ex: Exception) {
+                                continuation.resumeWith(Result.failure(ex))
+                            }
                         }
-                    })
+                    )
+                }
             }
-            return list
+            return IResult.Success(result)
         } catch (e: Exception) {
-            e.printStackTrace()
-            return emptyList()
+            logger("sendToWebSocketSync[Aria2RequestWithResult] $e")
+            return IResult.Error(e)
         }
-    }
-
-    suspend fun tellStopped(offset: Int, count: Int): List<Aria2TorrentTask> {
-        try {
-            val list = sendToWebSocketSync {
-                reference.send(requestWithResult = Aria2Requests.tellStopped(offset, count),
-                    onResult = object : WebSocketClient.OnResult<List<Aria2TorrentTask>> {
-                        override fun onResult(result: List<Aria2TorrentTask>) {
-                            it.resume(result)
-                        }
-
-                        override fun onException(ex: Exception) {
-                            it.resumeWith(Result.failure(ex))
-                        }
-                    })
-            }
-            return list
-        } catch (e: Exception) {
-            e.printStackTrace()
-            return emptyList()
-        }
-    }
-
-    suspend fun saveSession(): Boolean {
-        try {
-            return sendToWebSocketSync {
-                reference.send(
-                    request = Aria2Requests.saveSession(),
-                    object : WebSocketClient.OnSuccess {
-                        override fun onSuccess() {
-                            it.resume(true)
-                        }
-
-                        override fun onException(ex: Exception) {
-                            it.resume(false)
-                        }
-                    }
-                )
-            }
-        } catch (e: Exception) {
-            e.printStackTrace()
-            return false
-        }
-    }
-
-
-    private suspend inline fun <R> sendToWebSocketSync(crossinline block: suspend (Continuation<R>) -> Unit): R {
-        val result = suspendCoroutine { continuation ->
-            val job = Job()
-            val scope = CoroutineScope(job)
-            scope.launch(defaultDispatcher) {
-                block(continuation)
-            }
-        }
-        return result
     }
 
 
