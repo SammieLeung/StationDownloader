@@ -15,6 +15,7 @@ object Aria2Requests {
         listOf(
             "gid",
             "bittorrent",
+            "files",
             "totalLength",
             "completedLength",
             "downloadSpeed",
@@ -85,7 +86,7 @@ object Aria2Requests {
     }
 
     fun unpause(gid: String): Aria2Request {
-        return Aria2Request(WebSocketClient.Method.PAUSE, arrayOf(gid))
+        return Aria2Request(WebSocketClient.Method.UNPAUSE, arrayOf(gid))
     }
 
     fun remove(gid: String): Aria2Request {
@@ -113,6 +114,8 @@ object Aria2Requests {
             )
         )
     }
+
+
 
     fun tellActive(): Aria2RequestWithResult<List<Aria2TorrentTask>> {
         return Aria2RequestWithResult(
