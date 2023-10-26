@@ -268,7 +268,20 @@ class TaskService : Service(), DLogger {
         callback: ITaskServiceCallback? = null
     ) =
         serviceScope.launch {
+            val entity = taskRepo.getTaskByUrl(url)
+            if (entity == null) {
+                sendErrorToClient(
+                    "remove_task",
+                    "Task not found!",
+                    TaskExecuteError.STOP_TASK_FAILED.ordinal
+                )
+                return@launch
+            }
+            //TODO 优化不同引擎的删除任务逻辑。XL引擎删除任务时，会自动停止任务，所以这里先停止任务，再删除任务。ARI2引擎删除任务时，不会自动停止任务，所以这里不需要停止任务，直接删除任务即可。
             stopTask(url)
+            if (entity.engine == DownloadEngine.ARIA2) {
+                engineRepo.removeAria2Task(url)
+            }
             val deleteResult = taskRepo.deleteTask(url, isDeleteFile)
             if (deleteResult is IResult.Error) {
                 Logger.e(deleteResult.exception.message.toString())

@@ -273,7 +273,7 @@ class TaskStatusServiceImpl(
     }
 
     override fun getTorrentList(callback: ITaskServiceCallback?) {
-        TODO("Not yet implemented")
+
     }
 
     override fun uploadTorrentNotify(url: String?, callback: ITaskServiceCallback?) {

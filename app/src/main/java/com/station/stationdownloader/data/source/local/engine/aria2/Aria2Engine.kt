@@ -31,8 +31,10 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import okhttp3.internal.concurrent.Task
 import java.io.ByteArrayOutputStream
 import java.io.File
 import kotlin.coroutines.resume
@@ -183,6 +185,17 @@ class Aria2Engine internal constructor(
         sendToWebSocketSync(Aria2Requests.pause(taskId))
     }
 
+    suspend fun removeTask(realUrl: String): IResult<Boolean> {
+        val gid = aria2GidData[realUrl] ?: return IResult.Error(
+            Exception(TaskExecuteError.ARIA2_GID_NOT_FOUND.name),
+            TaskExecuteError.ARIA2_GID_NOT_FOUND.ordinal
+        )
+        return sendToWebSocketSync(Aria2Requests.remove(gid)){
+            aria2GidData.remove(realUrl)
+            true
+        }
+    }
+
 
     override suspend fun configure(key: String, values: String): IResult<String> {
         return IResult.Success(Pair(key, values).toString())
@@ -212,7 +225,7 @@ class Aria2Engine internal constructor(
     }
 
     suspend fun tellStatus(gid: String, url: String? = null): IResult<TaskStatus> {
-        return sendToWebSocketSync(Aria2Requests.tellStatus(gid)) {
+        return sendToWebSocketSync<TaskStatus>(Aria2Requests.tellStatus(gid)) {
             if (url != null) {
                 it.copy(url = url)
             } else {
@@ -235,7 +248,7 @@ class Aria2Engine internal constructor(
         }
 
     suspend fun tellActive(): List<Aria2TorrentTask> {
-        val listResponse = sendToWebSocketSync(Aria2Requests.tellActive()) {
+        val listResponse = sendToWebSocketSync<List<Aria2TorrentTask>>(Aria2Requests.tellActive()) {
             filterTask(it)
         }
         if (listResponse is IResult.Success) {
@@ -245,9 +258,10 @@ class Aria2Engine internal constructor(
     }
 
     suspend fun tellWaiting(offset: Int, count: Int): List<Aria2TorrentTask> {
-        val listResponse = sendToWebSocketSync(Aria2Requests.tellWaiting(offset, count)) {
-            filterTask(it)
-        }
+        val listResponse =
+            sendToWebSocketSync<List<Aria2TorrentTask>>(Aria2Requests.tellWaiting(offset, count)) {
+                filterTask(it)
+            }
         if (listResponse is IResult.Success) {
             return listResponse.data
         }
@@ -255,9 +269,10 @@ class Aria2Engine internal constructor(
     }
 
     suspend fun tellStopped(offset: Int, count: Int): List<Aria2TorrentTask> {
-        val listResponse = sendToWebSocketSync(Aria2Requests.tellStopped(offset, count)) {
-            filterTask(it)
-        }
+        val listResponse =
+            sendToWebSocketSync<List<Aria2TorrentTask>>(Aria2Requests.tellStopped(offset, count)) {
+                filterTask(it)
+            }
         if (listResponse is IResult.Success) {
             return listResponse.data
         }
@@ -327,6 +342,35 @@ class Aria2Engine internal constructor(
         }
     }
 
+    private suspend inline fun sendToWebSocketSync(
+        request: Aria2Request, crossinline block: () -> Boolean
+    ): IResult<Boolean> {
+        try {
+            val result = suspendCoroutine { continuation ->
+                val job = Job()
+                val scope = CoroutineScope(job)
+                scope.launch(defaultDispatcher) {
+                    reference.send(
+                        request = request,
+                        onSuccess = object : WebSocketClient.OnSuccess {
+                            override fun onSuccess() {
+                                continuation.resume(block())
+                            }
+
+                            override fun onException(ex: Exception) {
+                                continuation.resumeWith(Result.failure(ex))
+                            }
+                        }
+                    )
+                }
+            }
+            return IResult.Success(result)
+        } catch (e: Exception) {
+            logErr("sendToWebSocketSync[Aria2Request] $e")
+            return IResult.Error(e)
+        }
+    }
+
     private suspend inline fun <R> sendToWebSocketSync(
         requestWithResult: Aria2RequestWithResult<R>,
         crossinline block: suspend (R) -> R
@@ -341,8 +385,7 @@ class Aria2Engine internal constructor(
                         onResult = object : WebSocketClient.OnResult<R> {
                             override fun onResult(result: R) {
                                 scope.launch {
-                                    val deferred = scope.async { block(result) }
-                                    continuation.resume(deferred.await())
+                                    continuation.resume(block(result))
                                 }
                             }
 

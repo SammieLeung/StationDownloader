@@ -230,7 +230,7 @@ class DefaultEngineRepository(
                 if (ariaTaskStatus is IResult.Error) {
                     Logger.e(ariaTaskStatus.exception.message.toString())
                 }
-                val taskInfo=(ariaTaskStatus as IResult.Success).data
+                val taskInfo = (ariaTaskStatus as IResult.Success).data
                 val taskStatus = when (taskInfo.status) {
                     ITaskState.DONE.code -> DownloadTaskStatus.COMPLETED
                     else -> DownloadTaskStatus.PAUSE
@@ -267,6 +267,17 @@ class DefaultEngineRepository(
             DownloadEngine.ARIA2 -> TODO()
             DownloadEngine.INVALID_ENGINE -> TODO()
         }
+
+    }
+
+
+    suspend fun removeAria2Task(url: String): IResult<Boolean> {
+        val task = downloadTaskRepo.getTaskByUrl(url) ?: return IResult.Error(
+            Exception(
+                TaskExecuteError.TASK_NOT_FOUND.name
+            ), TaskExecuteError.TASK_NOT_FOUND.ordinal
+        )
+        return aria2Engine.removeTask(task.realUrl)
 
     }
 
