@@ -6,7 +6,9 @@ import android.view.View
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.ViewModelStoreOwner
 import androidx.lifecycle.lifecycleScope
-import com.station.stationdownloader.databinding.DialogMaxThreadBinding
+import com.station.stationdownloader.DownloadEngine
+import com.station.stationdownloader.R
+import com.station.stationdownloader.databinding.DialogDefaultEngineBinding
 import com.station.stationdownloader.ui.base.BaseDialogFragment
 import com.station.stationdownloader.utils.DLogger
 import com.station.stationtheme.spinner.StationSpinnerAdapter
@@ -15,50 +17,65 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 
-class MaxThreadDialogFragment : BaseDialogFragment<DialogMaxThreadBinding>(), DLogger {
+class DefaultEngineDialogFragment : BaseDialogFragment<DialogDefaultEngineBinding>(),DLogger {
 
     private val vm by lazy {
         ViewModelProvider(parentFragment as ViewModelStoreOwner).get(SettingViewModel::class.java)
     }
-    private val spinnerValues = listOf(1, 2, 3, 4, 5)
+    private val spinnerData by lazy {
+        listOf(
+            resources.getString(R.string.download_with_xl),
+            resources.getString(R.string.download_with_aria2)
+        )
+    }
+
+    private val spinnerValues = listOf(DownloadEngine.XL, DownloadEngine.ARIA2)
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-        mBinding.bindState(vm.dialogState)
+        mBinding.bindState(
+            vm.dialogState
+        )
     }
 
 
-    private fun DialogMaxThreadBinding.bindState(dialogState: StateFlow<DialogState>) {
+    private fun DialogDefaultEngineBinding.bindState(dialogState: StateFlow<DialogState>) {
         cancelBtn.setOnClickListener {
             dismiss()
         }
         okBtn.setOnClickListener {
-            done(spinnerValues[maxThreadSpinner.selectedItemPosition])
+            done(spinnerValues[downloadEngineSpinner.selectedItemPosition])
         }
-        maxThreadSpinner.adapter = StationSpinnerAdapter(requireContext(), spinnerValues)
+
+        downloadEngineSpinner.adapter = StationSpinnerAdapter(requireContext(), spinnerData)
+
         lifecycleScope.launch {
-            dialogState.map { it.maxThread }
+            dialogState.map { it.defaultDownloadEngine }
                 .distinctUntilChanged()
                 .collect {
-                    val index = spinnerValues.indexOf(it)
-                    maxThreadSpinner.setSelection(index)
+                    logger(it)
+                    val index = spinnerValues.indexOf(DownloadEngine.valueOf(it))
+                    downloadEngineSpinner.setSelection(index)
                 }
         }
     }
 
-    private fun done(thread: Int) {
-        vm.accept(UiAction.UpdateMaxThread(thread))
+    private fun done(selectDownloadEngine: DownloadEngine) {
+        vm.accept(
+            UiAction.UpdateDownloadEngine(selectDownloadEngine)
+        )
         dismiss()
     }
 
+
     override fun onDismiss(dialog: DialogInterface) {
         super.onDismiss(dialog)
-        logger(vm)
         vm.accept(UiAction.ResetDialogState)
     }
 
     override fun DLogger.tag(): String {
-        return MaxThreadDialogFragment::class.java.simpleName
+        return "DefaultEngineDialogFragment"
     }
+
 }
 

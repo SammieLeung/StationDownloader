@@ -6,6 +6,7 @@ import android.view.View
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.lifecycleScope
 import com.gianlu.aria2lib.Aria2Ui
+import com.orhanobut.logger.Logger
 import com.station.stationdownloader.R
 import com.station.stationdownloader.StationDownloaderApp
 import com.station.stationdownloader.data.source.local.engine.aria2.Aria2Engine
@@ -29,7 +30,7 @@ class SettingsFragment : BaseFragment<FragmentSettingsBinding>(), DLogger, Aria2
         if (it != null) {
             val base64Id: String = it.pathSegments[1] //dir id
             val decodeData = String(Base64.decode(base64Id, Base64.DEFAULT))
-            vm.accept(UiAction.SetDownloadPath(decodeData))
+            vm.accept(UiAction.UpdateDownloadPath(decodeData))
         }
         vm.accept(UiAction.ResetDialogState)
     }
@@ -39,7 +40,7 @@ class SettingsFragment : BaseFragment<FragmentSettingsBinding>(), DLogger, Aria2
             val dataType = intent.getIntExtra("data_type", -1)
             if (dataType == 2) {
                 val uri = intent.getStringExtra("path") ?: return@registerForActivityResult
-                vm.accept(UiAction.SetDownloadPath(uri))
+                vm.accept(UiAction.UpdateDownloadPath(uri))
             }
         }
         vm.accept(UiAction.ResetDialogState)
@@ -53,9 +54,9 @@ class SettingsFragment : BaseFragment<FragmentSettingsBinding>(), DLogger, Aria2
         logger(vm)
         mBinding.bindState(
             vm.commonSetting,
-            vm.dialogState,
+            vm.xlSetting,
             vm.aria2Setting,
-            vm.accept
+            vm.dialogState,
         )
     }
 
@@ -72,42 +73,57 @@ class SettingsFragment : BaseFragment<FragmentSettingsBinding>(), DLogger, Aria2
 
     private fun FragmentSettingsBinding.bindState(
         commonSettingStateFlow: StateFlow<CommonSettingState>,
+        xlSettingFlow: StateFlow<XLSettingState>,
+        aria2SettingFlow: StateFlow<Aria2SettingState>,
         dialogStateFlow: StateFlow<DialogState>,
-        aria2SettingStateFlow: StateFlow<Aria2SettingState>,
-        accept: (UiAction) -> Unit
     ) {
-
-
         lifecycleScope.launch {
             commonSettingStateFlow.collect { settingState ->
                 commonItemStateList = settingState.settingItemStates
-
-                commonSettingDownloadPath.root.setOnClickListener {
+                downloadPath.root.setOnClickListener {
                     settingState.settingItemStates[0].onClick()
                 }
-                commonSettingSimultaneousDownloadTasks.root.setOnClickListener {
+                maxConcurrentDownloads.root.setOnClickListener {
                     settingState.settingItemStates[1].onClick()
                 }
-                commonSettingDownloadSpeedLimit.root.setOnClickListener {
+                defaultDownloadEngine.root.setOnClickListener {
                     settingState.settingItemStates[2].onClick()
                 }
+            }
+        }
 
+        lifecycleScope.launch {
+            xlSettingFlow.collect{settingState->
+                xlItemStateList = settingState.settingItemStates
+                xlDownloadSpeedLimit.root.setOnClickListener {
+                    settingState.settingItemStates[0].onClick()
+                }
+            }
+        }
+
+        lifecycleScope.launch {
+            aria2SettingFlow.collect { settingState ->
+                aria2ItemStateList = settingState.settingItemStates
+                aria2DownloadSpeedLimit.root.setOnClickListener {
+                    settingState.settingItemStates[1].onClick()
+                }
             }
         }
 
         lifecycleScope.launch {
             dialogStateFlow.collect {
-                if (it.isShowDownloadPath) showDownloadPathDialog()
-                else if (it.isShowMaxThread) showMaxThreadDialog()
-                else if (it.isShowSpeedLimit) showSpeedLimitDialog()
+                if (it.selectDownloadPath) showDownloadPathDialog()
+                else if (it.selectMaxThread) showMaxThreadDialog()
+                else if (it.selectSpeedLimit) showSpeedLimitDialog()
+                else if (it.selectEngine) showEngineDialog()
             }
         }
 
-        lifecycleScope.launch {
-            aria2SettingStateFlow.collect { aria2SettingState ->
-                aria2ItemStateList = aria2SettingState.settingItemStates
-            }
-        }
+    }
+
+    private fun showEngineDialog() {
+        val dialog = DefaultEngineDialogFragment()
+        dialog.show(childFragmentManager, "")
     }
 
     private fun showMaxThreadDialog() {
@@ -148,7 +164,6 @@ class SettingsFragment : BaseFragment<FragmentSettingsBinding>(), DLogger, Aria2
             putString(OpenFileManagerV2Contract.EXTRA_MIME_TYPE, "folder/*")
         })
     }
-
 
     override fun DLogger.tag(): String {
         return SettingsFragment::class.java.simpleName

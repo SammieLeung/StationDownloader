@@ -8,11 +8,12 @@ import com.gianlu.aria2lib.Aria2Ui
 import com.gianlu.aria2lib.BadEnvironmentException
 import com.gianlu.aria2lib.commonutils.Prefs
 import com.gianlu.aria2lib.internal.Message
-import com.orhanobut.logger.Logger
 import com.station.stationdownloader.Aria2TorrentTask
 import com.station.stationdownloader.DownloadEngine
 import com.station.stationdownloader.DownloadUrlType
 import com.station.stationdownloader.TaskStatus
+import com.station.stationdownloader.contants.Aria2Options
+import com.station.stationdownloader.contants.Options
 import com.station.stationdownloader.contants.TaskExecuteError
 import com.station.stationdownloader.data.IResult
 import com.station.stationdownloader.data.source.IDownloadTaskRepository
@@ -25,16 +26,14 @@ import com.station.stationdownloader.data.source.local.engine.aria2.connection.p
 import com.station.stationdownloader.data.source.local.engine.aria2.connection.transport.Aria2Request
 import com.station.stationdownloader.data.source.local.engine.aria2.connection.transport.Aria2RequestWithResult
 import com.station.stationdownloader.data.source.local.engine.aria2.connection.transport.Aria2Requests
+import com.station.stationdownloader.data.source.repository.DefaultConfigurationRepository
 import com.station.stationdownloader.utils.DLogger
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.async
-import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import okhttp3.internal.concurrent.Task
 import java.io.ByteArrayOutputStream
 import java.io.File
 import kotlin.coroutines.resume
@@ -47,6 +46,7 @@ import kotlin.coroutines.suspendCoroutine
 class Aria2Engine internal constructor(
     private val appContext: Context,
     private val profileManager: UserProfileManager,
+    private val configRepo: DefaultConfigurationRepository,
     private val taskRepo: IDownloadTaskRepository,
     private val defaultDispatcher: CoroutineDispatcher = Dispatchers.Default
 ) : IEngine, DLogger {
@@ -66,7 +66,9 @@ class Aria2Engine internal constructor(
             Log.e(tag(), "[Aria2][Status:$on]")
         }
     }
-
+    init {
+        addAria2UiListener(listener)
+    }
 
     override fun DLogger.tag(): String {
         return "Aria2Engine"
@@ -74,42 +76,21 @@ class Aria2Engine internal constructor(
 
     override suspend fun init(): IResult<String> = withContext(defaultDispatcher) {
         try {
+            logger("Aria2 hasInit? $isInit")
             if (!isInit) {
                 logger("Aria2 init!!!")
                 isInit = true
                 profileManager.getInAppProfile()
-                addAria2UiListener(listener)
+
                 loadAria2ServiceEnv()
                 aria2Service.ui.startService()
+//                loadOptions()
             }
         } catch (e: Exception) {
             e.printStackTrace()
             return@withContext IResult.Error(e)
         }
         return@withContext IResult.Success("${DownloadEngine.ARIA2}[${aria2Service.ui.version()}")
-    }
-
-
-    @Throws(BadEnvironmentException::class)
-    private fun loadAria2ServiceEnv() {
-        if (!aria2Service.ui.hasEnv()) {
-            aria2Service.ui.loadEnv(appContext)
-            aria2Service.ui.bind()
-            aria2Service.ui.askForStatus()
-        }
-    }
-
-    suspend fun connect() {
-        reference = ClientInstanceHolder.instantiate(profileManager.getInAppProfile())
-    }
-
-    fun addAria2UiListener(listener: Aria2Ui.Listener) {
-        aria2Service.listeners.add(listener)
-        aria2Service.ui.askForStatus()
-    }
-
-    fun removeAria2UiListener(listener: Aria2Ui.Listener) {
-        aria2Service.listeners.remove(listener)
     }
 
     override suspend fun unInit() {
@@ -159,6 +140,44 @@ class Aria2Engine internal constructor(
         }
     }
 
+    suspend fun connect() {
+        reference = ClientInstanceHolder.instantiate(profileManager.getInAppProfile())
+    }
+
+    override suspend fun stopTask(taskId: String) {
+        sendToWebSocketSync(Aria2Requests.pause(taskId))
+    }
+
+    override suspend fun setOptions(key: Options, values: String): IResult<Boolean> {
+        if (key is Aria2Options) {
+            when (key) {
+                Aria2Options.SpeedLimit -> {
+                    changeGlobalOptions(OptionsMap().apply {
+                        put("max-overall-download-limit", OptionsMap.OptionValue(values))
+                    })
+                }
+            }
+            configRepo.setValue(key, values)
+            return IResult.Success(true)
+        }
+        return IResult.Success(false)
+    }
+
+    @Throws(BadEnvironmentException::class)
+    private fun loadAria2ServiceEnv() {
+        if (!aria2Service.ui.hasEnv()) {
+            aria2Service.ui.loadEnv(appContext)
+            aria2Service.ui.bind()
+            aria2Service.ui.askForStatus()
+        }
+    }
+
+    private suspend fun loadOptions() {
+        val speedLimit = configRepo.getValue(Aria2Options.SpeedLimit)
+        changeGlobalOptions(OptionsMap().apply {
+            put("max-overall-download-limit", OptionsMap.OptionValue(speedLimit))
+        })
+    }
 
     private suspend fun addTorrent(
         realUrl: String,
@@ -181,8 +200,8 @@ class Aria2Engine internal constructor(
         return gidResponse
     }
 
-    override suspend fun stopTask(taskId: String) {
-        sendToWebSocketSync(Aria2Requests.pause(taskId))
+    private suspend fun changeGlobalOptions(optionsMap: OptionsMap) {
+        sendToWebSocketSync(Aria2Requests.changeGlobalOptions(optionsMap))
     }
 
     suspend fun removeTask(realUrl: String): IResult<Boolean> {
@@ -190,38 +209,10 @@ class Aria2Engine internal constructor(
             Exception(TaskExecuteError.ARIA2_GID_NOT_FOUND.name),
             TaskExecuteError.ARIA2_GID_NOT_FOUND.ordinal
         )
-        return sendToWebSocketSync(Aria2Requests.remove(gid)){
+        return sendToWebSocketSync(Aria2Requests.remove(gid)) {
             aria2GidData.remove(realUrl)
             true
         }
-    }
-
-
-    override suspend fun configure(key: String, values: String): IResult<String> {
-        return IResult.Success(Pair(key, values).toString())
-    }
-
-    suspend fun getEngineStatus(): EngineStatus {
-        val data = suspendCoroutine {
-            val listener = object : Aria2Ui.Listener {
-                override fun onUpdateLogs(msg: MutableList<Aria2Ui.LogMessage>) {
-                }
-
-                override fun onMessage(msg: Aria2Ui.LogMessage) {
-                }
-
-                override fun updateUi(on: Boolean) {
-                    it.resume(on)
-                    aria2Service.listeners.remove(this)
-                }
-            }
-            aria2Service.listeners.add(listener)
-            aria2Service.ui.askForStatus()
-        }
-        return if (data)
-            EngineStatus.ON
-        else
-            EngineStatus.OFF
     }
 
     suspend fun tellStatus(gid: String, url: String? = null): IResult<TaskStatus> {
@@ -286,7 +277,6 @@ class Aria2Engine internal constructor(
             IResult.Error(e)
         }
     }
-
 
     private suspend inline fun sendToWebSocketSync(request: Aria2Request): IResult<Boolean> {
         try {
@@ -403,6 +393,14 @@ class Aria2Engine internal constructor(
         }
     }
 
+    fun addAria2UiListener(listener: Aria2Ui.Listener) {
+        aria2Service.listeners.add(listener)
+        aria2Service.ui.askForStatus()
+    }
+
+    fun removeAria2UiListener(listener: Aria2Ui.Listener) {
+        aria2Service.listeners.remove(listener)
+    }
 
     private fun dispatchMessage(logMessage: Aria2Ui.LogMessage) {
         when (logMessage.type) {
@@ -412,6 +410,7 @@ class Aria2Engine internal constructor(
                 val scope = CoroutineScope(job)
                 scope.launch {
                     connect()
+                    loadOptions()
                 }
             }
 
@@ -471,7 +470,6 @@ class Aria2Engine internal constructor(
         return Base64.encodeToString(out.toByteArray(), Base64.NO_WRAP)
     }
 
-
     private inner class Aria2UiDispatcher(context: Context) : Aria2Ui.Listener {
         init {
             Prefs.init(context)
@@ -492,7 +490,6 @@ class Aria2Engine internal constructor(
             for (listener in listeners) listener.updateUi(on)
         }
     }
-
 
     companion object {
         const val DEBUG = true

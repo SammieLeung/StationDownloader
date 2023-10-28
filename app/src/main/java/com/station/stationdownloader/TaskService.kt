@@ -496,7 +496,9 @@ class TaskService : Service(), DLogger {
             }
 
             DownloadEngine.ARIA2 -> {
-
+                serviceScope.launch {
+                    updateTaskStatus(url, TaskStatus(taskId, url, 0, 0, 0, status))
+                }
             }
 
             DownloadEngine.INVALID_ENGINE -> TODO()

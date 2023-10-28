@@ -2,7 +2,6 @@ package com.station.stationdownloader.di
 
 import android.content.Context
 import com.station.stationdownloader.data.source.IConfigurationDataSource
-import com.station.stationdownloader.data.source.IConfigurationRepository
 import com.station.stationdownloader.data.source.IDownloadTaskRepository
 import com.station.stationdownloader.data.source.repository.DefaultDownloadTaskRepository
 import com.station.stationdownloader.data.source.IDownloadTaskDataSource
@@ -42,7 +41,7 @@ object ConfigurationModule {
     @Singleton
     fun provideConfigurationRepo(
         @LocalConfigurationDataSource localDataSource: IConfigurationDataSource
-    ): IConfigurationRepository {
+    ): DefaultConfigurationRepository {
         return DefaultConfigurationRepository(localDataSource)
     }
 
@@ -89,21 +88,17 @@ object EngineModule {
         xlEngine: XLEngine,
         aria2Engine: Aria2Engine,
         downloadTaskRepo: IDownloadTaskRepository,
-        @LocalConfigurationDataSource configurationDataSource: IConfigurationDataSource,
-        configRepo: IConfigurationRepository,
+        configRepo: DefaultConfigurationRepository,
         torrentInfoRepo: ITorrentInfoRepository,
         @DefaultDispatcher defaultDispatcher: CoroutineDispatcher,
-        @IoDispatcher ioDispatcher: CoroutineDispatcher
     ): DefaultEngineRepository {
         return DefaultEngineRepository(
             xlEngine = xlEngine,
             aria2Engine = aria2Engine,
-            downloadTaskRepo = downloadTaskRepo,
-            configurationDataSource = configurationDataSource,
+            taskRepo = downloadTaskRepo,
             configRepo = configRepo,
             torrentInfoRepo = torrentInfoRepo,
             defaultDispatcher = defaultDispatcher,
-            ioDispatcher = ioDispatcher
         )
     }
 
@@ -111,20 +106,16 @@ object EngineModule {
     @Singleton
     fun provideXLEngine(
         @ApplicationContext context: Context,
-        @LocalConfigurationDataSource configurationDataSource: IConfigurationDataSource,
+        configRepo: DefaultConfigurationRepository,
         torrentInfoRepo: ITorrentInfoRepository,
         fileSizeApiService: FileSizeApiService,
-        @AppCoroutineScope externalScope: CoroutineScope,
-        @IoDispatcher ioDispatcher: CoroutineDispatcher,
         @DefaultDispatcher defaultDispatcher: CoroutineDispatcher
     ): XLEngine {
         return XLEngine(
             context = context,
-            configurationDataSource = configurationDataSource,
+            configRepo = configRepo,
             torrentInfoRepo = torrentInfoRepo,
             fileSizeApiService = fileSizeApiService,
-            externalScope = externalScope,
-            ioDispatcher = ioDispatcher,
             defaultDispatcher = defaultDispatcher
         )
     }
@@ -134,10 +125,11 @@ object EngineModule {
     fun provideAria2Engine(
         @ApplicationContext context: Context,
         profileManager: UserProfileManager,
-        taskRepo:IDownloadTaskRepository,
+        configRepo: DefaultConfigurationRepository,
+        taskRepo: IDownloadTaskRepository,
         @DefaultDispatcher defaultDispatcher: CoroutineDispatcher
     ): Aria2Engine {
-        return Aria2Engine(context, profileManager, taskRepo,defaultDispatcher)
+        return Aria2Engine(context, profileManager, configRepo, taskRepo, defaultDispatcher)
     }
 
 }

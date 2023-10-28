@@ -1,13 +1,14 @@
 package com.station.stationdownloader.data.source.local
 
 import android.os.Environment
+import com.orhanobut.logger.Logger
 import com.station.stationdownloader.DownloadEngine
-import com.station.stationdownloader.contants.DEFAULT_DOWNLOAD_PATH
-import com.station.stationdownloader.contants.DOWNLOAD_ENGINE
-import com.station.stationdownloader.contants.DOWNLOAD_PATH
-import com.station.stationdownloader.contants.MAX_THREAD
-import com.station.stationdownloader.contants.MAX_THREAD_COUNT
-import com.station.stationdownloader.contants.SPEED_LIMIT
+import com.station.stationdownloader.contants.Aria2Options
+import com.station.stationdownloader.contants.CommonOptions
+import com.station.stationdownloader.contants.DEFAULT_DOWNLOAD_DIR
+import com.station.stationdownloader.contants.DEFAULT_MAX_CONCURRENT_DOWNLOADS_COUNT
+import com.station.stationdownloader.contants.Options
+import com.station.stationdownloader.contants.XLOptions
 import com.station.stationdownloader.data.source.IConfigurationDataSource
 import com.tencent.mmkv.MMKV
 import kotlinx.coroutines.CoroutineDispatcher
@@ -20,39 +21,58 @@ class ConfigurationLocalDataSource internal constructor(
     private val defaultMMKV: MMKV,
     private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO
 ) : IConfigurationDataSource {
+    override suspend fun getValue(key: Options): String = withContext(ioDispatcher) {
+        when (key) {
+            is CommonOptions -> {
+                getValue(key)
+            }
 
-    override suspend fun getSpeedLimit(): Long = withContext(ioDispatcher){
-         defaultMMKV.decodeLong(SPEED_LIMIT, -1)
+            is Aria2Options -> {
+                getValue(key)
+            }
+
+            is XLOptions -> {
+                getValue(key)
+            }
+        }
     }
 
-    override suspend fun setSpeedLimit(speedLimit: Long): Boolean = withContext(ioDispatcher) {
-        defaultMMKV.encode(SPEED_LIMIT, speedLimit)
+
+    override suspend fun setValue(key: Options, value: String): Boolean =
+        withContext(ioDispatcher) {
+                defaultMMKV.encode(key.key, value)
+        }
+
+    private fun getValue(option: CommonOptions): String {
+        return when (option) {
+            CommonOptions.MaxThread -> {
+                defaultMMKV.decodeString(option.key)
+                    ?: DEFAULT_MAX_CONCURRENT_DOWNLOADS_COUNT.toString()
+            }
+
+            CommonOptions.DownloadPath -> {
+                defaultMMKV.decodeString(option.key)
+                    ?: File(Environment.getExternalStorageDirectory(), DEFAULT_DOWNLOAD_DIR).path
+            }
+
+            CommonOptions.DefaultDownloadEngine -> {
+                defaultMMKV.decodeString(
+                    option.key
+                ) ?: DownloadEngine.XL.name
+            }
+        }
     }
 
-    override suspend fun getDownloadPath(): String  = withContext(ioDispatcher){
-         defaultMMKV.decodeString(DOWNLOAD_PATH)
-            ?: File(Environment.getExternalStorageDirectory(), DEFAULT_DOWNLOAD_PATH).path
+
+    private fun getValue(option: Aria2Options): String {
+        return when (option) {
+            Aria2Options.SpeedLimit -> defaultMMKV.decodeString(option.key) ?: "0"
+        }
     }
 
-    override suspend fun setDownloadPath(path: String): Boolean = withContext(ioDispatcher) {
-        defaultMMKV.encode(DOWNLOAD_PATH, path)
-    }
-
-    override suspend fun getMaxThread(): Int = withContext(ioDispatcher) {
-         defaultMMKV.decodeInt(MAX_THREAD, MAX_THREAD_COUNT)
-    }
-
-    override suspend fun setMaxThread(count: Int): Boolean = withContext(ioDispatcher) {
-        defaultMMKV.encode(MAX_THREAD, count)
-    }
-
-    override suspend fun setDefaultEngine(engine: DownloadEngine) : Boolean= withContext(ioDispatcher) {
-        defaultMMKV.encode(DOWNLOAD_ENGINE, engine.name)
-    }
-
-    override suspend fun getDefaultEngine(): DownloadEngine = withContext(ioDispatcher) {
-         DownloadEngine.valueOf(
-            defaultMMKV.decodeString(DOWNLOAD_ENGINE) ?: DownloadEngine.XL.name
-        )
+    private fun getValue(option: XLOptions): String {
+        return when (option) {
+            XLOptions.SpeedLimit -> defaultMMKV.decodeString(option.key) ?: "0"
+        }
     }
 }

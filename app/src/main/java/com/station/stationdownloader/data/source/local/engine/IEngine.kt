@@ -2,6 +2,7 @@ package com.station.stationdownloader.data.source.local.engine
 
 import com.station.stationdownloader.DownloadUrlType
 import com.station.stationdownloader.TaskId
+import com.station.stationdownloader.contants.Options
 import com.station.stationdownloader.data.IResult
 
 interface IEngine {
@@ -16,5 +17,5 @@ interface IEngine {
         selectIndexes: IntArray
     ): IResult<String>
     suspend fun stopTask(taskId: String)
-    suspend fun configure(key: String, values: String): IResult<String>
+    suspend fun setOptions(key: Options, values: String): IResult<Boolean>
 }

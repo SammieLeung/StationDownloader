@@ -1,7 +1,6 @@
 package com.station.stationdownloader.ui.fragment.newtask
 
 import android.content.DialogInterface
-import android.content.Intent
 import android.os.Bundle
 import android.text.Html
 import android.text.Html.FROM_HTML_OPTION_USE_CSS_COLORS
@@ -17,7 +16,6 @@ import com.station.stationdownloader.StationDownloaderApp
 import com.station.stationdownloader.data.source.local.model.TreeNode
 import com.station.stationdownloader.databinding.DialogFragmentAddNewTaskBinding
 import com.station.stationdownloader.ui.base.BaseDialogFragment
-import com.station.stationdownloader.ui.contract.OpenDocumentTreeActivityResultContract
 import com.station.stationdownloader.ui.contract.OpenFileManagerV1Contract
 import com.station.stationdownloader.ui.contract.OpenFileManagerV2Contract
 import com.station.stationdownloader.ui.viewmodel.DialogAction
@@ -37,19 +35,7 @@ class AddNewTaskDialogFragment : BaseDialogFragment<DialogFragmentAddNewTaskBind
     private val app by lazy {
         requireActivity().application as StationDownloaderApp
     }
-    private val vm: MainViewModel by activityViewModels<MainViewModel>()
-    private val openDocumentTree = registerForActivityResult(
-        OpenDocumentTreeActivityResultContract()
-    ) {
-        if (it != null) {
-            //获取文件夹的永久访问权限（重启后仍然生效）
-            requireContext().contentResolver.takePersistableUriPermission(
-                it,
-                Intent.FLAG_GRANT_WRITE_URI_PERMISSION
-            )
-        }
-    }
-
+    private val vm: MainViewModel by activityViewModels()
 
     private val openFolderV1 = registerForActivityResult(OpenFileManagerV1Contract()) {
         if (it != null) {
@@ -78,7 +64,7 @@ class AddNewTaskDialogFragment : BaseDialogFragment<DialogFragmentAddNewTaskBind
         super.onViewCreated(view, savedInstanceState)
         if (savedInstanceState == null) {
             mBinding.initRecyclerView()
-            mBinding.initSpinner()
+            mBinding.initSpinner(vm.dialogAccept)
             mBinding.bindState(
                 vm.newTaskState, vm.accept, vm.dialogAccept
             )
@@ -91,15 +77,13 @@ class AddNewTaskDialogFragment : BaseDialogFragment<DialogFragmentAddNewTaskBind
         taskFileList.itemAnimator?.changeDuration = 0
     }
 
-    private fun DialogFragmentAddNewTaskBinding.initSpinner() {
+    private fun DialogFragmentAddNewTaskBinding.initSpinner(dialogAccept: (DialogAction) -> Unit) {
         val adapter: StationSpinnerAdapter<CharSequence?> =
             StationSpinnerAdapter<CharSequence?>(
-                requireContext(), arrayOf<String?>("默认下载", "Aria2下载")
+                requireContext(), arrayOf<String?>(getString(R.string.download_with_xl), getString(R.string.download_with_aria2))
             ) // 设置下拉菜单的样式
         // 将适配器绑定到spinner上
         engineSpinner.adapter = adapter
-        engineSpinner.setSelection(1)
-//        engineSpinner.isEnabled = false
     }
 
     private fun DialogFragmentAddNewTaskBinding.bindState(
@@ -136,6 +120,7 @@ class AddNewTaskDialogFragment : BaseDialogFragment<DialogFragmentAddNewTaskBind
         collectSuccess(newTaskState)
         collectDownloadPath(newTaskState)
         collectTaskName(newTaskState)
+        collectDownloadEngine(newTaskState)
     }
 
 
@@ -220,6 +205,21 @@ class AddNewTaskDialogFragment : BaseDialogFragment<DialogFragmentAddNewTaskBind
             }
         }
     }
+
+    private fun DialogFragmentAddNewTaskBinding.collectDownloadEngine(newTaskState: Flow<NewTaskState>) {
+        lifecycleScope.launch {
+            newTaskState.filter { it is NewTaskState.PreparingData }.map {
+                (it as NewTaskState.PreparingData).task._downloadEngine
+            }.distinctUntilChanged().collect {
+                when (it) {
+                    DownloadEngine.XL -> engineSpinner.setSelection(0)
+                    DownloadEngine.ARIA2 -> engineSpinner.setSelection(1)
+                    else -> engineSpinner.setSelection(0)
+                }
+            }
+        }
+    }
+
 
     private fun openFilePicker() {
         if (app.useV2FileManager) {

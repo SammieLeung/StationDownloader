@@ -3,18 +3,35 @@ package com.station.stationdownloader.contants
 import android.os.Environment
 import java.io.File
 
-const val DOWNLOAD_PATH = "download_path"
-const val SPEED_LIMIT = "speed_limit"
-const val MAX_THREAD = "max_thread"
-const val DOWNLOAD_ENGINE = "download_engine"
+sealed class Options(val key: String) {
+    override fun toString(): String {
+        return key
+    }
+}
 
-const val MAX_THREAD_COUNT = 5
+sealed class CommonOptions(key: String): Options(key) {
+    object MaxThread : CommonOptions("max_thread")
+    object DownloadPath : CommonOptions("download_path")
+    object DefaultDownloadEngine : CommonOptions("download_engine")
+}
 
-const val DEFAULT_DOWNLOAD_PATH = "Station/Download"
+sealed class Aria2Options(key: String): Options(key) {
+    object SpeedLimit : Aria2Options("aria2_speed_limit")
+}
 
-//磁链下载种子任务
-const val GET_MAGNET_TASK_INFO_DELAY = 1L
-const val MAGNET_TASK_TIMEOUT = 10000L
+sealed class XLOptions(key: String): Options(key) {
+    object SpeedLimit : XLOptions("xl_speed_limit")
+}
+
+const val DEFAULT_MAX_CONCURRENT_DOWNLOADS_COUNT = 5
+const val DEFAULT_DOWNLOAD_DIR = "Station/Download"
+
+
+//轮询下载种子任务信息的时间间隔
+const val TORRENT_DOWNLOAD_TASK_INTERVAL = 50L
+
+//轮询下载种子任务信息的超时时间
+const val TORRENT_DOWNLOAD_TASK_TIMEOUT = 10000L
 
 val tryDownloadDirectoryPath: String by lazy {
     File(

@@ -20,3 +20,9 @@ sealed class IResult<out R> {
 
 val IResult<*>.succeeded
     get() = this is IResult.Success && data != null
+
+val IResult<*>.isFailed
+    get() = this is IResult.Error
+
+val IResult<*>.result
+    get() = (this as IResult.Success).data

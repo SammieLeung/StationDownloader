@@ -13,13 +13,13 @@ import com.station.stationdownloader.R
 import com.station.stationdownloader.TaskService
 import com.station.stationdownloader.contants.TaskExecuteError
 import com.station.stationdownloader.data.IResult
-import com.station.stationdownloader.data.source.IConfigurationRepository
 import com.station.stationdownloader.data.source.IDownloadTaskRepository
 import com.station.stationdownloader.data.source.ITorrentInfoRepository
 import com.station.stationdownloader.data.source.local.engine.NewTaskConfigModel
 import com.station.stationdownloader.data.source.local.model.StationDownloadTask
 import com.station.stationdownloader.data.source.local.model.TreeNode
 import com.station.stationdownloader.data.source.local.model.filterFile
+import com.station.stationdownloader.data.source.repository.DefaultConfigurationRepository
 import com.station.stationdownloader.data.source.repository.DefaultEngineRepository
 import com.station.stationdownloader.ui.fragment.newtask.toHumanReading
 import com.station.stationdownloader.utils.DLogger
@@ -50,7 +50,7 @@ class MainViewModel @Inject constructor(
     lateinit var engineRepo: DefaultEngineRepository
 
     @Inject
-    lateinit var configRepo: IConfigurationRepository
+    lateinit var configRepo: DefaultConfigurationRepository
 
     @Inject
     lateinit var torrentInfoRepo: ITorrentInfoRepository

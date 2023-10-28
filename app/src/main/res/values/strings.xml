@@ -3,8 +3,8 @@
     <string name="menu_title">资源下载器</string>
     <string name="add_uri">添加</string>
 
-    <string name="welcome_message">正在初始化</string>
-    <string name="welcome_enter_message">正在进入下载器...</string>
+    <string name="welcome_message">正在初始化...</string>
+    <string name="welcome_enter_message">正在进入应用...</string>
 
     <string name="menu_downloading">下载中</string>
     <string name="menu_downloaded">下载完成</string>
@@ -34,12 +34,21 @@
     <string name="menu_play_done_task">打开任务</string>
 
     <string name="common_setting">通用设置</string>
-    <string name="aria2_setting">Aria2设置</string>
+    <string name="xl_setting">默认下载器设置</string>
+    <string name="aria2_setting">Aria2下载器设置</string>
     <string name="aria2_setting_status">Aria2状态</string>
 
     <string name="common_setting_download_path">下载路径</string>
-    <string name="common_setting_max_thread">同时下载任务数</string>
+    <string name="common_setting_max_thread">最大同时下载任务数量</string>
     <string name="common_setting_download_speed_limit">下载速度限制</string>
+    <string name="common_setting_default_download_engine">添加下载任务时的默认下载器</string>
+
+    <string name="download_with_xl">默认下载器</string>
+    <string name="download_with_aria2">Aria2下载器</string>
+
+
+    <string name="xl_setting_download_speed_limit">默认下载器下载速度限制</string>
+    <string name="aria2_setting_download_speed_limit">Aria2下载器速度限制</string>
 
     <string name="speed_no_limit">无限制</string>
 
@@ -55,6 +64,7 @@
 
    <string name="aria2_engine_initailize_error">[Aria2下载器] 加载失败!</string>
     <string name="aria2_engine_initailize_succeed">[Aria2下载器] 加载成功!</string>
+    <string name="aria2_setting_status_obtaining">获取服务状态中...</string>
     <string name="aria2_setting_status_on">Aria2服务已开启</string>
     <string name="aria2_setting_status_off">Aria2服务已停止</string>
 </resources>

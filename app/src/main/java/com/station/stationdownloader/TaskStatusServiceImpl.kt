@@ -4,13 +4,12 @@ import android.content.ContentValues
 import android.net.Uri
 import com.orhanobut.logger.Logger
 import com.station.stationdownloader.TaskId.Companion.INVALID_ID
-import com.station.stationdownloader.contants.DOWNLOAD_PATH
+import com.station.stationdownloader.contants.Aria2Options
+import com.station.stationdownloader.contants.CommonOptions
 import com.station.stationdownloader.contants.FAILED
-import com.station.stationdownloader.contants.MAX_THREAD
-import com.station.stationdownloader.contants.SPEED_LIMIT
 import com.station.stationdownloader.contants.TaskExecuteError
+import com.station.stationdownloader.contants.XLOptions
 import com.station.stationdownloader.data.IResult
-import com.station.stationdownloader.data.source.IConfigurationRepository
 import com.station.stationdownloader.data.source.IDownloadTaskRepository
 import com.station.stationdownloader.data.source.ITorrentInfoRepository
 import com.station.stationdownloader.data.source.local.engine.NewTaskConfigModel
@@ -23,6 +22,7 @@ import com.station.stationdownloader.data.source.remote.json.RemoteSetDownloadCo
 import com.station.stationdownloader.data.source.remote.json.RemoteStartTask
 import com.station.stationdownloader.data.source.remote.json.RemoteTask
 import com.station.stationdownloader.data.source.remote.json.RemoteTaskStatus
+import com.station.stationdownloader.data.source.repository.DefaultConfigurationRepository
 import com.station.stationdownloader.data.source.repository.DefaultEngineRepository
 import com.station.stationdownloader.utils.DLogger
 import com.station.stationkitkt.MoshiHelper
@@ -55,7 +55,7 @@ class TaskStatusServiceImpl(
     private val engineRepo: DefaultEngineRepository by lazy {
         entryPoint.getEngineRepo()
     }
-    private val configRepo: IConfigurationRepository by lazy {
+    private val configRepo: DefaultConfigurationRepository by lazy {
         entryPoint.getConfigRepo()
     }
     private val torrentRepo: ITorrentInfoRepository by lazy {
@@ -67,7 +67,7 @@ class TaskStatusServiceImpl(
     interface TaskStatusServiceEntryPoint {
         fun getEngineRepo(): DefaultEngineRepository
         fun getTaskRepo(): IDownloadTaskRepository
-        fun getConfigRepo(): IConfigurationRepository
+        fun getConfigRepo(): DefaultConfigurationRepository
         fun getTorrentRepo(): ITorrentInfoRepository
     }
 
@@ -260,12 +260,13 @@ class TaskStatusServiceImpl(
 
     override fun getDownloadPath(callback: ITaskServiceCallback?) {
         serviceScope.launch {
+            val downloadPath=configRepo.getValue(CommonOptions.DownloadPath)
             callback?.onResult(
                 MoshiHelper.toJson(
                     RemoteDeviceStorage(
-                        configRepo.getDownloadPath(),
-                        File(configRepo.getDownloadPath()).freeSpace,
-                        File(configRepo.getDownloadPath()).totalSpace
+                        downloadPath,
+                        File(downloadPath).freeSpace,
+                        File(downloadPath).totalSpace
                     )
                 )
             )
@@ -482,20 +483,21 @@ class TaskStatusServiceImpl(
         callback: ITaskServiceCallback?
     ) {
         speedLimit?.let {
-            engineRepo.configure(SPEED_LIMIT, it)
+            engineRepo.changeOption(XLOptions.SpeedLimit, it)
+            engineRepo.changeOption(Aria2Options.SpeedLimit, it)
         }
         downloadPath?.let {
-            engineRepo.configure(DOWNLOAD_PATH, it)
+            engineRepo.changeOption(CommonOptions.DownloadPath, it)
         }
         maxThread?.let {
-            engineRepo.configure(MAX_THREAD, it)
+            engineRepo.changeOption(CommonOptions.MaxThread, it)
         }
 
         callback?.apply {
             RemoteSetDownloadConfig(
-                configRepo.getSpeedLimit(),
-                configRepo.getMaxThread(),
-                configRepo.getDownloadPath()
+                configRepo.getValue(XLOptions.SpeedLimit).toLong(),
+                configRepo.getValue(CommonOptions.MaxThread).toInt(),
+                configRepo.getValue(CommonOptions.DownloadPath)
             ).let {
                 onResult(MoshiHelper.toJson(it))
             }
@@ -511,9 +513,9 @@ class TaskStatusServiceImpl(
     private suspend fun handleGetConfigSet(callback: ITaskServiceCallback?) {
         callback?.apply {
             val configSet = RemoteGetDownloadConfig(
-                configRepo.getSpeedLimit(),
-                configRepo.getMaxThread(),
-                configRepo.getDownloadPath()
+                configRepo.getValue(XLOptions.SpeedLimit).toLong(),
+                configRepo.getValue(CommonOptions.MaxThread).toInt(),
+                configRepo.getValue(CommonOptions.DownloadPath)
             )
             onResult(MoshiHelper.toJson(configSet))
         }

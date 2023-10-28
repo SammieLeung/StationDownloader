@@ -5,17 +5,14 @@ import com.orhanobut.logger.Logger
 import com.station.stationdownloader.DownloadEngine
 import com.station.stationdownloader.DownloadUrlType
 import com.station.stationdownloader.ITaskState
-import com.station.stationdownloader.contants.ConfigureError
-import com.station.stationdownloader.contants.DOWNLOAD_ENGINE
-import com.station.stationdownloader.contants.DOWNLOAD_PATH
-import com.station.stationdownloader.contants.GET_MAGNET_TASK_INFO_DELAY
-import com.station.stationdownloader.contants.MAGNET_TASK_TIMEOUT
-import com.station.stationdownloader.contants.MAX_THREAD
-import com.station.stationdownloader.contants.SPEED_LIMIT
+import com.station.stationdownloader.contants.CommonOptions
+import com.station.stationdownloader.contants.Options
+import com.station.stationdownloader.contants.TORRENT_DOWNLOAD_TASK_INTERVAL
+import com.station.stationdownloader.contants.TORRENT_DOWNLOAD_TASK_TIMEOUT
 import com.station.stationdownloader.contants.TaskExecuteError
+import com.station.stationdownloader.contants.XLOptions
 import com.station.stationdownloader.contants.tryDownloadDirectoryPath
 import com.station.stationdownloader.data.IResult
-import com.station.stationdownloader.data.source.IConfigurationDataSource
 import com.station.stationdownloader.data.source.ITorrentInfoRepository
 import com.station.stationdownloader.data.source.local.engine.EngineStatus
 import com.station.stationdownloader.data.source.local.engine.IEngine
@@ -23,6 +20,7 @@ import com.station.stationdownloader.data.source.local.engine.NewTaskConfigModel
 import com.station.stationdownloader.data.source.local.model.TreeNode
 import com.station.stationdownloader.data.source.remote.FileContentHeader
 import com.station.stationdownloader.data.source.remote.FileSizeApiService
+import com.station.stationdownloader.data.source.repository.DefaultConfigurationRepository
 import com.station.stationdownloader.utils.DLogger
 import com.station.stationdownloader.utils.MAGNET_PROTOCOL
 import com.station.stationdownloader.utils.TaskTools
@@ -31,21 +29,19 @@ import com.xunlei.downloadlib.XLTaskHelper
 import com.xunlei.downloadlib.parameter.TorrentInfo
 import com.xunlei.downloadlib.parameter.XLTaskInfo
 import kotlinx.coroutines.CoroutineDispatcher
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
 import java.io.File
+import javax.inject.Inject
 
 class XLEngine internal constructor(
     private val context: Context,
-    private val configurationDataSource: IConfigurationDataSource,
+    private val configRepo: DefaultConfigurationRepository,
     private val torrentInfoRepo: ITorrentInfoRepository,
     private val fileSizeApiService: FileSizeApiService,
-    private val externalScope: CoroutineScope,
-    private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO,
     private val defaultDispatcher: CoroutineDispatcher = Dispatchers.Default
 ) : IEngine, DLogger {
     private var hasInit = false
@@ -63,6 +59,7 @@ class XLEngine internal constructor(
                     }
                 }
             }
+            loadOptions()
         }
         return@withContext IResult.Success("${DownloadEngine.XL}[${XLTaskHelper.instance()}]")
     }
@@ -76,6 +73,11 @@ class XLEngine internal constructor(
                 }
             }
         }
+    }
+
+    private suspend fun loadOptions() {
+        val speedLimit = configRepo.getValue(XLOptions.SpeedLimit).toLong()
+        XLDownloadManager.getInstance().setSpeedLimit(speedLimit, -1L)
     }
 
     suspend fun initUrl(originUrl: String): IResult<NewTaskConfigModel> =
@@ -166,35 +168,20 @@ class XLEngine internal constructor(
         XLTaskHelper.instance().stopTask(taskId.toLong())
     }
 
-    override suspend fun configure(key: String, value: String): IResult<String> {
-        when (key) {
-            SPEED_LIMIT -> {
-                XLDownloadManager.getInstance().setSpeedLimit(value.toLong(), value.toLong())
+    override suspend fun setOptions(key: Options, values: String): IResult<Boolean> {
+        if (key is XLOptions) {
+            when (key) {
+                XLOptions.SpeedLimit -> {
+                    val speedLimit = values.toLong()
+                    XLDownloadManager.getInstance().setSpeedLimit(speedLimit, -1L)
+                }
             }
-
-            MAX_THREAD -> {
-            }
-
-            DOWNLOAD_ENGINE -> {
-            }
-
-            DOWNLOAD_PATH -> {
-            }
-
-            else -> return IResult.Error(
-                Exception(ConfigureError.NOT_SUPPORT_CONFIGURATION.name),
-                ConfigureError.NOT_SUPPORT_CONFIGURATION.ordinal
-            )
+            configRepo.setValue(key, values)
+            return IResult.Success(true)
         }
-        return IResult.Success(Pair(key, value).toString())
+        return IResult.Success(false)
     }
 
-    suspend fun getEngineStatus(): EngineStatus {
-        return if (hasInit)
-            EngineStatus.ON
-        else
-            EngineStatus.OFF
-    }
 
     suspend fun getTaskInfo(taskId: Long): XLTaskInfo =
         withContext(defaultDispatcher) { XLTaskHelper.instance().getTaskInfo(taskId) }
@@ -231,11 +218,11 @@ class XLEngine internal constructor(
             }
 
 
-            Logger.w("开始下载种子【$magnetUrl】")
+            Logger.w("开始下载种子【$magnetUrl】任务id:$taskId")
 
             logger("downloadPath=$downloadPath torrentFileName=$torrentFileName")
 
-            return withTimeout(MAGNET_TASK_TIMEOUT) {
+            return withTimeout(TORRENT_DOWNLOAD_TASK_TIMEOUT) {
                 while (XLTaskHelper.instance()
                         .getTaskInfo(taskId).mTaskStatus != ITaskState.DONE.code || XLTaskHelper.instance()
                         .getTaskInfo(taskId).mTaskStatus != ITaskState.ERROR.code || XLTaskHelper.instance()
@@ -246,6 +233,7 @@ class XLEngine internal constructor(
 
                     //3.1获取filesize
                     if (taskInfo.mFileSize == 0L) {
+                        delay(TORRENT_DOWNLOAD_TASK_INTERVAL)
                         continue
                     }
 
@@ -255,7 +243,7 @@ class XLEngine internal constructor(
                     }
                     logger("torrentFileSize=${taskInfo.mFileSize} torrentDownloadSize=${taskInfo.mDownloadSize}")
                     //延时轮询
-                    delay(GET_MAGNET_TASK_INFO_DELAY)
+                    delay(TORRENT_DOWNLOAD_TASK_INTERVAL)
                 }
                 return@withTimeout initTorrentUrl(
                     File(
@@ -270,6 +258,7 @@ class XLEngine internal constructor(
                 e, TaskExecuteError.DOWNLOAD_TORRENT_TIME_OUT.ordinal
             )
         } catch (e: Exception) {
+            e.printStackTrace()
             return IResult.Error(
                 e, TaskExecuteError.ADD_MAGNET_TASK_ERROR.ordinal
             )
@@ -289,7 +278,7 @@ class XLEngine internal constructor(
     ): IResult<NewTaskConfigModel> {
         val taskName = XLTaskHelper.instance().getFileName(realUrl)
         val downloadPath =
-            File(configurationDataSource.getDownloadPath()).path
+            File(configRepo.getValue(CommonOptions.DownloadPath)).path
         logger("initNormalUrl:realUrl=$realUrl originUrl=$originUrl")
         val normalTask = NewTaskConfigModel.NormalTask(
             originUrl = originUrl,
@@ -323,7 +312,8 @@ class XLEngine internal constructor(
                     return IResult.Success(
                         normalTask.copy(
                             fileTree = root,
-                            urlType = DownloadUrlType.HTTP
+                            urlType = DownloadUrlType.HTTP,
+                            engine = DownloadEngine.valueOf(configRepo.getValue(CommonOptions.DefaultDownloadEngine))
                         )
                     )
                 }
@@ -370,7 +360,7 @@ class XLEngine internal constructor(
         )
         val taskName = torrentUrl.substringAfterLast(File.separatorChar).substringBeforeLast(".")
         val downloadPath =
-            File(configurationDataSource.getDownloadPath()).path
+            File(configRepo.getValue(CommonOptions.DownloadPath)).path
         val fileCount = torrentInfo.mFileCount
         val torrentIdResult = torrentInfoRepo.saveTorrentInfo(torrentInfo, torrentUrl)
 
@@ -386,6 +376,7 @@ class XLEngine internal constructor(
                 taskName = taskName,
                 downloadPath = downloadPath,
                 fileCount = fileCount,
+                engine = DownloadEngine.valueOf(configRepo.getValue(CommonOptions.DefaultDownloadEngine)),
                 fileTree = torrentInfo.createFileTree()
             )
         )

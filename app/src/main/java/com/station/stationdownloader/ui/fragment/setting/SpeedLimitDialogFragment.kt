@@ -34,7 +34,7 @@ class SpeedLimitDialogFragment : BaseDialogFragment<DialogSpeedLimitBinding>() {
     }
 
     private val spinnerValues = listOf<Long>(
-        -1,
+        0,
         500.KB.toLong(),
         1.MB.toLong(),
         2.MB.toLong(),
@@ -71,7 +71,7 @@ class SpeedLimitDialogFragment : BaseDialogFragment<DialogSpeedLimitBinding>() {
     }
 
     private fun done(speedLimit: Long) {
-        vm.accept(UiAction.SetDownloadSpeedLimit(speedLimit))
+        vm.accept(UiAction.UpdateDownloadSpeedLimit(speedLimit))
         dismiss()
     }
 

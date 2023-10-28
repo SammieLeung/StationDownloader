@@ -93,7 +93,7 @@ object Aria2Requests {
         return Aria2Request(WebSocketClient.Method.REMOVE, arrayOf(gid))
     }
 
-    fun changeGlobalOption(options: OptionsMap): Aria2Request {
+    fun changeGlobalOptions(options: OptionsMap): Aria2Request {
         return Aria2Request(WebSocketClient.Method.CHANGE_GLOBAL_OPTIONS, arrayOf(options.toJson()))
     }
 
