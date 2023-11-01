@@ -34,6 +34,7 @@ enum class TaskExecuteError {
     START_TASK_URL_TYPE_ERROR,
     STOP_TASK_FAILED,
     SUB_TORRENT_INFO_IS_NULL,
+    TASK_ALREADY_EXIST,
     TASK_COMPLETED,
     TASK_INSERT_ERROR,
     TASK_NOT_FOUND,
@@ -46,6 +47,4 @@ enum class TaskExecuteError {
 
 
 }
-
-
 

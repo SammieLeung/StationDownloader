@@ -105,7 +105,6 @@ class DownloadedTaskViewModel @Inject constructor(
 
     private fun handleGetTaskList(getTaskList: Flow<UiAction.GetTaskList>) = viewModelScope.launch {
         getTaskList.collect {
-            logger("getTaskList")
             taskRepo.getTasks().filter {
                 it.status == DownloadTaskStatus.COMPLETED
             }.map {

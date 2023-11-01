@@ -4,6 +4,7 @@ import android.app.Service
 import android.content.Context
 import android.content.Intent
 import android.os.IBinder
+import android.util.Log
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import com.orhanobut.logger.Logger
 import com.station.stationdownloader.TaskId.Companion.INVALID_ID
@@ -185,7 +186,7 @@ class TaskService : Service(), DLogger {
                     putExtra("result", false)
                     putExtra("reason", taskIdResult.exception.message.toString())
                 })
-                updateTaskStatusNow(url, TaskId(downloadTask.engine, ""), ITaskState.STOP.code)
+                updateTaskStatusNow(url, TaskId(downloadTask.engine, INVALID_ID), ITaskState.STOP.code)
                 sendErrorToClient(
                     "start_task",
                     taskIdResult.exception.message.toString(),
@@ -256,7 +257,7 @@ class TaskService : Service(), DLogger {
                 stopTaskJobMap.remove(url)
                 downloadingTasks.remove(url)
                 if (downloadingTasks[url] == null && watchTaskJobMap[url] == null && stopTaskJobMap[url] == null) {
-                    logger("stopTask finally clear!")
+                    logger("already stop task $url")
                 }
             }
 
@@ -320,8 +321,6 @@ class TaskService : Service(), DLogger {
                 }
 
             } finally {
-                logger("【$url】")
-                logger("need to cancel WatchJob")
             }
         }
     }
@@ -483,6 +482,15 @@ class TaskService : Service(), DLogger {
     private fun updateTaskStatusNow(url: String, taskId: TaskId, status: Int) {
         when (taskId.engine) {
             DownloadEngine.XL -> {
+                if(taskId.isInvalid()) {
+                    logger("$taskId isInvaild")
+
+                    val status =TaskStatus(taskId = taskId, status = status,url=url)
+                    logger("updateTaskStatusNow $status")
+
+                    updateTaskStatus(url,status )
+                    return
+                }
                 val taskInfo = XLTaskHelper.instance().getTaskInfo(taskId.id.toLong()) ?: return
                 val taskStatus = TaskStatus(
                     taskId = taskId,
@@ -497,7 +505,7 @@ class TaskService : Service(), DLogger {
 
             DownloadEngine.ARIA2 -> {
                 serviceScope.launch {
-                    updateTaskStatus(url, TaskStatus(taskId, url, 0, 0, 0, status))
+                    updateTaskStatus(url, TaskStatus(taskId = taskId, url=url, status = status))
                 }
             }
 

@@ -16,6 +16,6 @@ interface IEngine {
         fileCount: Int,
         selectIndexes: IntArray
     ): IResult<String>
-    suspend fun stopTask(taskId: String)
+    suspend fun stopTask(taskId: String):IResult<Boolean>
     suspend fun setOptions(key: Options, values: String): IResult<Boolean>
 }

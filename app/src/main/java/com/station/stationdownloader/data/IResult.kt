@@ -24,5 +24,6 @@ val IResult<*>.succeeded
 val IResult<*>.isFailed
     get() = this is IResult.Error
 
-val IResult<*>.result
-    get() = (this as IResult.Success).data
+fun<R> IResult<R>.result():R{
+    return (this as IResult.Success<R>).data
+}

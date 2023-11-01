@@ -15,6 +15,7 @@ import com.station.stationdownloader.contants.TaskExecuteError
 import com.station.stationdownloader.contants.XLOptions
 import com.station.stationdownloader.data.IResult
 import com.station.stationdownloader.data.isFailed
+import com.station.stationdownloader.data.result
 import com.station.stationdownloader.data.source.IDownloadTaskRepository
 import com.station.stationdownloader.data.source.ITorrentInfoRepository
 import com.station.stationdownloader.data.source.local.engine.NewTaskConfigModel
@@ -25,6 +26,8 @@ import com.station.stationdownloader.data.source.local.model.asXLDownloadTaskEnt
 import com.station.stationdownloader.data.source.local.room.entities.TorrentFileInfoEntity
 import com.station.stationdownloader.data.source.local.room.entities.TorrentInfoEntity
 import com.station.stationdownloader.data.source.local.room.entities.asStationDownloadTask
+import com.station.stationdownloader.data.succeeded
+import com.station.stationdownloader.utils.DLogger
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
@@ -33,6 +36,7 @@ import kotlinx.coroutines.flow.onCompletion
 import kotlinx.coroutines.withContext
 import java.io.File
 import java.util.concurrent.atomic.AtomicInteger
+import kotlin.math.max
 
 class DefaultEngineRepository(
     private val xlEngine: XLEngine,
@@ -41,8 +45,9 @@ class DefaultEngineRepository(
     private val configRepo: DefaultConfigurationRepository,
     private val torrentInfoRepo: ITorrentInfoRepository,
     private val defaultDispatcher: CoroutineDispatcher = Dispatchers.Default,
-) {
+) : DLogger {
     private var maxThreadCount = AtomicInteger(0)
+    private val downloadingTaskList: MutableList<String> = mutableListOf()
 
     fun init(): Flow<Pair<DownloadEngine, IResult<String>>> =
         flow {
@@ -118,59 +123,93 @@ class DefaultEngineRepository(
             val fileCount: Int = stationDownloadTask.fileCount
             val selectIndexes: IntArray = stationDownloadTask.selectIndexes.toIntArray()
             val maxThread = configRepo.getValue(CommonOptions.MaxThread).toInt()
-            if (maxThreadCount.get() == maxThread) {
-                return@withContext IResult.Error(
-                    Exception("max thread count is $maxThread"),
-                    TaskExecuteError.TASK_NUMBER_REACHED_LIMIT.ordinal
-                )
-            }
-            maxThreadCount.incrementAndGet()
+
+
             var downloadStatus = DownloadTaskStatus.DOWNLOADING
             return@withContext when (stationDownloadTask.engine) {
                 DownloadEngine.XL -> {
+                    if (maxThreadCount.get() >= maxThread) {
+                        return@withContext IResult.Error(
+                            Exception("max thread count is $maxThread"),
+                            TaskExecuteError.TASK_NUMBER_REACHED_LIMIT.ordinal
+                        )
+                    }
                     val taskIdResult = xlEngine.startTask(
                         realUrl, downloadPath, name, urlType, fileCount, selectIndexes
                     )
 
                     if (taskIdResult is IResult.Error) {
-                        maxThreadCount.decrementAndGet()
                         return@withContext taskIdResult
                     }
                     taskIdResult as IResult.Success
                     val taskId = taskIdResult.data
                     if (taskId.toLong() <= 0L) {
-                        maxThreadCount.decrementAndGet()
                         downloadStatus = DownloadTaskStatus.FAILED
                     }
                     taskRepo.updateTask(
                         stationDownloadTask.copy(status = downloadStatus).asXLDownloadTaskEntity()
                     )
+                    maxThreadCount.incrementAndGet()
                     IResult.Success(
                         TaskId(DownloadEngine.XL, taskId)
                     )
                 }
 
                 DownloadEngine.ARIA2 -> {
+                    if (maxThreadCount.get() >= maxThread) {
+                        if (!aria2Engine.containGid(realUrl)) {
+                            val pauseTaskResponse = aria2Engine.addPauseTask(
+                                realUrl,
+                                downloadPath,
+                                urlType,
+                                selectIndexes
+                            )
+                            if (pauseTaskResponse is IResult.Error) {
+                                return@withContext pauseTaskResponse
+                            }
+
+                            return@withContext IResult.Success(
+                                TaskId(
+                                    DownloadEngine.ARIA2,
+                                    pauseTaskResponse.result()
+                                )
+                            )
+                        } else {
+                            return@withContext IResult.Success(
+                                TaskId(
+                                    DownloadEngine.ARIA2,
+                                    aria2Engine.getGid(realUrl)
+                                )
+                            )
+                        }
+//                        return@withContext IResult.Error(
+//                            Exception("max thread count is $maxThread"),
+//                            TaskExecuteError.TASK_NUMBER_REACHED_LIMIT.ordinal
+//                        )
+                    }
+
                     val startTaskResult = aria2Engine.startTask(
                         realUrl, downloadPath, name, urlType, fileCount, selectIndexes
                     )
                     if (startTaskResult is IResult.Error) {
-                        maxThreadCount.decrementAndGet()
+//                        maxThreadCount.decrementAndGet()
                         startTaskResult.exception.printStackTrace()
                         return@withContext startTaskResult
                     }
                     startTaskResult as IResult.Success
                     val taskId = startTaskResult.data
+                    logger("add aria2 taskId(${taskId}) ...")
+
                     taskRepo.updateTask(
                         stationDownloadTask.copy(status = downloadStatus).asXLDownloadTaskEntity()
                     )
+                    maxThreadCount.incrementAndGet()
                     IResult.Success(
                         TaskId(DownloadEngine.ARIA2, taskId)
                     )
                 }
 
                 DownloadEngine.INVALID_ENGINE -> {
-                    maxThreadCount.decrementAndGet()
                     IResult.Error(
                         Exception(TaskExecuteError.INVALID_ENGINE_TYPE.name),
                         TaskExecuteError.INVALID_ENGINE_TYPE.ordinal
@@ -204,25 +243,32 @@ class DefaultEngineRepository(
             }
 
             DownloadEngine.ARIA2 -> {
-                aria2Engine.stopTask(taskId.id)
-                if (maxThreadCount.get() > 0) maxThreadCount.decrementAndGet()
+                val stopResponse = aria2Engine.stopTask(taskId.id)
+                if (stopResponse.succeeded) {
+                    if (maxThreadCount.get() > 0) maxThreadCount.decrementAndGet()
+                }
                 val ariaTaskStatus =
                     aria2Engine.tellStatus(taskId.id, url = stationDownloadTask.url)
                 if (ariaTaskStatus is IResult.Error) {
-                    Logger.e(ariaTaskStatus.exception.message.toString())
+                    taskRepo.updateTask(
+                        stationDownloadTask.copy(
+                            status = DownloadTaskStatus.PAUSE,
+                        ).asXLDownloadTaskEntity()
+                    )
+                } else {
+                    val taskInfo = (ariaTaskStatus as IResult.Success).data
+                    val taskStatus = when (taskInfo.status) {
+                        ITaskState.DONE.code -> DownloadTaskStatus.COMPLETED
+                        else -> DownloadTaskStatus.PAUSE
+                    }
+                    taskRepo.updateTask(
+                        stationDownloadTask.copy(
+                            status = taskStatus,
+                            downloadSize = taskInfo.downloadSize,
+                            totalSize = taskInfo.totalSize
+                        ).asXLDownloadTaskEntity()
+                    )
                 }
-                val taskInfo = (ariaTaskStatus as IResult.Success).data
-                val taskStatus = when (taskInfo.status) {
-                    ITaskState.DONE.code -> DownloadTaskStatus.COMPLETED
-                    else -> DownloadTaskStatus.PAUSE
-                }
-                taskRepo.updateTask(
-                    stationDownloadTask.copy(
-                        status = taskStatus,
-                        downloadSize = taskInfo.downloadSize,
-                        totalSize = taskInfo.totalSize
-                    ).asXLDownloadTaskEntity()
-                )
             }
 
             DownloadEngine.INVALID_ENGINE -> {
@@ -268,7 +314,7 @@ class DefaultEngineRepository(
         return aria2Engine.tellStatus(gid, url)
     }
 
-    suspend fun getAria2TaskStatus(url:String): IResult<TaskStatus> {
+    suspend fun getAria2TaskStatus(url: String): IResult<TaskStatus> {
         return aria2Engine.tellStatus(url)
     }
 
@@ -301,6 +347,10 @@ class DefaultEngineRepository(
                 xlEngine.setOptions(option, value)
             }
         }
+    }
+
+    override fun DLogger.tag(): String {
+        return "DefaultEngineRepository"
     }
 
 }

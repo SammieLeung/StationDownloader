@@ -66,6 +66,7 @@ class Aria2Engine internal constructor(
             Log.e(tag(), "[Aria2][Status:$on]")
         }
     }
+
     init {
         addAria2UiListener(listener)
     }
@@ -99,7 +100,31 @@ class Aria2Engine internal constructor(
         isInit = false
     }
 
-    override suspend fun startTask(
+    suspend fun addPauseTask(
+        realUrl: String,
+        downloadPath: String,
+        urlType: DownloadUrlType,
+        selectIndexes: IntArray
+    ): IResult<String> {
+        if (urlType != DownloadUrlType.TORRENT)
+            return IResult.Error(
+                Exception(TaskExecuteError.NOT_SUPPORT_URL.name),
+                TaskExecuteError.NOT_SUPPORT_URL.ordinal
+            )
+        val gidResponse = addTorrent(
+            realUrl,
+            downloadPath,
+            selectIndexes,
+            true
+        )
+        if (gidResponse is IResult.Error) {
+            return gidResponse
+        }
+        aria2GidData[realUrl] = (gidResponse as IResult.Success).data
+        return gidResponse
+    }
+
+    override suspend fun  startTask(
         realUrl: String,
         downloadPath: String,
         name: String,
@@ -140,12 +165,18 @@ class Aria2Engine internal constructor(
         }
     }
 
+    fun containGid(realUrl: String): Boolean {
+        return aria2GidData.containsKey(realUrl)
+    }
+
+    fun getGid(realUrl: String):String=aria2GidData[realUrl]?:""
+
     suspend fun connect() {
         reference = ClientInstanceHolder.instantiate(profileManager.getInAppProfile())
     }
 
-    override suspend fun stopTask(taskId: String) {
-        sendToWebSocketSync(Aria2Requests.pause(taskId))
+    override suspend fun stopTask(taskId: String) : IResult<Boolean>{
+        return sendToWebSocketSync(Aria2Requests.pause(taskId))
     }
 
     override suspend fun setOptions(key: Options, values: String): IResult<Boolean> {
@@ -427,15 +458,15 @@ class Aria2Engine internal constructor(
             }
 
             Message.Type.PROCESS_WARN -> {
-                logWarn(logMessage.o.toString())
+//                logWarn(logMessage.o.toString())
             }
 
             Message.Type.PROCESS_ERROR -> {
-                logErr(logMessage.o.toString())
+//                logErr(logMessage.o.toString())
             }
 
             Message.Type.PROCESS_INFO -> {
-                logInfo(logMessage.o.toString())
+//                logInfo(logMessage.o.toString())
             }
         }
     }

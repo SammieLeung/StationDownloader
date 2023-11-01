@@ -106,7 +106,7 @@ object Aria2Requests {
             WebSocketClient.Method.TELL_STATUS,
             object : ResponseProcessor<TaskStatus>() {
                 override fun process(client: WebSocketClient, obj: JSONObject): TaskStatus {
-                    return TaskStatus(taskId = TaskId(DownloadEngine.ARIA2, gid)).parseJSONObject(
+                    return TaskStatus(taskId = TaskId(engine = DownloadEngine.ARIA2, id = gid)).parseJSONObject(
                         obj.getJSONObject("result")
                     )
                 }

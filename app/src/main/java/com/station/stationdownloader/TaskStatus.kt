@@ -3,10 +3,11 @@ package com.station.stationdownloader
 import android.os.Parcel
 import android.os.Parcelable
 import org.json.JSONObject
-import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.atomic.AtomicLong
 
 data class TaskStatus(
+    // 用于区分消息的id
+    val msgId: Long = msgIdGenerator.incrementAndGet(),
     val taskId: TaskId,
     val url: String,
     val speed: Long,
@@ -14,17 +15,38 @@ data class TaskStatus(
     val totalSize: Long,
     val status: Int
 ) : Parcelable {
-
     constructor(taskId: TaskId) : this(
+        msgId = msgIdGenerator.incrementAndGet(),
         taskId = taskId,
-        url="",
+        url = "",
         speed = 0,
         downloadSize = 0,
         totalSize = 0,
         status = ITaskState.STOP.code
     )
 
+    constructor(taskId: TaskId, url: String) : this(
+        msgId = msgIdGenerator.incrementAndGet(),
+        taskId = taskId,
+        url = url,
+        speed = 0,
+        downloadSize = 0,
+        totalSize = 0,
+        status = ITaskState.STOP.code
+    )
+
+    constructor(taskId: TaskId, url: String, status: Int) : this(
+        msgId = msgIdGenerator.incrementAndGet(),
+        taskId = taskId,
+        url = url,
+        speed = 0,
+        downloadSize = 0,
+        totalSize = 0,
+        status = status
+    )
+
     constructor(parcel: Parcel) : this(
+        parcel.readLong(),
         TaskId(
             DownloadEngine.valueOf(parcel.readString() ?: DownloadEngine.XL.name),
             parcel.readString() ?: ""
@@ -57,6 +79,7 @@ data class TaskStatus(
     }
 
     override fun writeToParcel(parcel: Parcel, flags: Int) {
+        parcel.writeLong(msgId)
         parcel.writeString(taskId.engine.name)
         parcel.writeString(taskId.id)
         parcel.writeString(url)
@@ -71,6 +94,7 @@ data class TaskStatus(
     }
 
     companion object CREATOR : Parcelable.Creator<TaskStatus> {
+        val msgIdGenerator = AtomicLong(0)
         override fun createFromParcel(parcel: Parcel): TaskStatus {
             return TaskStatus(parcel)
         }

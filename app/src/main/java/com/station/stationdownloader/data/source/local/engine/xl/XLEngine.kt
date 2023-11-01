@@ -164,8 +164,9 @@ class XLEngine internal constructor(
         }
     }
 
-    override suspend fun stopTask(taskId: String) {
+    override suspend fun stopTask(taskId: String):IResult<Boolean> {
         XLTaskHelper.instance().stopTask(taskId.toLong())
+        return IResult.Success(true)
     }
 
     override suspend fun setOptions(key: Options, values: String): IResult<Boolean> {

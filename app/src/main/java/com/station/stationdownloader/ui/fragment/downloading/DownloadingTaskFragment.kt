@@ -68,7 +68,6 @@ class DownloadingTaskFragment : BaseFragment<FragmentDownloadtaskBinding>(), DLo
 
 
     override fun onPause() {
-        logger(vm.viewModelScope)
         super.onPause()
         vm.aria2Accept(Aria2Action.CancelAria2TaskMonitor)
         unbindService()
