@@ -21,9 +21,16 @@ interface TorrentInfoDao {
         "SELECT * FROM torrent_info AS TI " +
                 "JOIN torrent_file_info AS TFI ON TFI.torrent_id = TI.id WHERE TI.hash=:hash"
     )
-    suspend fun getTorrentByHash(
+    suspend fun getTorrentFullInfoByHash(
         hash: String,
     ): Map<TorrentInfoEntity, List<TorrentFileInfoEntity>>
+
+    @Query(
+        "SELECT * FROM torrent_info WHERE hash=:hash"
+    )
+    suspend fun getTorrentBaseInfoByHash(
+        hash: String
+    ): TorrentInfoEntity?
 
     @Query(
         "SELECT * FROM torrent_info AS TI " +

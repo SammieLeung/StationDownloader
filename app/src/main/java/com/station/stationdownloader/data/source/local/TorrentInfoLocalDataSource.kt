@@ -1,6 +1,5 @@
 package com.station.stationdownloader.data.source.local
 
-import android.util.Log
 import com.station.stationdownloader.contants.TaskExecuteError
 import com.station.stationdownloader.data.IResult
 import com.station.stationdownloader.data.source.ITorrentInfoDataSource
@@ -43,6 +42,18 @@ class TorrentInfoLocalDataSource internal constructor(
             }
         }
 
+    override suspend fun updateTorrentInfo(torrentInfo: TorrentInfoEntity): IResult<Int> = withContext(ioDispatcher) {
+        val result = torrentInfoDao.updateTorrentInfo(torrentInfo)
+        return@withContext if (result > 0) {
+            IResult.Success(result)
+        } else{
+            IResult.Error(
+                Exception(TaskExecuteError.UPDATE_TORRENT_INFO_FAILED.name),
+                TaskExecuteError.UPDATE_TORRENT_INFO_FAILED.ordinal
+            )
+        }
+    }
+
 
     override suspend fun getTorrentId(hash: String, torrentPath: String): IResult<Long> =
         withContext(ioDispatcher) {
@@ -50,6 +61,17 @@ class TorrentInfoLocalDataSource internal constructor(
             if (tId > 0L) {
                 return@withContext IResult.Success(tId)
             }
+            return@withContext IResult.Error(
+                Exception(TaskExecuteError.QUERY_TORRENT_ID_FAILED.name),
+                TaskExecuteError.QUERY_TORRENT_ID_FAILED.ordinal
+            )
+        }
+
+    override suspend fun getTorrentInfoByHash(hash: String): IResult<TorrentInfoEntity> =
+        withContext(ioDispatcher) {
+            val torrentInfo = torrentInfoDao.getTorrentBaseInfoByHash(hash)
+            if (torrentInfo != null)
+                return@withContext IResult.Success(torrentInfo)
             return@withContext IResult.Error(
                 Exception(TaskExecuteError.QUERY_TORRENT_ID_FAILED.name),
                 TaskExecuteError.QUERY_TORRENT_ID_FAILED.ordinal
@@ -76,7 +98,7 @@ class TorrentInfoLocalDataSource internal constructor(
         hash: String,
     ): IResult<Map<TorrentInfoEntity, List<TorrentFileInfoEntity>>> =
         withContext(ioDispatcher) {
-            val result = torrentInfoDao.getTorrentByHash(hash.uppercase())
+            val result = torrentInfoDao.getTorrentFullInfoByHash(hash.uppercase())
             IResult.Success(result)
         }
 

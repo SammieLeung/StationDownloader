@@ -1,12 +1,15 @@
 package com.station.stationdownloader.data.source.repository
 
 import com.station.stationdownloader.data.IResult
+import com.station.stationdownloader.data.isFailed
+import com.station.stationdownloader.data.result
 import com.station.stationdownloader.data.source.ITorrentInfoDataSource
 import com.station.stationdownloader.data.source.ITorrentInfoRepository
 import com.station.stationdownloader.data.source.local.room.entities.TorrentFileInfoEntity
 import com.station.stationdownloader.data.source.local.room.entities.TorrentInfoEntity
 import com.station.stationdownloader.data.source.local.room.entities.asTorrentFileInfoEntity
 import com.station.stationdownloader.data.source.local.room.entities.asTorrentInfoEntity
+import com.station.stationdownloader.data.succeeded
 import com.station.stationdownloader.utils.DLogger
 import com.xunlei.downloadlib.parameter.TorrentInfo
 import kotlinx.coroutines.CoroutineDispatcher
@@ -18,27 +21,33 @@ class DefaultTorrentInfoRepository(
     private val localDataSource: ITorrentInfoDataSource,
     private val externalScope: CoroutineScope,
     private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO
-) : ITorrentInfoRepository,DLogger {
+) : ITorrentInfoRepository, DLogger {
 
     override suspend fun saveTorrentInfo(
         torrentInfo: TorrentInfo,
         torrentPath: String
     ): IResult<Long> {
-        printCodeLine()
-        val result = localDataSource.getTorrentId(torrentInfo.mInfoHash, torrentPath)
-        if (result is IResult.Success) {
-            return result
+        val result = localDataSource.getTorrentInfoByHash(torrentInfo.mInfoHash)
+        if (result.succeeded) {
+            if (result.result().torrentPath == torrentPath) {
+                return IResult.Success(result.result().id)
+            } else {
+                val updateResponse = localDataSource.updateTorrentInfo(
+                    result.result().copy(torrentPath = torrentPath)
+                )
+                return if (updateResponse.isFailed) {
+                    return updateResponse as IResult.Error
+                } else {
+                    IResult.Success(result.result().id)
+                }
+            }
         }
-        printCodeLine()
 
         val deferred = externalScope.async {
             val torrentIdResult =
                 localDataSource.saveTorrentInfo(torrentInfo.asTorrentInfoEntity(torrentPath))
-            printCodeLine()
 
             val torrentId = (torrentIdResult as IResult.Success).data
-            printCodeLine()
-
             if (torrentId > 0) {
                 saveTorrentFileInfos(torrentInfo, torrentId)
             }
@@ -59,7 +68,7 @@ class DefaultTorrentInfoRepository(
     }
 
     override suspend fun getTorrentByPath(torrentPath: String): IResult<Map<TorrentInfoEntity, List<TorrentFileInfoEntity>>> {
-       return localDataSource.getTorrentByPath(torrentPath)
+        return localDataSource.getTorrentByPath(torrentPath)
     }
 
     /**
