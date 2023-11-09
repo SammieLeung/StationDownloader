@@ -15,6 +15,7 @@ import com.station.stationdownloader.data.source.ITorrentInfoRepository
 import com.station.stationdownloader.data.source.local.engine.NewTaskConfigModel
 import com.station.stationdownloader.data.source.local.model.TreeNode
 import com.station.stationdownloader.data.source.local.model.getCheckedFilePaths
+import com.station.stationdownloader.data.source.local.room.entities.XLDownloadTaskEntity
 import com.station.stationdownloader.data.source.local.room.entities.asRemoteTorrentInfo
 import com.station.stationdownloader.data.source.remote.json.RemoteDeviceStorage
 import com.station.stationdownloader.data.source.remote.json.RemoteGetDownloadConfig
@@ -40,7 +41,7 @@ class TaskStatusServiceImpl(
     private val serviceScope: CoroutineScope
 ) : ITaskStatusService.Stub(), DLogger {
     private val entryPoint: TaskStatusServiceEntryPoint
-    private val serviceListenerList = mutableListOf<ITaskServiceListener>()
+    private val serviceListenerList = mutableListOf<TaskServiceListenerWrapper>()
 
     init {
         entryPoint = EntryPointAccessors.fromApplication(
@@ -120,6 +121,15 @@ class TaskStatusServiceImpl(
         }
     }
 
+    /*FIXME 先判断任务是否在下载中，如果是，则需要简化处理，直接返回任务id
+     *  当前下载逻辑可运行 运行时间223ms
+     * 优化后的逻辑运行时间  ?ms
+     *  take 1.1 64
+     *  take 1.2 ?
+     *  take 2.1 249
+     *  take 2.2
+     *  take 3    1582
+     */
     private suspend fun handleStartTask(
         url: String?,
         path: String?,
@@ -127,25 +137,47 @@ class TaskStatusServiceImpl(
         predicate: ((String, String) -> Unit)?,
         callback: ITaskServiceCallback?
     ) {
+        val t = System.currentTimeMillis()
         if (url == null) {
             sendErrorToClient("start_task", "url is null", TaskExecuteError.NOT_SUPPORT_URL.ordinal)
             callback?.onFailed("url is null", TaskExecuteError.NOT_SUPPORT_URL.ordinal)
             return
         }
+
+        taskRepo.getTaskByUrl(url)?.let {
+            if (!isTaskConfigurationChange(it, path, selectIndexes)) {
+                if (it.status != DownloadTaskStatus.COMPLETED) {
+                    val status = service.getDownloadingTaskStatusMap()[url]
+                    if (status == null || status.taskId.isInvalid() || status.status == ITaskState.STOP.code) {
+                        TaskService.startTask(
+                            service.applicationContext,
+                            it.url
+                        )
+                        logger("take time 1.1 ${System.currentTimeMillis() - t} ms")
+                    }else{
+                        startTaskSuccess(it, status.taskId.id, callback)
+                        logger("take time 1.2 ${System.currentTimeMillis() - t} ms")
+                    }
+                }else{
+                    callback?.onFailed("task is completed", TaskExecuteError.TASK_COMPLETED.ordinal)
+                    logger("take time 1.3 ${System.currentTimeMillis() - t} ms")
+                }
+                return
+            }
+        }
         val newTaskResult = engineRepo.initUrl(url)
         if (newTaskResult is IResult.Error) {
             Logger.e(newTaskResult.exception.message.toString())
             sendErrorToClient(
-                "start_task",
-                newTaskResult.exception.message.toString(),
-                newTaskResult.code
+                command = "start_task",
+                reason = newTaskResult.exception.message.toString(),
+                code = newTaskResult.code
             )
             callback?.onFailed(newTaskResult.exception.message, newTaskResult.code)
             return
         }
         newTaskResult as IResult.Success
         var newTaskConfig = newTaskResult.data
-        Logger.d("taskPath: ${newTaskConfig._downloadPath}")
 
         if (selectIndexes == null || selectIndexes.isEmpty()) {
             taskRepo.getTaskByUrl(url)?.let {
@@ -157,45 +189,27 @@ class TaskStatusServiceImpl(
             newTaskConfig.updateSelectIndexes(selectIndexes.toList())
         }
 
-        path?.let {
-            newTaskConfig = newTaskConfig.update(
-                downloadPath = it
-            )
-        }
-        Logger.d("newtaskPath: ${newTaskConfig._downloadPath}")
-
-
-        val saveTaskResult = taskRepo.saveTask(
-            newTaskConfig
-        )
+        path?.let { newTaskConfig = newTaskConfig.update(downloadPath = it) }
+        val saveTaskResult = taskRepo.saveTask(newTaskConfig)
 
         if (saveTaskResult is IResult.Error) {
             when (saveTaskResult.code) {
                 TaskExecuteError.REPEATING_TASK_NOTHING_CHANGED.ordinal -> {
                     saveTaskResult.exception.message?.let {
-                        val status = service.getRunningTaskMap()[it]
-                        if (status == null || status.taskId.isInvalid()|| status.status == ITaskState.STOP.code) {
-                            startTaskAndWaitTaskId(it, callback)
+                        val status = service.getDownloadingTaskStatusMap()[it]
+                        if (status == null || status.taskId.isInvalid() || status.status == ITaskState.STOP.code) {
+                            TaskService.startTask(service.applicationContext, it)
+                            logger("take time 2.1 ${System.currentTimeMillis() - t} ms")
                         } else {
-                            callback?.onResult(
-                                MoshiHelper.toJson(
-                                    RemoteStartTask(
-                                        it,
-                                        service.getRunningTaskMap()[it]?.taskId?.id ?: INVALID_ID
-                                    )
-                                )
-                            )
-                            sendToClient(
-                                "start_task", MoshiHelper.toJson(
-                                    RemoteStartTask(
-                                        it,
-                                        service.getRunningTaskMap()[it]?.taskId?.id ?: INVALID_ID
-                                    )
-                                )
-                            )
+                            taskRepo.getTaskByUrl(it)
+                                ?.let {
+                                    startTaskSuccess(it, status.taskId.id, callback)
+                                }
+                            logger("take time 2.2 ${System.currentTimeMillis() - t} ms")
                         }
                     }
-                    Logger.e(service.getString(R.string.repeating_task_nothing_changed))
+                    Logger.w(service.getString(R.string.repeating_task_nothing_changed) + "=>开始任务命令由远程发起,忽略该问题")
+                    return
                 }
 
                 else -> {
@@ -220,26 +234,42 @@ class TaskStatusServiceImpl(
             )
         }
         Logger.d("downloadPath: ${saveTaskResult.data.downloadPath}")
-        startTaskAndWaitTaskId(saveTaskResult.data.url, callback)
-    }
-
-    private suspend fun startTaskAndWaitTaskId(url: String, callback: ITaskServiceCallback?) {
         TaskService.startTask(
             service.applicationContext,
-            url
+            saveTaskResult.data.url
         )
-        var count = 0
-        while (service.getRunningTaskMap()[url] == null && count < 100) {
-            count++
-            delay(10)
+        logger("take time 3 ${System.currentTimeMillis() - t} ms")
+    }
+
+    private suspend fun startTaskSuccess(
+        taskEntity: XLDownloadTaskEntity,
+        taskId: String,
+        callback: ITaskServiceCallback?
+    ) {
+        val remoteStartTask = RemoteStartTask.Create(taskEntity, taskId, torrentRepo)
+        callback?.onResult(MoshiHelper.toJson(remoteStartTask))
+    }
+
+    /**
+     * 判断任务配置是否发生变化
+     * @param entity XLDownloadTaskEntity
+     * @param path String?
+     * @param selectIndexes IntArray?
+     */
+    private fun isTaskConfigurationChange(
+        entity: XLDownloadTaskEntity,
+        downloadPath: String?,
+        selectIndexes: IntArray?
+    ): Boolean {
+        var isChange = false
+        downloadPath?.let {
+            val taskName = entity.name
+            isChange = entity.downloadPath != File(it, taskName).path
         }
-        service.getRunningTaskMap()[url]?.let {
-            callback?.onResult(MoshiHelper.toJson(RemoteStartTask(url, it.taskId.id)))
-            sendToClient("start_task", MoshiHelper.toJson(RemoteStartTask(url, it.taskId.id)))
-        } ?: {
-            callback?.onFailed("start task failed", FAILED)
-            sendErrorToClient("start_task", "start task failed", FAILED)
+        selectIndexes?.let {
+            isChange = isChange || entity.selectIndexes != selectIndexes.toList()
         }
+        return isChange
     }
 
     override fun stopTask(url: String?, callback: ITaskServiceCallback?) {
@@ -260,7 +290,7 @@ class TaskStatusServiceImpl(
 
     override fun getDownloadPath(callback: ITaskServiceCallback?) {
         serviceScope.launch {
-            val downloadPath=configRepo.getValue(CommonOptions.DownloadPath)
+            val downloadPath = configRepo.getValue(CommonOptions.DownloadPath)
             callback?.onResult(
                 MoshiHelper.toJson(
                     RemoteDeviceStorage(
@@ -381,7 +411,14 @@ class TaskStatusServiceImpl(
     private suspend fun handleGetTaskList(callback: ITaskServiceCallback?) {
         val taskList = taskRepo.getTasks()
         taskList.map {
-            val taskId = service.getRunningTaskMap()[it.url]?.taskId
+            val taskId = service.getDownloadingTaskStatusMap()[it.url]?.taskId
+            var torrentHash = ""
+            if (it.torrentId > 0) {
+                val hashResponse = torrentRepo.getTorrentHash(it.torrentId)
+                if (hashResponse is IResult.Success) {
+                    torrentHash = hashResponse.data
+                }
+            }
             RemoteTask(
                 id = it.id,
                 down_size = it.downloadSize,
@@ -406,6 +443,7 @@ class TaskStatusServiceImpl(
                 task_name = it.name,
                 total_size = it.totalSize,
                 url = it.url,
+                hash = torrentHash,
                 create_time = it.createTime
             )
         }.let {
@@ -422,7 +460,7 @@ class TaskStatusServiceImpl(
     private suspend fun handleTaskStatus(url: String?, callback: ITaskServiceCallback?) {
         if (url == null)
             return
-        service.getRunningTaskMap()[url]?.let {
+        service.getDownloadingTaskStatusMap()[url]?.let {
             RemoteTaskStatus(
                 download_size = it.downloadSize,
                 speed = it.speed,
@@ -523,22 +561,27 @@ class TaskStatusServiceImpl(
 
     override fun addServiceListener(listener: ITaskServiceListener?) {
         listener?.apply {
-            serviceListenerList.add(this)
+            serviceListenerList.add(TaskServiceListenerWrapper(listener))
         }
     }
 
     override fun removeServiceListener(listener: ITaskServiceListener?) {
         listener?.apply {
-            serviceListenerList.remove(this)
+            for (listenWrapper in serviceListenerList) {
+                if (listenWrapper.listener.tag == listener.tag) {
+                    serviceListenerList.remove(listenWrapper)
+                    break;
+                }
+            }
         }
     }
 
-    fun sendToClient(command: String, data: String) {
+    fun sendToClient(command: String, data: String, expand: String?) {
         val iterator = serviceListenerList.iterator()
         while (iterator.hasNext()) {
             val it = iterator.next()
             try {
-                it.notify(command, data)
+                it.listener.notify(command, data, expand)
             } catch (e: Exception) {
                 iterator.remove()
             }
@@ -550,7 +593,7 @@ class TaskStatusServiceImpl(
         while (iterator.hasNext()) {
             val it = iterator.next()
             try {
-                it.failed(command, reason, code)
+                it.listener.failed(command, reason, code)
             } catch (e: Exception) {
                 iterator.remove()
             }
@@ -560,5 +603,7 @@ class TaskStatusServiceImpl(
     override fun DLogger.tag(): String {
         return "TaskStatusServiceImpl"
     }
+
+    class TaskServiceListenerWrapper(val listener: ITaskServiceListener)
 
 }

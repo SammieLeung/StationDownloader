@@ -4,7 +4,6 @@ import android.app.Service
 import android.content.Context
 import android.content.Intent
 import android.os.IBinder
-import android.util.Log
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import com.orhanobut.logger.Logger
 import com.station.stationdownloader.TaskId.Companion.INVALID_ID
@@ -12,11 +11,15 @@ import com.station.stationdownloader.TaskId.Companion.INVALID_TASK_ID
 import com.station.stationdownloader.contants.TaskExecuteError
 import com.station.stationdownloader.data.IResult
 import com.station.stationdownloader.data.source.IDownloadTaskRepository
+import com.station.stationdownloader.data.source.ITorrentInfoRepository
 import com.station.stationdownloader.data.source.local.room.entities.XLDownloadTaskEntity
 import com.station.stationdownloader.data.source.local.room.entities.asStationDownloadTask
 import com.station.stationdownloader.data.source.remote.json.RemoteStartTask
+import com.station.stationdownloader.data.source.remote.json.RemoteStartTaskData
 import com.station.stationdownloader.data.source.remote.json.RemoteStopTask
+import com.station.stationdownloader.data.source.remote.json.RemoteTask
 import com.station.stationdownloader.data.source.repository.DefaultEngineRepository
+import com.station.stationdownloader.data.source.repository.DefaultTorrentInfoRepository
 import com.station.stationdownloader.data.usecase.EngineRepoUseCase
 import com.station.stationdownloader.di.AppCoroutineScope
 import com.station.stationdownloader.utils.DLogger
@@ -35,6 +38,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+import kotlin.math.exp
 
 @AndroidEntryPoint
 class TaskService : Service(), DLogger {
@@ -46,6 +50,9 @@ class TaskService : Service(), DLogger {
 
     @Inject
     lateinit var engineRepo: DefaultEngineRepository
+
+    @Inject
+    lateinit var torrentRepo: ITorrentInfoRepository
 
     @Inject
     lateinit var engineRepoUseCase: EngineRepoUseCase
@@ -76,7 +83,7 @@ class TaskService : Service(), DLogger {
             )
         )
 
-    private val downloadingTasks: MutableMap<String, TaskStatus> = mutableMapOf()
+    private val downloadingTaskStatusData: MutableMap<String, TaskStatus> = mutableMapOf()
 
 
     override fun onCreate() {
@@ -115,13 +122,13 @@ class TaskService : Service(), DLogger {
 
                 ACTION_CANCEL_WATCH_TASK -> {
                     val url = intent.getStringExtra("url") ?: return START_NOT_STICKY
-                    downloadingTasks.remove(url)
+                    downloadingTaskStatusData.remove(url)
                     watchTaskJobMap.remove(url)?.apply { cancel() }
                 }
 
                 ACTION_CANCEL_ALL_ARIA2_WATCH_TASK -> {
                     watchTaskJobMap.filter {
-                        downloadingTasks[it.key]?.taskId?.engine == DownloadEngine.ARIA2
+                        downloadingTaskStatusData[it.key]?.taskId?.engine == DownloadEngine.ARIA2
                     }.forEach {
                         watchTaskJobMap.remove(it.key).apply {
                             this?.cancel()
@@ -173,7 +180,7 @@ class TaskService : Service(), DLogger {
     private fun startTask(url: String) = serviceScope.launch {
         try {
             val xlEntity = taskRepo.getTaskByUrl(url) ?: return@launch
-            if (downloadingTasks[url] != null)
+            if (downloadingTaskStatusData[url] != null)
                 stopTask(url).join()
             val downloadTask = xlEntity.asStationDownloadTask()
             val taskIdResult = engineRepo.startTask(downloadTask)
@@ -186,7 +193,11 @@ class TaskService : Service(), DLogger {
                     putExtra("result", false)
                     putExtra("reason", taskIdResult.exception.message.toString())
                 })
-                updateTaskStatusNow(url, TaskId(downloadTask.engine, INVALID_ID), ITaskState.STOP.code)
+                updateTaskStatusNow(
+                    url,
+                    TaskId(downloadTask.engine, INVALID_ID),
+                    ITaskState.STOP.code
+                )
                 sendErrorToClient(
                     "start_task",
                     taskIdResult.exception.message.toString(),
@@ -203,11 +214,13 @@ class TaskService : Service(), DLogger {
                 totalSize = 0,
                 status = ITaskState.UNKNOWN.code
             )
-            downloadingTasks[url] = status
+            downloadingTaskStatusData[url] = status
             updateTaskStatusNow(url, taskId, ITaskState.RUNNING.code)
+            val remoteStartTask = RemoteStartTask.Create(xlEntity, taskId.id, torrentRepo)
             sendToClient(
                 "start_task",
-                MoshiHelper.toJson(RemoteStartTask(url, taskId.id))
+                MoshiHelper.toJson(remoteStartTask.data),
+                MoshiHelper.toJson(remoteStartTask.expand)
             )
 
             watchTaskJobMap[url]?.apply { cancel() }
@@ -225,6 +238,7 @@ class TaskService : Service(), DLogger {
         }
     }
 
+
     fun stopTask(url: String) =
         serviceScope.launch {
             try {
@@ -238,12 +252,12 @@ class TaskService : Service(), DLogger {
                     )
                     return@launch
                 }
-                val taskId = downloadingTasks[url]?.taskId
+                val taskId = downloadingTaskStatusData[url]?.taskId
                 if (taskId == null) {
                     taskRepo.updateTask(entity.copy(status = DownloadTaskStatus.PAUSE))
                 } else {
                     engineRepo.stopTask(taskId, entity.asStationDownloadTask())
-                    sendToClient("stop_task", MoshiHelper.toJson(RemoteStopTask(url)))
+                    sendToClient("stop_task", MoshiHelper.toJson(RemoteStopTask(url)),null)
                 }
                 taskId?.let { updateTaskStatusNow(url, it, ITaskState.STOP.code) }
             } catch (e: Exception) {
@@ -255,8 +269,8 @@ class TaskService : Service(), DLogger {
                 )
             } finally {
                 stopTaskJobMap.remove(url)
-                downloadingTasks.remove(url)
-                if (downloadingTasks[url] == null && watchTaskJobMap[url] == null && stopTaskJobMap[url] == null) {
+                downloadingTaskStatusData.remove(url)
+                if (downloadingTaskStatusData[url] == null && watchTaskJobMap[url] == null && stopTaskJobMap[url] == null) {
                     logger("already stop task $url")
                 }
             }
@@ -278,7 +292,7 @@ class TaskService : Service(), DLogger {
                 )
                 return@launch
             }
-            //TODO 优化不同引擎的删除任务逻辑。XL引擎删除任务时，会自动停止任务，所以这里先停止任务，再删除任务。ARI2引擎删除任务时，不会自动停止任务，所以这里不需要停止任务，直接删除任务即可。
+            //FIXME 优化不同引擎的删除任务逻辑。XL引擎删除任务时，会自动停止任务，所以这里先停止任务，再删除任务。ARI2引擎删除任务时，不会自动停止任务，所以这里不需要停止任务，直接删除任务即可。
             stopTask(url)
             if (entity.engine == DownloadEngine.ARIA2) {
                 engineRepo.removeAria2Task(url)
@@ -403,7 +417,7 @@ class TaskService : Service(), DLogger {
                     Logger.w("下载完成 [${taskId}]")
                     engineRepo.stopTask(taskId, task.asStationDownloadTask())
                 }
-                downloadingTasks.remove(url)
+                downloadingTaskStatusData.remove(url)
                 watchTaskJobMap.remove(url)?.cancel()
                 return
             }
@@ -460,7 +474,7 @@ class TaskService : Service(), DLogger {
                         taskRepo.getTaskByUrl(url)?.asStationDownloadTask() ?: return
                     )
                 }
-                downloadingTasks.remove(url)
+                downloadingTaskStatusData.remove(url)
                 watchTaskJobMap.remove(url)?.cancel()
                 return
             }
@@ -482,13 +496,13 @@ class TaskService : Service(), DLogger {
     private fun updateTaskStatusNow(url: String, taskId: TaskId, status: Int) {
         when (taskId.engine) {
             DownloadEngine.XL -> {
-                if(taskId.isInvalid()) {
+                if (taskId.isInvalid()) {
                     logger("$taskId isInvaild")
 
-                    val status =TaskStatus(taskId = taskId, status = status,url=url)
+                    val status = TaskStatus(taskId = taskId, status = status, url = url)
                     logger("updateTaskStatusNow $status")
 
-                    updateTaskStatus(url,status )
+                    updateTaskStatus(url, status)
                     return
                 }
                 val taskInfo = XLTaskHelper.instance().getTaskInfo(taskId.id.toLong()) ?: return
@@ -505,7 +519,7 @@ class TaskService : Service(), DLogger {
 
             DownloadEngine.ARIA2 -> {
                 serviceScope.launch {
-                    updateTaskStatus(url, TaskStatus(taskId = taskId, url=url, status = status))
+                    updateTaskStatus(url, TaskStatus(taskId = taskId, url = url, status = status))
                 }
             }
 
@@ -515,7 +529,7 @@ class TaskService : Service(), DLogger {
     }
 
     private fun updateTaskStatus(url: String, status: TaskStatus) {
-        downloadingTasks[url] = status
+        downloadingTaskStatusData[url] = status
         _taskStatusFlow.update {
             status
         }
@@ -530,16 +544,16 @@ class TaskService : Service(), DLogger {
         return _taskStatusFlow.asStateFlow()
     }
 
-    fun getRunningTaskMap(): MutableMap<String, TaskStatus> {
-        return downloadingTasks
+    fun getDownloadingTaskStatusMap(): MutableMap<String, TaskStatus> {
+        return downloadingTaskStatusData
     }
 
     private fun sendLocalBroadcast(intent: Intent) {
         LocalBroadcastManager.getInstance(this).sendBroadcast(intent)
     }
 
-    private fun sendToClient(command: String, data: String) {
-        taskStatusBinder?.sendToClient(command, data)
+    private fun sendToClient(command: String, data: String, expand: String?) {
+        taskStatusBinder?.sendToClient(command, data, expand)
     }
 
     private fun sendErrorToClient(command: String, reason: String, code: Int) {

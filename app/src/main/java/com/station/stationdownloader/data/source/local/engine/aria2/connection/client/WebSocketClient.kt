@@ -213,7 +213,7 @@ open class WebSocketClient private constructor(
                 validateResponse(response)
                 internal.json(response)
             } catch (ex: Aria2Exception) {
-                ex.printStackTrace()
+//                ex.printStackTrace()
                 internal.exception(ex)
             } catch (ex: JSONException) {
                 ex.printStackTrace()

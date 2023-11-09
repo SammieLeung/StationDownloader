@@ -11,6 +11,8 @@ interface ITorrentInfoDataSource {
     suspend fun updateTorrentInfo(torrentInfo:TorrentInfoEntity):IResult<Int>
     suspend fun getTorrentId(hash: String, torrentPath: String): IResult<Long>
     suspend fun getTorrentInfoByHash(hash: String): IResult<TorrentInfoEntity>
+    suspend fun getTorrentInfoById(torrentId: Long): IResult<TorrentInfoEntity>
+
     suspend fun getTorrentFileInfo(torrentId: Long, realIndex: Int): IResult<TorrentFileInfoEntity>
     suspend fun getTorrentByHash(
         hash: String,

@@ -73,10 +73,20 @@ class TorrentInfoLocalDataSource internal constructor(
             if (torrentInfo != null)
                 return@withContext IResult.Success(torrentInfo)
             return@withContext IResult.Error(
-                Exception(TaskExecuteError.QUERY_TORRENT_ID_FAILED.name),
-                TaskExecuteError.QUERY_TORRENT_ID_FAILED.ordinal
+                Exception(TaskExecuteError.QUERY_TORRENT_INFO_FAILED.name),
+                TaskExecuteError.QUERY_TORRENT_INFO_FAILED.ordinal
             )
         }
+
+    override suspend fun getTorrentInfoById(torrentId: Long): IResult<TorrentInfoEntity>  = withContext(ioDispatcher){
+        val torrentInfo = torrentInfoDao.getTorrentBaseInfo(torrentId)
+        if (torrentInfo != null)
+            return@withContext IResult.Success(torrentInfo)
+        return@withContext IResult.Error(
+            Exception(TaskExecuteError.QUERY_TORRENT_INFO_FAILED.name),
+            TaskExecuteError.QUERY_TORRENT_INFO_FAILED.ordinal
+        )
+    }
 
     override suspend fun getTorrentFileInfo(
         torrentId: Long,
@@ -103,6 +113,8 @@ class TorrentInfoLocalDataSource internal constructor(
         }
 
 
+
+
     override suspend fun getTorrentById(torrentId: Long): IResult<Map<TorrentInfoEntity, List<TorrentFileInfoEntity>>> =
         withContext(ioDispatcher) {
             val result = torrentInfoDao.getTorrentById(torrentId)
@@ -110,8 +122,8 @@ class TorrentInfoLocalDataSource internal constructor(
                 return@withContext IResult.Success(result)
             } else {
                 return@withContext IResult.Error(
-                    Exception(TaskExecuteError.QUERY_TORRENT_FAILED.name),
-                    TaskExecuteError.QUERY_TORRENT_FAILED.ordinal
+                    Exception(TaskExecuteError.QUERY_TORRENT_INFO_FAILED.name),
+                    TaskExecuteError.QUERY_TORRENT_INFO_FAILED.ordinal
                 )
             }
         }
@@ -123,8 +135,8 @@ class TorrentInfoLocalDataSource internal constructor(
                 return@withContext IResult.Success(result)
             } else {
                 return@withContext IResult.Error(
-                    Exception(TaskExecuteError.QUERY_TORRENT_FAILED.name),
-                    TaskExecuteError.QUERY_TORRENT_FAILED.ordinal
+                    Exception(TaskExecuteError.QUERY_TORRENT_INFO_FAILED.name),
+                    TaskExecuteError.QUERY_TORRENT_INFO_FAILED.ordinal
                 )
             }
         }

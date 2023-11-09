@@ -331,12 +331,12 @@ class Aria2Engine internal constructor(
             }
             return IResult.Success(result)
         } catch (e: Exception) {
-            logErr("sendToWebSocketSync[Aria2Request] $e")
+            logErr("sendToWebSocketSync[Aria2Request] ${request.method} $e")
             return IResult.Error(e)
         }
     }
 
-    private suspend inline fun <R> sendToWebSocketSync(requestWithResult: Aria2RequestWithResult<R>): IResult<R> {
+    private suspend inline fun <R> sendToWebSocketSync(requestWithResult: Aria2RequestWithResult<R>): IResult<R>  {
         try {
             val result = suspendCoroutine { continuation ->
                 val job = Job()
@@ -358,7 +358,7 @@ class Aria2Engine internal constructor(
             }
             return IResult.Success(result)
         } catch (e: Exception) {
-            logErr("sendToWebSocketSync[Aria2RequestWithResult] $e")
+            logErr("sendToWebSocketSync[Aria2RequestWithResult] ${requestWithResult.method} $e")
             return IResult.Error(e)
         }
     }
@@ -387,7 +387,7 @@ class Aria2Engine internal constructor(
             }
             return IResult.Success(result)
         } catch (e: Exception) {
-            logErr("sendToWebSocketSync[Aria2Request] $e")
+            logErr("sendToWebSocketSync[Aria2Request] ${request.method} $e")
             return IResult.Error(e)
         }
     }
@@ -419,7 +419,7 @@ class Aria2Engine internal constructor(
             }
             return IResult.Success(result)
         } catch (e: Exception) {
-            logErr("sendToWebSocketSync[Aria2RequestWithResult] $e")
+            logErr("sendToWebSocketSync[Aria2RequestWithResult] ${requestWithResult.method} $e")
             return IResult.Error(e)
         }
     }

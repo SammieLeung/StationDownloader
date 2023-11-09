@@ -63,6 +63,14 @@ class DefaultTorrentInfoRepository(
         return localDataSource.getTorrentByHash(hash)
     }
 
+    override suspend fun getTorrentHash(torrentId: Long): IResult<String> {
+        val torrentBaseInfoResponse =  localDataSource.getTorrentInfoById(torrentId)
+        if(torrentBaseInfoResponse.succeeded){
+            return IResult.Success(torrentBaseInfoResponse.result().hash)
+        }
+        return torrentBaseInfoResponse as IResult.Error
+    }
+
     override suspend fun getTorrentById(torrentId: Long): IResult<Map<TorrentInfoEntity, List<TorrentFileInfoEntity>>> {
         return localDataSource.getTorrentById(torrentId)
     }

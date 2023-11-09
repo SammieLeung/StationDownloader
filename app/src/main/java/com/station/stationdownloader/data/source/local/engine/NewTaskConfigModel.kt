@@ -1,15 +1,9 @@
 package com.station.stationdownloader.data.source.local.engine
 
-import android.provider.ContactsContract.Directory
 import com.station.stationdownloader.DownloadEngine
 import com.station.stationdownloader.DownloadUrlType
-import com.station.stationdownloader.data.source.local.model.StationDownloadTask
 import com.station.stationdownloader.data.source.local.model.TreeNode
-import com.station.stationdownloader.data.source.local.model.getSelectedFileIndexes
 import com.station.stationdownloader.data.source.local.model.setSelectFileIndexes
-import com.station.stationdownloader.data.source.local.room.entities.XLDownloadTaskEntity
-import com.station.stationdownloader.data.source.remote.json.RemoteTorrentInfo
-import java.io.File
 
 sealed class NewTaskConfigModel(
     val _name: String,
@@ -93,87 +87,88 @@ sealed class NewTaskConfigModel(
 
 }
 
-fun NewTaskConfigModel.asStationDownloadTask(): StationDownloadTask {
-    return when (this) {
-        is NewTaskConfigModel.NormalTask -> {
-            val root = this._fileTree as TreeNode.Directory
-            val fileSize = root.totalCheckedFileSize
-            val selectIndexes = root.getSelectedFileIndexes()
-            StationDownloadTask(
-                url = this.originUrl,
-                realUrl = this.url,
-                name = this.taskName,
-                urlType = urlType,
-                engine = this.engine,
-                totalSize = fileSize,
-                downloadPath = File(this.downloadPath, taskName).path,
-                selectIndexes = selectIndexes,
-            )
-
-        }
-
-        is NewTaskConfigModel.TorrentTask -> {
-            val root = this._fileTree as TreeNode.Directory
-            val fileSize = root.totalCheckedFileSize
-            val selectIndexes = root.getSelectedFileIndexes()
-            StationDownloadTask(
-                torrentId = this.torrentId,
-                url = this.torrentPath,
-                realUrl = this.torrentPath,
-                name = this.taskName,
-                urlType = DownloadUrlType.TORRENT,
-                engine = this.engine,
-                totalSize = fileSize,
-                downloadPath = File(this.downloadPath, taskName).path,
-                selectIndexes = selectIndexes,
-            )
-
-        }
-    }
-}
-
-fun NewTaskConfigModel.asXLDownloadTaskEntity(): XLDownloadTaskEntity {
-    return when (this) {
-        is NewTaskConfigModel.NormalTask -> {
-            val root = this._fileTree as TreeNode.Directory
-            val fileSize = root.totalCheckedFileSize
-            val fileCount = root.totalFileCount
-            val selectIndexes = root.getSelectedFileIndexes()
-            XLDownloadTaskEntity(
-                id = 0L,
-                url = this.originUrl,
-                realUrl = this.url,
-                name = this.taskName,
-                urlType = urlType,
-                engine = this.engine,
-                totalSize = fileSize,
-                downloadPath = File(this.downloadPath, taskName).path,
-                selectIndexes = selectIndexes,
-                fileCount = fileCount
-            )
-
-        }
-
-        is NewTaskConfigModel.TorrentTask -> {
-            val root = this._fileTree as TreeNode.Directory
-            val fileSize = root.totalCheckedFileSize
-            val fileCount = root.totalFileCount
-            val selectIndexes = root.getSelectedFileIndexes()
-            XLDownloadTaskEntity(
-                id = 0L,
-                torrentId = this.torrentId,
-                url = this.torrentPath,
-                realUrl = this.torrentPath,
-                name = this.taskName,
-                urlType = DownloadUrlType.TORRENT,
-                engine = this.engine,
-                totalSize = fileSize,
-                downloadPath = File(this.downloadPath, taskName).path,
-                selectIndexes = selectIndexes,
-                fileCount = fileCount
-            )
-
-        }
-    }
-}
+//fun NewTaskConfigModel.asStationDownloadTask(): StationDownloadTask {
+//    return when (this) {
+//        is NewTaskConfigModel.NormalTask -> {
+//            val root = this._fileTree as TreeNode.Directory
+//            val fileSize = root.totalCheckedFileSize
+//            val selectIndexes = root.getSelectedFileIndexes()
+//            StationDownloadTask(
+//                url = this.originUrl,
+//                realUrl = this.url,
+//                name = this.taskName,
+//                urlType = urlType,
+//                engine = this.engine,
+//                totalSize = fileSize,
+//                downloadPath = File(this.downloadPath, taskName).path,
+//                selectIndexes = selectIndexes,
+//            )
+//
+//        }
+//
+//        is NewTaskConfigModel.TorrentTask -> {
+//            val root = this._fileTree as TreeNode.Directory
+//            val fileSize = root.totalCheckedFileSize
+//            val selectIndexes = root.getSelectedFileIndexes()
+//            StationDownloadTask(
+//                torrentId = this.torrentId,
+//                url = this.torrentPath,
+//                realUrl = this.torrentPath,
+//                name = this.taskName,
+//                urlType = DownloadUrlType.TORRENT,
+//                engine = this.engine,
+//                totalSize = fileSize,
+//                downloadPath = File(this.downloadPath, taskName).path,
+//                selectIndexes = selectIndexes,
+//            )
+//
+//        }
+//    }
+//}
+//
+//fun NewTaskConfigModel.asXLDownloadTaskEntity(): XLDownloadTaskEntity {
+//    return when (this) {
+//        is NewTaskConfigModel.NormalTask -> {
+//            val root = this._fileTree as TreeNode.Directory
+//            val fileSize = root.totalCheckedFileSize
+//            val fileCount = root.totalFileCount
+//            val selectIndexes = root.getSelectedFileIndexes()
+//            XLDownloadTaskEntity(
+//                id = 0L,
+//                url = this.originUrl,
+//                realUrl = this.url,
+//                name = this.taskName,
+//                urlType = urlType,
+//                engine = this.engine,
+//                totalSize = fileSize,
+//                downloadPath = File(this.downloadPath, taskName).path,
+//                selectIndexes = selectIndexes,
+//                fileList = (fileTree as TreeNode.Directory).getCheckedFilePaths(),
+//                fileCount = fileCount
+//            )
+//
+//        }
+//
+//        is NewTaskConfigModel.TorrentTask -> {
+//            val root = this._fileTree as TreeNode.Directory
+//            val fileSize = root.totalCheckedFileSize
+//            val fileCount = root.totalFileCount
+//            val selectIndexes = root.getSelectedFileIndexes()
+//            XLDownloadTaskEntity(
+//                id = 0L,
+//                torrentId = this.torrentId,
+//                url = this.torrentPath,
+//                realUrl = this.torrentPath,
+//                name = this.taskName,
+//                urlType = DownloadUrlType.TORRENT,
+//                engine = this.engine,
+//                totalSize = fileSize,
+//                downloadPath = File(this.downloadPath, taskName).path,
+//                selectIndexes = selectIndexes,
+//                fileCount = fileCount
+//            )
+//
+//        }
+//    }
+//}
 

@@ -11,6 +11,7 @@ import com.station.stationdownloader.FileType
 import com.station.stationdownloader.ITaskState
 import com.station.stationdownloader.R
 import com.station.stationdownloader.TaskService
+import com.station.stationdownloader.TaskStatus
 import com.station.stationdownloader.contants.TaskExecuteError
 import com.station.stationdownloader.data.IResult
 import com.station.stationdownloader.data.source.IDownloadTaskRepository
@@ -31,13 +32,13 @@ import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.io.File
+import java.lang.ref.WeakReference
 import javax.inject.Inject
 
 @HiltViewModel
@@ -72,7 +73,7 @@ class MainViewModel @Inject constructor(
     val accept: (UiAction) -> Unit
     val dialogAccept: (DialogAction) -> Unit
     val emitToast: (ToastAction) -> Unit
-    var taskService: TaskService? = null
+    lateinit var downloadingTaskStatusInService: WeakReference<Map<String, TaskStatus>>
 
     init {
         accept = initAcceptAction()
@@ -120,23 +121,21 @@ class MainViewModel @Inject constructor(
                 if (_newTaskState.value !is NewTaskState.PreparingData)
                     return@collect
                 val preparingData = _newTaskState.value as NewTaskState.PreparingData
+                //FIXME 需要判断当前任务是否已经在下载中，如果在下载中则不允许更换下载引擎
+//                if (preparingData.task._downloadEngine != action.engine) {
+//                    _toastState.update {
+//                        ToastState.Show(application.getString(R.string.downloading_task_can_not_change_engine))
+//                    }
+//                    return@collect
+//                }
 
                 val saveTaskResult =
                     taskRepo.saveTask(preparingData.task.update(downloadEngine = action.engine))
                 if (saveTaskResult is IResult.Error) {
                     when (saveTaskResult.code) {
                         TaskExecuteError.REPEATING_TASK_NOTHING_CHANGED.ordinal -> {
-                            saveTaskResult.exception.message?.let {
-                                val status = taskService?.getRunningTaskMap()?.get(it)
-                                if (status == null || status.taskId.isInvalid() || status.status == ITaskState.STOP.code) {
-                                    TaskService.startTask(application, it)
-                                }
-                            }
                             _toastState.update {
                                 ToastState.Show(application.getString(R.string.repeating_task_nothing_changed))
-                            }
-                            _newTaskState.update {
-                                NewTaskState.Success
                             }
                         }
 
@@ -385,6 +384,10 @@ class MainViewModel @Inject constructor(
                 emitToast(ToastAction.InitToast)
             }
         }
+
+    fun bindDownloadingTaskStatusMap(downloadingTaskStatusMap: MutableMap<String, TaskStatus>) {
+        downloadingTaskStatusInService = WeakReference(downloadingTaskStatusMap)
+    }
 
 }
 

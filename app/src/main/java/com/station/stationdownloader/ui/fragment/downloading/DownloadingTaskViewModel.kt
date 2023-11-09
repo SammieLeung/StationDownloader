@@ -10,7 +10,6 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
-import com.station.stationdownloader.DownloadEngine
 import com.station.stationdownloader.DownloadTaskStatus
 import com.station.stationdownloader.ITaskState
 import com.station.stationdownloader.TaskId
@@ -33,7 +32,6 @@ import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import java.util.logging.Logger
 import javax.inject.Inject
 
 @HiltViewModel
@@ -333,7 +331,7 @@ class DownloadingTaskViewModel @Inject constructor(
     }
 
 
-    fun collectTaskStatus(taskStatus: StateFlow<TaskStatus>) {
+    fun bindTaskStatus(taskStatus: StateFlow<TaskStatus>) {
         viewModelScope.launch {
             taskStatus.collect { taskStatus ->
                 val url = taskStatus.url

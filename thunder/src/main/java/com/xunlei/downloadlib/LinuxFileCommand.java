@@ -19,7 +19,6 @@ public class LinuxFileCommand {
 	 * @param
 	 * */
 	public LinuxFileCommand(Runtime runtime) {
-		// TODO Auto-generated constructor stub
 		shell = runtime;
 	}
 	

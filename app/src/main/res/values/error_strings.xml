@@ -1,6 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="repeating_task_nothing_changed">任务已存在，并且配置没有改变</string>
+    <string name="downloading_task_can_not_change_engine">下载中的任务无法修改下载方式</string>
+
+    <string name="repeating_task_nothing_changed">相同的任务已在下载中，而且下载设置没有修改</string>
     <string name="assert_torrent_file">这不是一个种子文件，请重新选择！</string>
     <string name="free_space_not_enough">空间不足</string>
     <string name="free_space_shortage">剩余空间过低</string>

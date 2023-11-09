@@ -12,6 +12,7 @@ import com.station.stationdownloader.DownloadUrlType
 import com.station.stationdownloader.DownloadWorker
 import com.station.stationdownloader.data.source.local.model.StationDownloadTask
 import org.jetbrains.annotations.NotNull
+import java.io.File
 
 /**
  * author: Sam Leung
@@ -71,3 +72,4 @@ fun XLDownloadTaskEntity.asStationDownloadTask(): StationDownloadTask {
         createTime = createTime
     )
 }
+

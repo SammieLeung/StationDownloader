@@ -33,6 +33,13 @@ interface TorrentInfoDao {
     ): TorrentInfoEntity?
 
     @Query(
+        "SELECT * FROM torrent_info WHERE id=:id"
+    )
+    suspend fun getTorrentBaseInfo(
+        id: Long
+    ): TorrentInfoEntity?
+
+    @Query(
         "SELECT * FROM torrent_info AS TI " +
                 "JOIN torrent_file_info AS TFI ON TFI.torrent_id = TI.id WHERE TI.id=:torrentId"
     )

@@ -314,10 +314,6 @@ class DefaultEngineRepository(
         return aria2Engine.tellStatus(gid, url)
     }
 
-    suspend fun getAria2TaskStatus(url: String): IResult<TaskStatus> {
-        return aria2Engine.tellStatus(url)
-    }
-
     suspend fun tellAll(): List<Aria2TorrentTask> = withContext(defaultDispatcher) {
         val list = mutableListOf<Aria2TorrentTask>()
         val activeTaskList = aria2Engine.tellActive()

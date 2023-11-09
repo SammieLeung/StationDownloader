@@ -10,7 +10,6 @@ import android.view.View
 import androidx.fragment.app.activityViewModels
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.lifecycleScope
-import androidx.lifecycle.viewModelScope
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import com.orhanobut.logger.Logger
 import com.station.stationdownloader.R
@@ -38,7 +37,7 @@ class DownloadingTaskFragment : BaseFragment<FragmentDownloadtaskBinding>(), DLo
         override fun onServiceConnected(name: ComponentName?, service: IBinder?) {
             Logger.w("onServiceConnected")
             service as TaskStatusServiceImpl
-            vm.collectTaskStatus(service.getService().asTaskStatusStateFlow())
+            vm.bindTaskStatus(service.getService().asTaskStatusStateFlow())
 
         }
 
