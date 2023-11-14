@@ -436,6 +436,7 @@ class XLEngine internal constructor(
             val taskInfo = XLTaskHelper.instance().getTaskInfo(taskId)
             if (taskInfo != null) {
                 if (taskInfo.mFileSize != 0L) {
+                    Logger.d(taskInfo.toString())
                     val root = TreeNode.Directory.createRoot()
                     val file = TreeNode.File(
                         0, taskInfo.mFileName, taskInfo.mFileName.ext(),

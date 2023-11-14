@@ -34,6 +34,7 @@ import dagger.hilt.components.SingletonComponent
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import org.json.JSONObject
 import java.io.File
 
 class TaskStatusServiceImpl(
@@ -88,7 +89,7 @@ class TaskStatusServiceImpl(
                 url,
                 path,
                 selectIndexes,
-                fun(downloadPath: String, joinFileString: String) {
+                fun(url: String, downloadPath: String, joinFileString: String) {
                     try {
                         service.contentResolver.insert(
                             Uri.parse("content://com.hphtv.movielibrary.provider.v2/addPoster"),
@@ -98,10 +99,10 @@ class TaskStatusServiceImpl(
                                 put("movie_id", movieId)
                                 put("movie_type", movieType)
                             })
+                        service.startTask(url, callback)
                     } catch (e: Exception) {
                         callback?.onFailed(e.message.toString(), FAILED)
                     }
-
                 },
                 callback
             )
@@ -134,12 +135,11 @@ class TaskStatusServiceImpl(
         url: String?,
         path: String?,
         selectIndexes: IntArray?,
-        predicate: ((String, String) -> Unit)?,
+        predicate: ((String, String, String) -> Unit)?,
         callback: ITaskServiceCallback?
     ) {
         val t = System.currentTimeMillis()
         if (url == null) {
-            sendErrorToClient("start_task", "url is null", TaskExecuteError.NOT_SUPPORT_URL.ordinal)
             callback?.onFailed("url is null", TaskExecuteError.NOT_SUPPORT_URL.ordinal)
             return
         }
@@ -149,30 +149,25 @@ class TaskStatusServiceImpl(
                 if (it.status != DownloadTaskStatus.COMPLETED) {
                     val status = service.getDownloadingTaskStatusMap()[url]
                     if (status == null || status.taskId.isInvalid() || status.status == ITaskState.STOP.code) {
-                        TaskService.startTask(
-                            service.applicationContext,
-                            it.url
-                        )
+                        service.startTask(it.url, callback)
                         logger("take time 1.1 ${System.currentTimeMillis() - t} ms")
-                    }else{
+                    } else {
                         startTaskSuccess(it, status.taskId.id, callback)
                         logger("take time 1.2 ${System.currentTimeMillis() - t} ms")
                     }
-                }else{
+
+                } else {
                     callback?.onFailed("task is completed", TaskExecuteError.TASK_COMPLETED.ordinal)
                     logger("take time 1.3 ${System.currentTimeMillis() - t} ms")
                 }
+                Logger.w(service.getString(R.string.repeating_task_nothing_changed) + "=>开始任务命令由远程发起,忽略该问题")
                 return
             }
         }
+
         val newTaskResult = engineRepo.initUrl(url)
         if (newTaskResult is IResult.Error) {
             Logger.e(newTaskResult.exception.message.toString())
-            sendErrorToClient(
-                command = "start_task",
-                reason = newTaskResult.exception.message.toString(),
-                code = newTaskResult.code
-            )
             callback?.onFailed(newTaskResult.exception.message, newTaskResult.code)
             return
         }
@@ -180,10 +175,8 @@ class TaskStatusServiceImpl(
         var newTaskConfig = newTaskResult.data
 
         if (selectIndexes == null || selectIndexes.isEmpty()) {
-            taskRepo.getTaskByUrl(url)?.let {
-                if (it.selectIndexes.isNotEmpty()) {
-                    newTaskConfig.updateSelectIndexes(it.selectIndexes)
-                }
+            taskRepo.getTaskByUrl(url)?.takeIf { it.selectIndexes.isNotEmpty() }?.let {
+                newTaskConfig.updateSelectIndexes(it.selectIndexes)
             }
         } else {
             newTaskConfig.updateSelectIndexes(selectIndexes.toList())
@@ -193,52 +186,23 @@ class TaskStatusServiceImpl(
         val saveTaskResult = taskRepo.saveTask(newTaskConfig)
 
         if (saveTaskResult is IResult.Error) {
-            when (saveTaskResult.code) {
-                TaskExecuteError.REPEATING_TASK_NOTHING_CHANGED.ordinal -> {
-                    saveTaskResult.exception.message?.let {
-                        val status = service.getDownloadingTaskStatusMap()[it]
-                        if (status == null || status.taskId.isInvalid() || status.status == ITaskState.STOP.code) {
-                            TaskService.startTask(service.applicationContext, it)
-                            logger("take time 2.1 ${System.currentTimeMillis() - t} ms")
-                        } else {
-                            taskRepo.getTaskByUrl(it)
-                                ?.let {
-                                    startTaskSuccess(it, status.taskId.id, callback)
-                                }
-                            logger("take time 2.2 ${System.currentTimeMillis() - t} ms")
-                        }
-                    }
-                    Logger.w(service.getString(R.string.repeating_task_nothing_changed) + "=>开始任务命令由远程发起,忽略该问题")
-                    return
-                }
-
-                else -> {
-                    Logger.e(saveTaskResult.exception.message.toString())
-                    sendErrorToClient(
-                        "start_task",
-                        saveTaskResult.exception.message.toString(),
-                        saveTaskResult.code
-                    )
-                    callback?.onFailed(saveTaskResult.exception.message, saveTaskResult.code)
-                }
-            }
+            callback?.onFailed(saveTaskResult.exception.message, saveTaskResult.code)
             return
         }
 
         saveTaskResult as IResult.Success
-        predicate?.let {
-            it(
+        predicate?.let { block ->
+            block(
+                saveTaskResult.data.url,
                 saveTaskResult.data.downloadPath,
                 (newTaskConfig._fileTree as TreeNode.Directory).getCheckedFilePaths()
-                    .joinToString(";;")
+                    .joinToString(";;"),
             )
+        } ?: {
+            service.startTask(saveTaskResult.data.url, callback)
+            logger("take time 3 ${System.currentTimeMillis() - t} ms")
         }
-        Logger.d("downloadPath: ${saveTaskResult.data.downloadPath}")
-        TaskService.startTask(
-            service.applicationContext,
-            saveTaskResult.data.url
-        )
-        logger("take time 3 ${System.currentTimeMillis() - t} ms")
+
     }
 
     private suspend fun startTaskSuccess(

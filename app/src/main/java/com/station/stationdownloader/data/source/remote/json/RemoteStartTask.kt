@@ -7,43 +7,20 @@ import com.station.stationdownloader.data.source.ITorrentInfoRepository
 import com.station.stationdownloader.data.source.local.room.entities.XLDownloadTaskEntity
 
 data class RemoteStartTask(
-    val data: RemoteStartTaskData,
-    val expand: RemoteTask,
+    val url: String,
+    val task_id: String,
+    val id: Long,
+    val down_size: Long,
+    val download_path: String,
+    val file_count: Int,
+    val is_multifile: Boolean,
+    val is_torrent_task: Boolean,
+    val status: Int,
+    val task_name:String,
+    val total_size:Long,
+    val hash:String="",
+    val create_time:Long
 ) {
-    constructor(
-        url: String,
-        task_id: String,
-        id: Long,
-        down_size: Long,
-        download_path: String,
-        file_count: Int,
-        is_multifile: Boolean,
-        is_torrent_task: Boolean,
-        status: Int,
-        task_name: String,
-        total_size: Long,
-        hash: String = "",
-        create_time: Long
-    ) : this(
-        RemoteStartTaskData(url, task_id),
-        RemoteTask(
-            id,
-            down_size,
-            download_path,
-            file_count,
-            is_multifile,
-            is_torrent_task,
-            status,
-            task_id,
-            task_name,
-            total_size,
-            url,
-            hash,
-            create_time
-        )
-
-    )
-    
     companion object{
         @JvmStatic
         suspend fun Create(entity:XLDownloadTaskEntity, taskId: String, torrentRepo:ITorrentInfoRepository):RemoteStartTask{
@@ -83,9 +60,4 @@ data class RemoteStartTask(
         }
     }
 }
-
-data class RemoteStartTaskData(
-    val url: String,
-    val task_id: String,
-)
 

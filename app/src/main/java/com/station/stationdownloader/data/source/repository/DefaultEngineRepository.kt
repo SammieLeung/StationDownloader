@@ -193,7 +193,7 @@ class DefaultEngineRepository(
                     )
                     if (startTaskResult is IResult.Error) {
 //                        maxThreadCount.decrementAndGet()
-                        startTaskResult.exception.printStackTrace()
+                        Logger.e("${startTaskResult.exception}")
                         return@withContext startTaskResult
                     }
                     startTaskResult as IResult.Success
@@ -243,18 +243,20 @@ class DefaultEngineRepository(
             }
 
             DownloadEngine.ARIA2 -> {
-                val stopResponse = aria2Engine.stopTask(taskId.id)
-                if (stopResponse.succeeded) {
-                    if (maxThreadCount.get() > 0) maxThreadCount.decrementAndGet()
-                }
+
                 val ariaTaskStatus =
                     aria2Engine.tellStatus(taskId.id, url = stationDownloadTask.url)
                 if (ariaTaskStatus is IResult.Error) {
+                    Logger.e("${ariaTaskStatus.exception}")
                     taskRepo.updateTask(
                         stationDownloadTask.copy(
                             status = DownloadTaskStatus.PAUSE,
                         ).asXLDownloadTaskEntity()
                     )
+                    val stopResponse = aria2Engine.stopTask(taskId.id)
+                    if (stopResponse.succeeded) {
+                        if (maxThreadCount.get() > 0) maxThreadCount.decrementAndGet()
+                    }
                 } else {
                     val taskInfo = (ariaTaskStatus as IResult.Success).data
                     val taskStatus = when (taskInfo.status) {
@@ -268,6 +270,15 @@ class DefaultEngineRepository(
                             totalSize = taskInfo.totalSize
                         ).asXLDownloadTaskEntity()
                     )
+                    if (taskStatus == DownloadTaskStatus.COMPLETED) {
+                        if (maxThreadCount.get() > 0) maxThreadCount.decrementAndGet()
+                        aria2Engine.removeDownloadResult(taskId.id)
+                    } else {
+                        val stopResponse = aria2Engine.stopTask(taskId.id)
+                        if (stopResponse.succeeded) {
+                            if (maxThreadCount.get() > 0) maxThreadCount.decrementAndGet()
+                        }
+                    }
                 }
             }
 

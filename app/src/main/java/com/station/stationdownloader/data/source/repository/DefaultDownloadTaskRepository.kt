@@ -96,6 +96,15 @@ class DefaultDownloadTaskRepository(
         return localDataSource.updateTask(task)
     }
 
+    override suspend fun updateTaskStatus(
+        url: String,
+        downloadSize: Long,
+        totalSize: Long,
+        status: DownloadTaskStatus
+    ): IResult<Int> {
+        return localDataSource.updateTaskStatus(url, downloadSize, totalSize, status)
+    }
+
 
     override suspend fun saveTask(
         torrentId: Long,

@@ -7,6 +7,7 @@ import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Update
 import com.station.stationdownloader.DownloadEngine
+import com.station.stationdownloader.DownloadTaskStatus
 import com.station.stationdownloader.data.source.local.room.entities.XLDownloadTaskEntity
 import kotlinx.coroutines.flow.Flow
 
@@ -38,4 +39,7 @@ interface XLDownloadTaskDao {
     suspend fun deleteTask(url:String):Int
     @Update
     suspend fun updateTask(task: XLDownloadTaskEntity):Int
+
+    @Query("UPDATE xl_download_task SET status=:status,download_size=:downloadSize,total_size=:totalSize WHERE url=:url")
+    suspend fun updateTaskStatus(url:String, downloadSize:Long, totalSize:Long, status:DownloadTaskStatus):Int
 }

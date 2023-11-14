@@ -1,6 +1,7 @@
 package com.station.stationdownloader.data.source
 
 import com.station.stationdownloader.DownloadEngine
+import com.station.stationdownloader.DownloadTaskStatus
 import com.station.stationdownloader.DownloadUrlType
 import com.station.stationdownloader.data.IResult
 import com.station.stationdownloader.data.source.local.engine.NewTaskConfigModel
@@ -27,6 +28,7 @@ interface IDownloadTaskRepository {
     fun getTasksStream(): Flow<IResult<List<XLDownloadTaskEntity>>>
     suspend fun insertTask(task: XLDownloadTaskEntity): IResult<Long>
     suspend fun updateTask(task: XLDownloadTaskEntity): IResult<Int>
+    suspend fun updateTaskStatus(url:String,downloadSize:Long,totalSize: Long,status:DownloadTaskStatus): IResult<Int>
     suspend fun deleteTask(url: String, deleteFile: Boolean): IResult<Int>
     suspend fun saveTask(newTask: NewTaskConfigModel): IResult<XLDownloadTaskEntity>
     suspend fun saveTask(

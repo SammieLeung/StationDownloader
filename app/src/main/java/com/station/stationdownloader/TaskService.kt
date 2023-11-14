@@ -14,12 +14,11 @@ import com.station.stationdownloader.data.source.IDownloadTaskRepository
 import com.station.stationdownloader.data.source.ITorrentInfoRepository
 import com.station.stationdownloader.data.source.local.room.entities.XLDownloadTaskEntity
 import com.station.stationdownloader.data.source.local.room.entities.asStationDownloadTask
+import com.station.stationdownloader.data.source.remote.json.RemoteDeleteTask
 import com.station.stationdownloader.data.source.remote.json.RemoteStartTask
-import com.station.stationdownloader.data.source.remote.json.RemoteStartTaskData
 import com.station.stationdownloader.data.source.remote.json.RemoteStopTask
-import com.station.stationdownloader.data.source.remote.json.RemoteTask
+import com.station.stationdownloader.data.source.remote.json.RemoteTaskStatus
 import com.station.stationdownloader.data.source.repository.DefaultEngineRepository
-import com.station.stationdownloader.data.source.repository.DefaultTorrentInfoRepository
 import com.station.stationdownloader.data.usecase.EngineRepoUseCase
 import com.station.stationdownloader.di.AppCoroutineScope
 import com.station.stationdownloader.utils.DLogger
@@ -38,7 +37,6 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
-import kotlin.math.exp
 
 @AndroidEntryPoint
 class TaskService : Service(), DLogger {
@@ -177,95 +175,112 @@ class TaskService : Service(), DLogger {
     }
 
 
-    private fun startTask(url: String) = serviceScope.launch {
-        try {
-            val xlEntity = taskRepo.getTaskByUrl(url) ?: return@launch
-            if (downloadingTaskStatusData[url] != null)
-                stopTask(url).join()
-            val downloadTask = xlEntity.asStationDownloadTask()
-            val taskIdResult = engineRepo.startTask(downloadTask)
-            if (taskIdResult is IResult.Error) {
-                Logger.e(taskIdResult.exception.message.toString())
-                sendLocalBroadcast(Intent(
-                    ACTION_START_TASK_RESULT
-                ).apply {
-                    putExtra("url", url)
-                    putExtra("result", false)
-                    putExtra("reason", taskIdResult.exception.message.toString())
-                })
-                updateTaskStatusNow(
-                    url,
-                    TaskId(downloadTask.engine, INVALID_ID),
-                    ITaskState.STOP.code
+    fun startTask(url: String, callback: ITaskServiceCallback? = null) =
+        serviceScope.launch(Dispatchers.Default) {
+            try {
+                val xlEntity = taskRepo.getTaskByUrl(url) ?: return@launch
+                if (downloadingTaskStatusData[url] != null)
+                    stopTask(url).join()
+                val downloadTask = xlEntity.asStationDownloadTask()
+                val taskIdResult = engineRepo.startTask(downloadTask)
+                if (taskIdResult is IResult.Error) {
+                    Logger.e(taskIdResult.exception.message.toString())
+                    sendLocalBroadcast(Intent(
+                        ACTION_START_TASK_RESULT
+                    ).apply {
+                        putExtra("url", url)
+                        putExtra("result", false)
+                        putExtra("reason", taskIdResult.exception.message.toString())
+                    })
+                    updateTaskStatusNow(
+                        url,
+                        TaskId(downloadTask.engine, INVALID_ID),
+                        ITaskState.STOP.code
+                    )
+                    callback?.onFailed(
+                        /* reason = */ taskIdResult.exception.message.toString(),
+                        /* code = */ TaskExecuteError.START_TASK_FAILED.ordinal
+                    ) ?: sendErrorToClient(
+                        command = "start_task",
+                        reason = taskIdResult.exception.message.toString(),
+                        code = TaskExecuteError.START_TASK_FAILED.ordinal
+                    )
+                    return@launch
+                }
+                val taskId = (taskIdResult as IResult.Success).data
+                val status = TaskStatus(
+                    taskId = taskId,
+                    url = url,
+                    speed = 0,
+                    downloadSize = 0,
+                    totalSize = 0,
+                    status = ITaskState.UNKNOWN.code
                 )
-                sendErrorToClient(
-                    "start_task",
-                    taskIdResult.exception.message.toString(),
+                downloadingTaskStatusData[url] = status
+                updateTaskStatusNow(url, taskId, ITaskState.RUNNING.code)
+                val remoteStartTask = RemoteStartTask.Create(xlEntity, taskId.id, torrentRepo)
+                callback?.onResult(MoshiHelper.toJson(remoteStartTask))
+                    ?: sendToClient(
+                        command = "start_task",
+                        data = MoshiHelper.toJson(remoteStartTask),
+                        expendJson = null
+                    )
+                watchTaskJobMap[url]?.apply { cancel() }
+                watchTaskJobMap[url] = createWatchTask(taskId, url)
+            } catch (e: Exception) {
+                logError(e.message.toString())
+                callback?.onFailed(
+                    e.message.toString(),
                     TaskExecuteError.START_TASK_FAILED.ordinal
+                ) ?: sendErrorToClient(
+                    command = "start_task",
+                    reason = e.message.toString(),
+                    code = TaskExecuteError.START_TASK_FAILED.ordinal
                 )
-                return@launch
+            } finally {
+                startTaskJobMap.remove(url)
             }
-            val taskId = (taskIdResult as IResult.Success).data
-            val status = TaskStatus(
-                taskId = taskId,
-                url = url,
-                speed = 0,
-                downloadSize = 0,
-                totalSize = 0,
-                status = ITaskState.UNKNOWN.code
-            )
-            downloadingTaskStatusData[url] = status
-            updateTaskStatusNow(url, taskId, ITaskState.RUNNING.code)
-            val remoteStartTask = RemoteStartTask.Create(xlEntity, taskId.id, torrentRepo)
-            sendToClient(
-                "start_task",
-                MoshiHelper.toJson(remoteStartTask.data),
-                MoshiHelper.toJson(remoteStartTask.expand)
-            )
-
-            watchTaskJobMap[url]?.apply { cancel() }
-            watchTaskJobMap[url] = createWatchTask(taskId, url)
-
-        } catch (e: Exception) {
-            logError(e.message.toString())
-            sendErrorToClient(
-                "start_task",
-                e.message.toString(),
-                TaskExecuteError.START_TASK_FAILED.ordinal
-            )
-        } finally {
-            startTaskJobMap.remove(url)
         }
-    }
 
 
-    fun stopTask(url: String) =
-        serviceScope.launch {
+    fun stopTask(url: String, callback: ITaskServiceCallback? = null) =
+        serviceScope.launch(Dispatchers.Default) {
             try {
                 watchTaskJobMap.remove(url)?.apply { cancel() }
                 val entity = taskRepo.getTaskByUrl(url)
                 if (entity == null) {
-                    sendErrorToClient(
-                        "stop_task",
+                    callback?.onFailed(
                         "Download task not found!",
                         TaskExecuteError.STOP_TASK_FAILED.ordinal
+                    ) ?: sendErrorToClient(
+                        command = "stop_task",
+                        reason = "Download task not found!",
+                        code = TaskExecuteError.STOP_TASK_FAILED.ordinal
                     )
                     return@launch
                 }
                 val taskId = downloadingTaskStatusData[url]?.taskId
-                if (taskId == null) {
+                if (taskId == null||taskId.isInvalid()) {
                     taskRepo.updateTask(entity.copy(status = DownloadTaskStatus.PAUSE))
                 } else {
                     engineRepo.stopTask(taskId, entity.asStationDownloadTask())
-                    sendToClient("stop_task", MoshiHelper.toJson(RemoteStopTask(url)),null)
+                    callback?.onResult(MoshiHelper.toJson(RemoteStopTask(url)))
+                        ?: sendToClient(
+                            command = "stop_task",
+                            data = MoshiHelper.toJson(RemoteStopTask(url)),
+                            expendJson = null
+                        )
                 }
                 taskId?.let { updateTaskStatusNow(url, it, ITaskState.STOP.code) }
             } catch (e: Exception) {
                 logError(e.message.toString())
-                sendErrorToClient(
-                    "stop_task",
+                callback?.onFailed(
                     e.message.toString(),
                     TaskExecuteError.STOP_TASK_FAILED.ordinal
+                ) ?: sendErrorToClient(
+                    command = "stop_task",
+                    reason = e.message.toString(),
+                    code = TaskExecuteError.STOP_TASK_FAILED.ordinal
                 )
             } finally {
                 stopTaskJobMap.remove(url)
@@ -281,42 +296,53 @@ class TaskService : Service(), DLogger {
         url: String,
         isDeleteFile: Boolean,
         callback: ITaskServiceCallback? = null
-    ) =
-        serviceScope.launch {
-            val entity = taskRepo.getTaskByUrl(url)
-            if (entity == null) {
-                sendErrorToClient(
-                    "remove_task",
-                    "Task not found!",
-                    TaskExecuteError.STOP_TASK_FAILED.ordinal
-                )
-                return@launch
-            }
-            //FIXME 优化不同引擎的删除任务逻辑。XL引擎删除任务时，会自动停止任务，所以这里先停止任务，再删除任务。ARI2引擎删除任务时，不会自动停止任务，所以这里不需要停止任务，直接删除任务即可。
-            stopTask(url)
-            if (entity.engine == DownloadEngine.ARIA2) {
-                engineRepo.removeAria2Task(url)
-            }
-            val deleteResult = taskRepo.deleteTask(url, isDeleteFile)
-            if (deleteResult is IResult.Error) {
-                Logger.e(deleteResult.exception.message.toString())
-                callback?.onFailed(
-                    "delete task 【$url】failed",
-                    TaskExecuteError.DELETE_TASK_FAILED.ordinal
-                )
-                sendLocalBroadcast(
-                    Intent(ACTION_DELETE_TASK_RESULT).putExtra("url", url)
-                        .putExtra("result", false)
-                )
-            } else {
-                deleteResult as IResult.Success
-                callback?.onResult(url)
-                sendLocalBroadcast(
-                    Intent(ACTION_DELETE_TASK_RESULT).putExtra("url", url)
-                        .putExtra("result", true)
-                )
-            }
+    ) = serviceScope.launch(Dispatchers.Default) {
+        val entity = taskRepo.getTaskByUrl(url)
+        if (entity == null) {
+            callback?.onFailed(
+                "Task not found!",
+                TaskExecuteError.STOP_TASK_FAILED.ordinal
+            ) ?: sendErrorToClient(
+                command = "remove_task",
+                reason = "Task not found!",
+                code = TaskExecuteError.STOP_TASK_FAILED.ordinal
+            )
+            return@launch
         }
+        //FIXME 优化不同引擎的删除任务逻辑。XL引擎删除任务时，会自动停止任务，所以这里先停止任务，再删除任务。ARI2引擎删除任务时，不会自动停止任务，所以这里不需要停止任务，直接删除任务即可。
+        stopTask(url)
+        if (entity.engine == DownloadEngine.ARIA2) {
+            engineRepo.removeAria2Task(url)
+        }
+        val deleteResult = taskRepo.deleteTask(url, isDeleteFile)
+        if (deleteResult is IResult.Error) {
+            Logger.e(deleteResult.exception.message.toString())
+            callback?.onFailed(
+                "delete task 【$url】failed",
+                TaskExecuteError.DELETE_TASK_FAILED.ordinal
+            ) ?: sendErrorToClient(
+                command = "remove_task",
+                reason = "delete task 【$url】failed",
+                code = TaskExecuteError.DELETE_TASK_FAILED.ordinal
+            )
+            sendLocalBroadcast(
+                Intent(ACTION_DELETE_TASK_RESULT).putExtra("url", url)
+                    .putExtra("result", false)
+            )
+        } else {
+            deleteResult as IResult.Success
+            callback?.onResult(MoshiHelper.toJson(RemoteDeleteTask(url)))
+                ?: sendToClient(
+                    command = "remove_task",
+                    data = MoshiHelper.toJson(RemoteDeleteTask(url)),
+                    expendJson = null
+                )
+            sendLocalBroadcast(
+                Intent(ACTION_DELETE_TASK_RESULT).putExtra("url", url)
+                    .putExtra("result", true)
+            )
+        }
+    }
 
 
     private fun createWatchTask(taskId: TaskId, url: String): Job {
@@ -416,6 +442,21 @@ class TaskService : Service(), DLogger {
                 if (status == ITaskState.DONE.code) {
                     Logger.w("下载完成 [${taskId}]")
                     engineRepo.stopTask(taskId, task.asStationDownloadTask())
+                    sendToClient(
+                        "download_status",
+                        MoshiHelper.toJson(
+                            RemoteTaskStatus(
+                                download_size = taskInfo.mDownloadSize,
+                                speed = speed,
+                                status = ITaskState.DONE.ordinal,
+                                url = url,
+                                is_done = true,
+                                total_size = taskInfo.mFileSize,
+                                task_id = taskId.id
+                            )
+                        ),
+                        null
+                    )
                 }
                 downloadingTaskStatusData.remove(url)
                 watchTaskJobMap.remove(url)?.cancel()
@@ -466,12 +507,39 @@ class TaskService : Service(), DLogger {
             }
             val taskStatus = (taskStatusResult as IResult.Success).data
             updateTaskStatus(url, taskStatus)
+            taskRepo.updateTaskStatus(
+                url,
+                taskStatus.downloadSize,
+                taskStatus.totalSize,
+                when(taskStatus.status){
+                    ITaskState.RUNNING.code->DownloadTaskStatus.DOWNLOADING
+                    ITaskState.STOP.code->DownloadTaskStatus.PAUSE
+                    ITaskState.DONE.code->DownloadTaskStatus.COMPLETED
+                    else->DownloadTaskStatus.FAILED
+                }
+            )
+
             if (taskStatus.status == ITaskState.DONE.code || taskStatus.status == ITaskState.STOP.code) {
                 if (taskStatus.status == ITaskState.DONE.code) {
-                    Logger.w("下载完成 [${taskId}]")
+                    Logger.w("下载完成 [${taskStatus}]")
                     engineRepo.stopTask(
                         taskId,
                         taskRepo.getTaskByUrl(url)?.asStationDownloadTask() ?: return
+                    )
+                    sendToClient(
+                        "download_status",
+                        MoshiHelper.toJson(
+                            RemoteTaskStatus(
+                                download_size = taskStatus.downloadSize,
+                                speed = taskStatus.speed,
+                                status = ITaskState.DONE.ordinal,
+                                url = url,
+                                is_done = true,
+                                total_size = taskStatus.totalSize,
+                                task_id = taskId.id
+                            )
+                        ),
+                        null
                     )
                 }
                 downloadingTaskStatusData.remove(url)
@@ -483,15 +551,6 @@ class TaskService : Service(), DLogger {
     }
 
     private var shouldStop = false
-    private suspend fun aria2TellAll() {
-        while (!shouldStop) {
-            val list = engineRepo.tellAll()
-            list.forEach {
-
-                updateTaskStatus(it.taskStatus.url, it.taskStatus)
-            }
-        }
-    }
 
     private fun updateTaskStatusNow(url: String, taskId: TaskId, status: Int) {
         when (taskId.engine) {
@@ -552,8 +611,8 @@ class TaskService : Service(), DLogger {
         LocalBroadcastManager.getInstance(this).sendBroadcast(intent)
     }
 
-    private fun sendToClient(command: String, data: String, expand: String?) {
-        taskStatusBinder?.sendToClient(command, data, expand)
+    private fun sendToClient(command: String, data: String, expendJson: String?) {
+        taskStatusBinder?.sendToClient(command, data, expendJson)
     }
 
     private fun sendErrorToClient(command: String, reason: String, code: Int) {

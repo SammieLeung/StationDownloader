@@ -135,6 +135,6 @@ class AddUriDialogFragment : BaseDialogFragment<DialogFragmentAddUriBinding>() {
     }
 
     companion object{
-        const val DEBUG_URL = "magnet:?xt=urn:btih:2CDFF8D7D794A0A623357386DFFDDE405BA7F4D7"
+        const val DEBUG_URL = "magnet:?xt=urn:btih:FA75229646CCDD424634E24554B21945D4CA3B42"
     }
 }

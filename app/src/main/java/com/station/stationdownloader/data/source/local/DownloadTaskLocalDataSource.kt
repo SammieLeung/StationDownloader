@@ -1,6 +1,7 @@
 package com.station.stationdownloader.data.source.local
 
 import com.station.stationdownloader.DownloadEngine
+import com.station.stationdownloader.DownloadTaskStatus
 import com.station.stationdownloader.contants.TaskExecuteError
 import com.station.stationdownloader.data.source.IDownloadTaskDataSource
 import com.station.stationdownloader.data.source.local.room.dao.XLDownloadTaskDao
@@ -88,6 +89,20 @@ class DownloadTaskLocalDataSource internal constructor(
                 IResult.Error(exception = e)
             }
         }
+
+    override suspend fun updateTaskStatus(
+        url: String,
+        downloadSize: Long,
+        totalSize: Long,
+        status: DownloadTaskStatus
+    ): IResult<Int> =  withContext(ioDispatcher) {
+        return@withContext try {
+            IResult.Success(downloadTaskDao.updateTaskStatus(url, downloadSize, totalSize, status))
+        } catch (e: Exception) {
+            IResult.Error(exception = e)
+        }
+
+    }
 
     override suspend fun deleteTask(url: String): IResult<Int> = withContext(ioDispatcher) {
         try {
