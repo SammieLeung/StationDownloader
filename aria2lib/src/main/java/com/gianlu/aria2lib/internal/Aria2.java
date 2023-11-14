@@ -350,8 +350,12 @@ public final class Aria2 {
             this.params = new HashMap<>();
 
             // Can be overridden
+            /*
+             *任务状态改变后保存会话的间隔时间（秒）, 0 为仅在进程正常退出时保存, 默:0
+             *为了及时保存任务状态、防止任务丢失，此项值只建议设置为 1
+             */
             if (Prefs.getBoolean(Aria2PK.SAVE_SESSION))
-                params.put("--save-session-interval", "30");
+                params.put("--save-session-interval", "1");
 
             String dns1 = getprop("net.dns1");
             String dns2 = getprop("net.dns2");
@@ -374,6 +378,27 @@ public final class Aria2 {
             loadCustomOptions(params);
 
             // Cannot be overridden
+
+            params.put("--dht-entry-point","dht.transmissionbt.com:6881");
+            params.put("--auto-save-interval","20");
+            params.put("--max-file-not-found","10");
+            params.put("--max-tries","0");
+            params.put("--retry-wait","10");
+            params.put("--connect-timeout","10");
+            params.put("--timeout","10");
+            params.put("--max-connection-per-server","16");// 单服务器最大连接线程数, 任务添加时可指定, 默认:1 最大值为 16 (增强版无限制), 且受限于单任务最大连接线程数(split)所设定的值。
+            params.put("--split","64");// 单任务最大连接线程数, 任务添加时可指定, 默认:5
+            params.put("--dht-file-path",new File(parent,".cache/aria2/dht.dat").getAbsolutePath());
+            params.put("--file-allocation","none");
+            params.put("--no-file-allocation-limit","64M");
+            params.put("--bt-enable-lpd","true");
+            params.put("--bt-max-peers","128");
+            params.put("--max-overall-upload-limit","2M");
+            params.put("--bt-tracker-connect-timeout","10");
+            params.put("--bt-tracker-timeout","10");
+            params.put("--bt-prioritize-piece","head=32M,tail=32M");
+
+            params.put("--user-agent","Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/111.0.0.0 Safari/537.36");
             params.put("--daemon", "false");
             params.put("--enable-color", "false");
             params.put("--enable-rpc", "true");
