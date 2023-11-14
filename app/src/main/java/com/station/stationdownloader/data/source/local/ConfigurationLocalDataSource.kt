@@ -67,6 +67,8 @@ class ConfigurationLocalDataSource internal constructor(
     private fun getValue(option: Aria2Options): String {
         return when (option) {
             Aria2Options.SpeedLimit -> defaultMMKV.decodeString(option.key) ?: "0"
+            Aria2Options.BtTracker -> defaultMMKV.decodeString(option.key) ?: ""
+            Aria2Options.BtTrackerLastUpdate -> defaultMMKV.decodeString(option.key) ?: ""
         }
     }
 

@@ -61,7 +61,7 @@ open class WebSocketClient private constructor(
             val response = InternalResponse()
 
             requests[id] = response
-//            logger("sendRequestSync:\n  $request")
+            logger("sendRequestSync:\n  $request")
 
             webSocket.get()?.send(request.toString())
                 ?: throw IllegalStateException("WebSocket is closed")
@@ -204,7 +204,7 @@ open class WebSocketClient private constructor(
                 }
 
             val method: String = response.optString("method", "")
-//            logger("onMessage:\n  $text")
+            logger("onMessage:\n  $text")
             if (method.isNotEmpty() && method.startsWith("aria2.on")) return
             val internal: InternalResponse =
                 requests[response.getString("id").toLong()]
@@ -293,6 +293,7 @@ open class WebSocketClient private constructor(
         FORCE_PAUSE("aria2.forcePause"),
         FORCE_REMOVE("aria2.forceRemove"),
         REMOVE_RESULT("aria2.removeDownloadResult"),
+        REMOVE_DOWNLOAD_RESULT("aria2.removeDownloadResult"),
         GET_VERSION("aria2.getVersion"),
         PAUSE_ALL("aria2.pauseAll"),
         GET_SESSION_INFO("aria2.getSessionInfo"),

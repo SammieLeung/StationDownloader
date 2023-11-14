@@ -90,7 +90,11 @@ object Aria2Requests {
     }
 
     fun remove(gid: String): Aria2Request {
-        return Aria2Request(WebSocketClient.Method.REMOVE, arrayOf(gid))
+        return Aria2Request(WebSocketClient.Method.FORCE_REMOVE, arrayOf(gid))
+    }
+
+    fun removeDownloadResult(gid: String): Aria2Request {
+        return Aria2Request(WebSocketClient.Method.REMOVE_DOWNLOAD_RESULT, arrayOf(gid))
     }
 
     fun changeGlobalOptions(options: OptionsMap): Aria2Request {

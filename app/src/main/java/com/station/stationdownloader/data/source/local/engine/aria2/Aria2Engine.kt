@@ -8,11 +8,13 @@ import com.gianlu.aria2lib.Aria2Ui
 import com.gianlu.aria2lib.BadEnvironmentException
 import com.gianlu.aria2lib.commonutils.Prefs
 import com.gianlu.aria2lib.internal.Message
+import com.orhanobut.logger.Logger
 import com.station.stationdownloader.Aria2TorrentTask
 import com.station.stationdownloader.DownloadEngine
 import com.station.stationdownloader.DownloadUrlType
 import com.station.stationdownloader.TaskStatus
 import com.station.stationdownloader.contants.Aria2Options
+import com.station.stationdownloader.contants.BT_TRACKER_UPDATE_INTERVAL
 import com.station.stationdownloader.contants.Options
 import com.station.stationdownloader.contants.TaskExecuteError
 import com.station.stationdownloader.data.IResult
@@ -22,10 +24,12 @@ import com.station.stationdownloader.data.source.local.engine.IEngine
 import com.station.stationdownloader.data.source.local.engine.aria2.connection.client.ClientInstanceHolder
 import com.station.stationdownloader.data.source.local.engine.aria2.connection.client.WebSocketClient
 import com.station.stationdownloader.data.source.local.engine.aria2.connection.common.OptionsMap
+import com.station.stationdownloader.data.source.local.engine.aria2.connection.exception.Aria2Exception
 import com.station.stationdownloader.data.source.local.engine.aria2.connection.profile.UserProfileManager
 import com.station.stationdownloader.data.source.local.engine.aria2.connection.transport.Aria2Request
 import com.station.stationdownloader.data.source.local.engine.aria2.connection.transport.Aria2RequestWithResult
 import com.station.stationdownloader.data.source.local.engine.aria2.connection.transport.Aria2Requests
+import com.station.stationdownloader.data.source.remote.BtTrackerApiService
 import com.station.stationdownloader.data.source.repository.DefaultConfigurationRepository
 import com.station.stationdownloader.utils.DLogger
 import kotlinx.coroutines.CoroutineDispatcher
@@ -36,6 +40,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.ByteArrayOutputStream
 import java.io.File
+import javax.inject.Inject
 import kotlin.coroutines.resume
 import kotlin.coroutines.suspendCoroutine
 
@@ -48,6 +53,7 @@ class Aria2Engine internal constructor(
     private val profileManager: UserProfileManager,
     private val configRepo: DefaultConfigurationRepository,
     private val taskRepo: IDownloadTaskRepository,
+    private val btTrackerApiService: BtTrackerApiService,
     private val defaultDispatcher: CoroutineDispatcher = Dispatchers.Default
 ) : IEngine, DLogger {
     private var aria2Service: Aria2UiDispatcher = Aria2UiDispatcher(appContext)
@@ -85,7 +91,6 @@ class Aria2Engine internal constructor(
 
                 loadAria2ServiceEnv()
                 aria2Service.ui.startService()
-//                loadOptions()
             }
         } catch (e: Exception) {
             e.printStackTrace()
@@ -124,7 +129,7 @@ class Aria2Engine internal constructor(
         return gidResponse
     }
 
-    override suspend fun  startTask(
+    override suspend fun startTask(
         realUrl: String,
         downloadPath: String,
         name: String,
@@ -138,6 +143,23 @@ class Aria2Engine internal constructor(
                 gid?.let {
                     val unpauseResponse = sendToWebSocketSync(Aria2Requests.unpause(gid))
                     if (unpauseResponse is IResult.Error) {
+                        when (unpauseResponse.exception) {
+                            is Aria2Exception -> {
+                                if (unpauseResponse.exception.reason.contains(Regex("GID [0-9A-Fa-f]+ is not found"))) {
+                                    val gidResponse = addTorrent(
+                                        realUrl,
+                                        downloadPath,
+                                        selectIndexes,
+                                        false
+                                    )
+                                    if (gidResponse is IResult.Error) {
+                                        return gidResponse
+                                    }
+                                    aria2GidData[realUrl] = (gidResponse as IResult.Success).data
+                                    return gidResponse
+                                }
+                            }
+                        }
                         return unpauseResponse
                     }
                     return IResult.Success(it)
@@ -169,13 +191,13 @@ class Aria2Engine internal constructor(
         return aria2GidData.containsKey(realUrl)
     }
 
-    fun getGid(realUrl: String):String=aria2GidData[realUrl]?:""
+    fun getGid(realUrl: String): String = aria2GidData[realUrl] ?: ""
 
     suspend fun connect() {
         reference = ClientInstanceHolder.instantiate(profileManager.getInAppProfile())
     }
 
-    override suspend fun stopTask(taskId: String) : IResult<Boolean>{
+    override suspend fun stopTask(taskId: String): IResult<Boolean> {
         return sendToWebSocketSync(Aria2Requests.pause(taskId))
     }
 
@@ -187,6 +209,14 @@ class Aria2Engine internal constructor(
                         put("max-overall-download-limit", OptionsMap.OptionValue(values))
                     })
                 }
+
+                Aria2Options.BtTracker -> {
+                    changeGlobalOptions(OptionsMap().apply {
+                        put("bt-tracker", OptionsMap.OptionValue(values))
+                    })
+                }
+
+                Aria2Options.BtTrackerLastUpdate -> {}
             }
             configRepo.setValue(key, values)
             return IResult.Success(true)
@@ -208,6 +238,26 @@ class Aria2Engine internal constructor(
         changeGlobalOptions(OptionsMap().apply {
             put("max-overall-download-limit", OptionsMap.OptionValue(speedLimit))
         })
+
+        var btTracker = configRepo.getValue(Aria2Options.BtTracker)
+
+        val btTrackerLastUpdate = configRepo.getValue(Aria2Options.BtTrackerLastUpdate)
+        if (btTracker.isEmpty() || btTrackerLastUpdate.isEmpty() || btTrackerLastUpdate.takeIf { (System.currentTimeMillis() - it.toLong()) > BT_TRACKER_UPDATE_INTERVAL } != null) {
+            try {
+                btTracker = btTrackerApiService.getBtTrackerAllList()
+            } catch (e: Exception) {
+                Logger.e("${e.message}")
+            }
+        }
+        changeGlobalOptions(OptionsMap().apply {
+            put("bt-tracker", OptionsMap.OptionValue(btTracker))
+        })
+        configRepo.setValue(Aria2Options.BtTracker, btTracker)
+        configRepo.setValue(
+            Aria2Options.BtTrackerLastUpdate,
+            System.currentTimeMillis().toString()
+        )
+
     }
 
     private suspend fun addTorrent(
@@ -242,6 +292,16 @@ class Aria2Engine internal constructor(
         )
         return sendToWebSocketSync(Aria2Requests.remove(gid)) {
             aria2GidData.remove(realUrl)
+            true
+        }
+    }
+
+    suspend fun removeDownloadResult(gid: String): IResult<Boolean> {
+        return sendToWebSocketSync(Aria2Requests.removeDownloadResult(gid)) {
+            Logger.d("removeDownloadResult $gid")
+            aria2GidData.filter { it.value == gid }.forEach {
+                aria2GidData.remove(it.key)
+            }
             true
         }
     }
@@ -336,7 +396,7 @@ class Aria2Engine internal constructor(
         }
     }
 
-    private suspend inline fun <R> sendToWebSocketSync(requestWithResult: Aria2RequestWithResult<R>): IResult<R>  {
+    private suspend inline fun <R> sendToWebSocketSync(requestWithResult: Aria2RequestWithResult<R>): IResult<R> {
         try {
             val result = suspendCoroutine { continuation ->
                 val job = Job()

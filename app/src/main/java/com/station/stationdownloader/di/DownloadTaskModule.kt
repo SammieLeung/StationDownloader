@@ -16,6 +16,7 @@ import com.station.stationdownloader.data.source.local.engine.aria2.connection.p
 import com.station.stationdownloader.data.source.local.room.dao.XLDownloadTaskDao
 import com.station.stationdownloader.data.source.local.room.dao.TorrentFileInfoDao
 import com.station.stationdownloader.data.source.local.room.dao.TorrentInfoDao
+import com.station.stationdownloader.data.source.remote.BtTrackerApiService
 import com.station.stationdownloader.data.source.remote.FileSizeApiService
 import com.station.stationdownloader.data.source.repository.DefaultConfigurationRepository
 import com.station.stationdownloader.data.source.repository.DefaultEngineRepository
@@ -127,9 +128,10 @@ object EngineModule {
         profileManager: UserProfileManager,
         configRepo: DefaultConfigurationRepository,
         taskRepo: IDownloadTaskRepository,
+        btTrackerApiService: BtTrackerApiService,
         @DefaultDispatcher defaultDispatcher: CoroutineDispatcher
     ): Aria2Engine {
-        return Aria2Engine(context, profileManager, configRepo, taskRepo, defaultDispatcher)
+        return Aria2Engine(context, profileManager, configRepo, taskRepo, btTrackerApiService,defaultDispatcher)
     }
 
 }

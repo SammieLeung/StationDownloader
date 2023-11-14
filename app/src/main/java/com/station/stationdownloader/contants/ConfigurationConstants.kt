@@ -1,6 +1,7 @@
 package com.station.stationdownloader.contants
 
 import android.os.Environment
+import com.gianlu.aria2lib.internal.Aria2
 import java.io.File
 
 sealed class Options(val key: String) {
@@ -9,19 +10,24 @@ sealed class Options(val key: String) {
     }
 }
 
-sealed class CommonOptions(key: String): Options(key) {
+sealed class CommonOptions(key: String) : Options(key) {
     object MaxThread : CommonOptions("max_thread")
     object DownloadPath : CommonOptions("download_path")
     object DefaultDownloadEngine : CommonOptions("download_engine")
 }
 
-sealed class Aria2Options(key: String): Options(key) {
+sealed class Aria2Options(key: String) : Options(key) {
     object SpeedLimit : Aria2Options("aria2_speed_limit")
+    object BtTracker : Aria2Options("aria2_bt_tracker")
+    object BtTrackerLastUpdate : Aria2Options("aria2_bt_tracker_last_update")
 }
 
-sealed class XLOptions(key: String): Options(key) {
+sealed class XLOptions(key: String) : Options(key) {
     object SpeedLimit : XLOptions("xl_speed_limit")
 }
+
+const val BT_TRACKER_UPDATE_INTERVAL = 24 * 60 * 60 * 1000L
+const val BT_TRACKER_ARIA2_URL = "https://cf.trackerslist.com/all_aria2.txt"
 
 const val DEFAULT_MAX_CONCURRENT_DOWNLOADS_COUNT = 5
 const val DEFAULT_DOWNLOAD_DIR = "Station/Download"
