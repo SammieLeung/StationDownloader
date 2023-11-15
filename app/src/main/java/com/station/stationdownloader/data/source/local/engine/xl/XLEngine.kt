@@ -32,6 +32,8 @@ import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
 import java.io.File
@@ -45,34 +47,30 @@ class XLEngine internal constructor(
     private val defaultDispatcher: CoroutineDispatcher = Dispatchers.Default
 ) : IEngine, DLogger {
     private var hasInit = false
+    private val mutex = Mutex()
 
     override suspend fun init(): IResult<String> = withContext(defaultDispatcher) {
-        if (!hasInit) {
-            synchronized(this@XLEngine) {
-                if (!hasInit) {
-                    try {
-                        XLTaskHelper.init(context)
-                        hasInit = true
-                    } catch (e: Exception) {
-                        e.printStackTrace()
-                        return@withContext IResult.Error(e)
-                    }
-                }
+        mutex.withLock {
+            if (!hasInit) {
+                XLTaskHelper.init(context)
+                loadOptions()
+                hasInit = true
             }
-            loadOptions()
         }
         return@withContext IResult.Success("${DownloadEngine.XL}[${XLTaskHelper.instance()}]")
     }
 
     override suspend fun unInit() = withContext(defaultDispatcher) {
-        if (hasInit) {
-            synchronized(this@XLEngine) {
-                if (hasInit) {
-                    XLTaskHelper.uninit()
-                    hasInit = false
-                }
+        mutex.withLock {
+            if (hasInit) {
+                XLTaskHelper.uninit()
+                hasInit = false
             }
         }
+    }
+
+    override suspend fun isInit(): Boolean {
+        return hasInit
     }
 
     private suspend fun loadOptions() {
@@ -164,7 +162,7 @@ class XLEngine internal constructor(
         }
     }
 
-    override suspend fun stopTask(taskId: String):IResult<Boolean> {
+    override suspend fun stopTask(taskId: String): IResult<Boolean> {
         XLTaskHelper.instance().stopTask(taskId.toLong())
         return IResult.Success(true)
     }

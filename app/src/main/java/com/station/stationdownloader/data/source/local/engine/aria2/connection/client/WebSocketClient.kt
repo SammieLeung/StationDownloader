@@ -1,6 +1,5 @@
 package com.station.stationdownloader.data.source.local.engine.aria2.connection.client
 
-import android.util.Log
 import androidx.annotation.UiThread
 import androidx.annotation.WorkerThread
 import com.orhanobut.logger.Logger
@@ -13,6 +12,7 @@ import com.station.stationdownloader.data.source.local.engine.aria2.connection.t
 import com.station.stationdownloader.data.source.local.engine.aria2.connection.util.Aria2NetUtils
 import com.station.stationdownloader.utils.DLogger
 import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -47,6 +47,7 @@ open class WebSocketClient private constructor(
     )
     private var closed: Boolean = false
     private val requests: MutableMap<Long, InternalResponse> = mutableMapOf()
+    private lateinit var notifyReference: WeakReference<OnNotify>
 
     /**
      * 发送同步请求
@@ -54,12 +55,11 @@ open class WebSocketClient private constructor(
      * @param request 请求JSON
      */
     @Throws(Exception::class)
-    suspend fun sendRequestSync(id: Long, request: JSONObject): JSONObject =
+    private suspend fun sendRequestSync(id: Long, request: JSONObject): JSONObject =
         withContext(defaultDispatcher) {
             if (closed) throw IllegalStateException("WebSocket is closed")
 
             val response = InternalResponse()
-
             requests[id] = response
             logger("sendRequestSync:\n  $request")
 
@@ -85,6 +85,21 @@ open class WebSocketClient private constructor(
                 onJsonResult.onException(ex)
             }
         }
+
+    private suspend fun <R> batch(sandBox: BatchSandBox<R>, listener: DoBatch<R>) {
+        if (closed) {
+            listener.onException(IllegalStateException("Client is closed $this"))
+            return
+        }
+
+        withContext(defaultDispatcher) {
+            try {
+                listener.onBatchProcessReturned(sandBox.batchProcess(this@WebSocketClient))
+            } catch (e: Exception) {
+                listener.onException(e)
+            }
+        }
+    }
 
     @Throws(Exception::class)
     suspend fun sendSync(request: Aria2Request): JSONObject = withContext(defaultDispatcher) {
@@ -128,7 +143,7 @@ open class WebSocketClient private constructor(
             }
         }
 
-    suspend fun <R> send(request: Aria2RequestWithResult<R>, onResult: OnResult<R>) =
+    suspend fun <R> send(request: Aria2RequestWithResult<R>,  @UiThread onResult: OnResult<R>) =
         withContext(defaultDispatcher) {
             try {
                 request.build(this@WebSocketClient).run {
@@ -164,6 +179,24 @@ open class WebSocketClient private constructor(
         }
 
 
+    suspend fun <R> batch(sandbox: BatchSandBox<R>,  @UiThread listener: OnResult<R>) =
+        withContext(defaultDispatcher) {
+            batch(sandbox, object : DoBatch<R> {
+                override fun onBatchProcessReturned(result: R) {
+                    launch(uiDispatcher) {
+                        listener.onResult(result)
+                    }
+                }
+
+                override fun onException(ex: Exception) {
+                    launch(uiDispatcher) {
+                        listener.onException(ex)
+                    }
+                }
+            })
+        }
+
+
     fun nextRequestId(): Long {
         synchronized(requestIds) { return requestIds.getAndIncrement() }
     }
@@ -179,6 +212,11 @@ open class WebSocketClient private constructor(
         return array
     }
 
+    fun setNotifyListener(listener: OnNotify?) {
+        logger("setNotifyListener: $listener")
+        notifyReference = WeakReference(listener)
+    }
+
     override fun close() {
         closed = true
 
@@ -190,7 +228,12 @@ open class WebSocketClient private constructor(
         ClientInstanceHolder.hasBeenClosed(this)
     }
 
+    override fun DLogger.tag(): String {
+        return "WebSocketClient"
+    }
+
     inner class Aria2WebSocketListener : WebSocketListener() {
+        val scope = CoroutineScope(Dispatchers.Default)
         override fun onMessage(webSocket: WebSocket, text: String) {
             if (closed) return
 
@@ -205,7 +248,44 @@ open class WebSocketClient private constructor(
 
             val method: String = response.optString("method", "")
             logger("onMessage:\n  $text")
-            if (method.isNotEmpty() && method.startsWith("aria2.on")) return
+            if (method.isNotEmpty() && method.startsWith("aria2.on")) {
+                scope.launch {
+                    val gid = response.getJSONArray("params").getJSONObject(0).getString("gid")
+                    when (method) {
+                        "aria2.onDownloadStart" -> {
+                            notifyReference.get()?.onDownloadStart(gid)
+                            Logger.d("aria2.onDownloadStart: $gid")
+                        }
+
+                        "aria2.onDownloadPause" -> {
+                            notifyReference.get()?.onDownloadPause(gid)
+                            Logger.d("aria2.onDownloadPause: $gid")
+                        }
+
+                        "aria2.onDownloadStop" -> {
+                            notifyReference.get()?.onDownloadStop(gid)
+                            Logger.d("aria2.onDownloadStop: $gid")
+                        }
+
+                        "aria2.onDownloadComplete" -> {
+                            Logger.d("aria2.onDownloadComplete: $gid")
+                            notifyReference.get()?.onDownloadComplete(gid)
+                        }
+
+                        "aria2.onDownloadError" -> {
+                            notifyReference.get()?.onDownloadError(gid)
+                            Logger.d("aria2.onDownloadError: $gid")
+                        }
+
+                        "aria2.onBtDownloadComplete" -> {
+                            notifyReference.get()?.onBtDownloadComplete(gid)
+                            Logger.d("aria2.onBtDownloadComplete: $gid")
+                        }
+                    }
+                }
+
+                return
+            }
             val internal: InternalResponse =
                 requests[response.getString("id").toLong()]
                     ?: return
@@ -247,6 +327,23 @@ open class WebSocketClient private constructor(
         fun onException(ex: Exception)
     }
 
+    interface DoBatch<R> {
+        @WorkerThread
+        fun onBatchProcessReturned(result: R)
+
+        @WorkerThread
+        fun onException(ex: Exception)
+    }
+
+    interface OnNotify {
+        suspend fun onDownloadStart(gid: String)
+        suspend fun onDownloadPause(gid: String)
+        suspend fun onDownloadStop(gid: String)
+        suspend fun onDownloadComplete(gid: String)
+        suspend fun onDownloadError(gid: String)
+        suspend fun onBtDownloadComplete(gid: String)
+    }
+
     interface OnJson {
         @WorkerThread
         @Throws(JSONException::class)
@@ -283,6 +380,12 @@ open class WebSocketClient private constructor(
         }
     }
 
+    interface BatchSandBox<R> {
+        @WorkerThread
+        @Throws(Exception::class)
+        suspend fun batchProcess(client: WebSocketClient): R
+    }
+
     enum class Method(val method: String) {
         TELL_STATUS("aria2.tellStatus"),
         TELL_ACTIVE("aria2.tellActive"),
@@ -293,7 +396,6 @@ open class WebSocketClient private constructor(
         FORCE_PAUSE("aria2.forcePause"),
         FORCE_REMOVE("aria2.forceRemove"),
         REMOVE_RESULT("aria2.removeDownloadResult"),
-        REMOVE_DOWNLOAD_RESULT("aria2.removeDownloadResult"),
         GET_VERSION("aria2.getVersion"),
         PAUSE_ALL("aria2.pauseAll"),
         GET_SESSION_INFO("aria2.getSessionInfo"),
@@ -333,11 +435,6 @@ open class WebSocketClient private constructor(
             }
         }
     }
-
-    override fun DLogger.tag(): String {
-        return "WebSocketClient"
-    }
-
 }
 
 class InitializationException internal constructor(cause: Throwable?) :

@@ -34,7 +34,10 @@ class WelcomeActivity : PermissionActivity<ActivityWelcomeBinding>(
                 val messageList= mutableListOf<String>()
                 if (!app.isInitialized()) {
                     app.initialize()
-                    engineRepoUseCase.initEngine { engine, result ->
+                }
+
+                if(!engineRepoUseCase.isEnginesInitialized()){
+                    engineRepoUseCase.initEngines { engine, result ->
                         when (engine) {
                             DownloadEngine.XL -> {
                                 if(result is IResult.Success) {
@@ -51,7 +54,6 @@ class WelcomeActivity : PermissionActivity<ActivityWelcomeBinding>(
                                 } else if (result is IResult.Error) {
                                     messageList.add(getString(R.string.aria2_engine_initailize_error))
                                     Logger.e("[Aria2] init error: ${result.exception}")
-                                    delay(1000)
                                 }
                                 messageList.add(getString(R.string.welcome_enter_message))
                                 mBinding.process= messageList.joinToString("\n")
@@ -62,9 +64,9 @@ class WelcomeActivity : PermissionActivity<ActivityWelcomeBinding>(
 
                             DownloadEngine.INVALID_ENGINE -> {}
                         }
-
                     }
-                }else{
+                }
+                else{
                     startActivity(MainActivity.newIntent(this@WelcomeActivity))
                     finish()
                 }

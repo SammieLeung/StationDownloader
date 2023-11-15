@@ -10,8 +10,10 @@ import com.station.stationdownloader.TaskId.Companion.INVALID_ID
 import com.station.stationdownloader.TaskId.Companion.INVALID_TASK_ID
 import com.station.stationdownloader.contants.TaskExecuteError
 import com.station.stationdownloader.data.IResult
+import com.station.stationdownloader.data.result
 import com.station.stationdownloader.data.source.IDownloadTaskRepository
 import com.station.stationdownloader.data.source.ITorrentInfoRepository
+import com.station.stationdownloader.data.source.local.engine.aria2.connection.client.WebSocketClient
 import com.station.stationdownloader.data.source.local.room.entities.XLDownloadTaskEntity
 import com.station.stationdownloader.data.source.local.room.entities.asStationDownloadTask
 import com.station.stationdownloader.data.source.remote.json.RemoteDeleteTask
@@ -19,6 +21,7 @@ import com.station.stationdownloader.data.source.remote.json.RemoteStartTask
 import com.station.stationdownloader.data.source.remote.json.RemoteStopTask
 import com.station.stationdownloader.data.source.remote.json.RemoteTaskStatus
 import com.station.stationdownloader.data.source.repository.DefaultEngineRepository
+import com.station.stationdownloader.data.succeeded
 import com.station.stationdownloader.data.usecase.EngineRepoUseCase
 import com.station.stationdownloader.di.AppCoroutineScope
 import com.station.stationdownloader.utils.DLogger
@@ -39,7 +42,7 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @AndroidEntryPoint
-class TaskService : Service(), DLogger {
+class TaskService : Service(), DLogger, WebSocketClient.OnNotify {
     val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
     @Inject
@@ -81,6 +84,7 @@ class TaskService : Service(), DLogger {
             )
         )
 
+    //下载任务状态数据 url to TaskStatus
     private val downloadingTaskStatusData: MutableMap<String, TaskStatus> = mutableMapOf()
 
 
@@ -92,7 +96,19 @@ class TaskService : Service(), DLogger {
             val app = application as StationDownloaderApp
             if (!app.isInitialized()) {
                 app.initialize()
-                engineRepoUseCase.initEngine()
+            }
+            if (!engineRepoUseCase.isEnginesInitialized()) {
+                engineRepoUseCase.initEngines { engine, result ->
+                    if (engine == DownloadEngine.ARIA2) {
+                        if (result.succeeded) {
+                            engineRepo.setAria2NotifyListener(this@TaskService)
+                        }
+                    }
+                }
+            } else {
+                if (engineRepo.isEngineInitialized(DownloadEngine.ARIA2)) {
+                    engineRepo.setAria2NotifyListener(this@TaskService)
+                }
             }
         }
     }
@@ -168,9 +184,9 @@ class TaskService : Service(), DLogger {
 
     override fun onDestroy() {
         super.onDestroy()
-        watchTaskJobMap.values.forEach { it.cancel() }
-        startTaskJobMap.values.forEach { it.cancel() }
-        stopTaskJobMap.values.forEach { it.cancel() }
+        watchTaskJobMap.forEach { watchTaskJobMap.remove(it.key)?.cancel() }
+        startTaskJobMap.forEach { startTaskJobMap.remove(it.key)?.cancel() }
+        stopTaskJobMap.forEach { stopTaskJobMap.remove(it.key)?.cancel() }
         serviceScope.cancel()
     }
 
@@ -179,8 +195,11 @@ class TaskService : Service(), DLogger {
         serviceScope.launch(Dispatchers.Default) {
             try {
                 val xlEntity = taskRepo.getTaskByUrl(url) ?: return@launch
-                if (downloadingTaskStatusData[url] != null)
-                    stopTask(url).join()
+                if (downloadingTaskStatusData[url] != null) {
+                    stopTaskJobMap.remove(url)?.apply { cancel() }
+                    stopTaskJobMap[url] = stopTask(url)
+                    stopTaskJobMap[url]?.join()
+                }
                 val downloadTask = xlEntity.asStationDownloadTask()
                 val taskIdResult = engineRepo.startTask(downloadTask)
                 if (taskIdResult is IResult.Error) {
@@ -208,15 +227,15 @@ class TaskService : Service(), DLogger {
                     return@launch
                 }
                 val taskId = (taskIdResult as IResult.Success).data
-                val status = TaskStatus(
-                    taskId = taskId,
-                    url = url,
-                    speed = 0,
-                    downloadSize = 0,
-                    totalSize = 0,
-                    status = ITaskState.UNKNOWN.code
-                )
-                downloadingTaskStatusData[url] = status
+//                val status = TaskStatus(
+//                    taskId = taskId,
+//                    url = url,
+//                    speed = 0,
+//                    downloadSize = 0,
+//                    totalSize = 0,
+//                    status = ITaskState.UNKNOWN.code
+//                )
+//                downloadingTaskStatusData[url] = status//FIXME 为什么要先添加到map中，再更新状态？
                 updateTaskStatusNow(url, taskId, ITaskState.RUNNING.code)
                 val remoteStartTask = RemoteStartTask.Create(xlEntity, taskId.id, torrentRepo)
                 callback?.onResult(MoshiHelper.toJson(remoteStartTask))
@@ -260,7 +279,7 @@ class TaskService : Service(), DLogger {
                     return@launch
                 }
                 val taskId = downloadingTaskStatusData[url]?.taskId
-                if (taskId == null||taskId.isInvalid()) {
+                if (taskId == null || taskId.isInvalid()) {
                     taskRepo.updateTask(entity.copy(status = DownloadTaskStatus.PAUSE))
                 } else {
                     engineRepo.stopTask(taskId, entity.asStationDownloadTask())
@@ -310,9 +329,11 @@ class TaskService : Service(), DLogger {
             return@launch
         }
         //FIXME 优化不同引擎的删除任务逻辑。XL引擎删除任务时，会自动停止任务，所以这里先停止任务，再删除任务。ARI2引擎删除任务时，不会自动停止任务，所以这里不需要停止任务，直接删除任务即可。
-        stopTask(url)
+        if (entity.engine == DownloadEngine.XL) {
+            stopTask(url)
+        }
         if (entity.engine == DownloadEngine.ARIA2) {
-            engineRepo.removeAria2Task(url)
+            engineRepo.removeAria2Task(entity.realUrl)
         }
         val deleteResult = taskRepo.deleteTask(url, isDeleteFile)
         if (deleteResult is IResult.Error) {
@@ -345,22 +366,17 @@ class TaskService : Service(), DLogger {
     }
 
 
+    //FIXME 默认下载方式的speedTest需要分离出来，watchTask仅负责监听任务状态，不负责speedTest
     private fun createWatchTask(taskId: TaskId, url: String): Job {
         return serviceScope.launch {
             try {
                 when (taskId.engine) {
-                    DownloadEngine.XL -> {
-                        speedTest(taskId, url)
-                    }
-
-                    DownloadEngine.ARIA2 -> {
-                        aria2TellStatus(taskId, url)
-                    }
-
+                    DownloadEngine.XL -> speedTest(taskId, url)
+                    DownloadEngine.ARIA2 -> aria2TellStatus(taskId, url)
                     DownloadEngine.INVALID_ENGINE -> TODO()
                 }
-
             } finally {
+                logger("watchTask ${taskId.engine}[${taskId.id}] END")
             }
         }
     }
@@ -511,37 +527,39 @@ class TaskService : Service(), DLogger {
                 url,
                 taskStatus.downloadSize,
                 taskStatus.totalSize,
-                when(taskStatus.status){
-                    ITaskState.RUNNING.code->DownloadTaskStatus.DOWNLOADING
-                    ITaskState.STOP.code->DownloadTaskStatus.PAUSE
-                    ITaskState.DONE.code->DownloadTaskStatus.COMPLETED
-                    else->DownloadTaskStatus.FAILED
+                when (taskStatus.status) {
+                    ITaskState.RUNNING.code -> DownloadTaskStatus.DOWNLOADING
+                    ITaskState.STOP.code -> DownloadTaskStatus.PAUSE
+                    ITaskState.DONE.code -> DownloadTaskStatus.COMPLETED
+                    else -> DownloadTaskStatus.FAILED
                 }
             )
+            logger("updateTaskStatus ${taskStatus.status}")
+            if (taskStatus.status == ITaskState.STOP.code) {
 
-            if (taskStatus.status == ITaskState.DONE.code || taskStatus.status == ITaskState.STOP.code) {
-                if (taskStatus.status == ITaskState.DONE.code) {
-                    Logger.w("下载完成 [${taskStatus}]")
-                    engineRepo.stopTask(
-                        taskId,
-                        taskRepo.getTaskByUrl(url)?.asStationDownloadTask() ?: return
-                    )
-                    sendToClient(
-                        "download_status",
-                        MoshiHelper.toJson(
-                            RemoteTaskStatus(
-                                download_size = taskStatus.downloadSize,
-                                speed = taskStatus.speed,
-                                status = ITaskState.DONE.ordinal,
-                                url = url,
-                                is_done = true,
-                                total_size = taskStatus.totalSize,
-                                task_id = taskId.id
-                            )
-                        ),
-                        null
-                    )
-                }
+//            if (taskStatus.status == ITaskState.DONE.code || taskStatus.status == ITaskState.STOP.code) {
+//                if (taskStatus.status == ITaskState.DONE.code) {
+//                    Logger.w("下载完成 [${taskStatus}]")
+//                    engineRepo.stopTask(
+//                        taskId,
+//                        taskRepo.getTaskByUrl(url)?.asStationDownloadTask() ?: return
+//                    )
+//                    sendToClient(
+//                        "download_status",
+//                        MoshiHelper.toJson(
+//                            RemoteTaskStatus(
+//                                download_size = taskStatus.downloadSize,
+//                                speed = taskStatus.speed,
+//                                status = ITaskState.DONE.ordinal,
+//                                url = url,
+//                                is_done = true,
+//                                total_size = taskStatus.totalSize,
+//                                task_id = taskId.id
+//                            )
+//                        ),
+//                        null
+//                    )
+//                }
                 downloadingTaskStatusData.remove(url)
                 watchTaskJobMap.remove(url)?.cancel()
                 return
@@ -623,6 +641,64 @@ class TaskService : Service(), DLogger {
         return TaskService.javaClass.simpleName
     }
 
+    override suspend fun onDownloadStart(gid: String) {
+    }
+
+    override suspend fun onDownloadPause(gid: String) {
+    }
+
+    override suspend fun onDownloadStop(gid: String) {
+    }
+
+    override suspend fun onDownloadComplete(gid: String) {
+        logger("onDownloadComplete 下载完成 [${gid}]")
+        downloadingTaskStatusData.forEach { (url, taskStatus) ->
+            if (taskStatus.taskId.id == gid) {
+                val statusResponse = engineRepo.getAria2TaskStatus(gid, url)
+                if (statusResponse.succeeded) {
+                    val newTaskStatus = statusResponse.result()
+                    taskRepo.updateTaskStatus(
+                        url,
+                        newTaskStatus.downloadSize,
+                        newTaskStatus.totalSize,
+                        when (newTaskStatus.status) {
+                            ITaskState.RUNNING.code -> DownloadTaskStatus.DOWNLOADING
+                            ITaskState.STOP.code -> DownloadTaskStatus.PAUSE
+                            ITaskState.DONE.code -> DownloadTaskStatus.COMPLETED
+                            else -> DownloadTaskStatus.FAILED
+                        }
+                    )
+                    updateTaskStatus(url, newTaskStatus)
+                    logger("onDownloadComplete updateTaskStatus ${newTaskStatus.status}")
+                    downloadingTaskStatusData.remove(url)
+                    watchTaskJobMap.remove(url)?.cancel()
+                    sendToClient(
+                        "download_status",
+                        MoshiHelper.toJson(
+                            RemoteTaskStatus(
+                                download_size = newTaskStatus.downloadSize,
+                                speed = newTaskStatus.speed,
+                                status = ITaskState.DONE.ordinal,
+                                url = url,
+                                is_done = true,
+                                total_size = newTaskStatus.totalSize,
+                                task_id = gid
+                            )
+                        ),
+                        null
+                    )
+                }
+                return@forEach
+            }
+        }
+    }
+
+    override suspend fun onDownloadError(gid: String) {
+    }
+
+    override suspend fun onBtDownloadComplete(gid: String) {
+    }
+
 
     companion object {
         private const val ACTION_WATCH_TASK = "action.watch.task"
@@ -636,6 +712,7 @@ class TaskService : Service(), DLogger {
         private const val ACTION_STOP_TASK = "action.stop.task"
 
         private const val ACTION_DELETE_TASK = "action.delete.task"
+
 
         const val ACTION_START_TASK_RESULT = "action.start.task.result"
         const val ACTION_DELETE_TASK_RESULT = "action.delete.task.result"
@@ -688,6 +765,9 @@ class TaskService : Service(), DLogger {
             intent.putExtra("isDeleteFile", isDeleteFile)
             context.startService(intent)
         }
+
     }
+
+
 }
 

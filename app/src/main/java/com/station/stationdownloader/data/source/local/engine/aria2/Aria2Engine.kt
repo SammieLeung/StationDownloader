@@ -19,7 +19,6 @@ import com.station.stationdownloader.contants.Options
 import com.station.stationdownloader.contants.TaskExecuteError
 import com.station.stationdownloader.data.IResult
 import com.station.stationdownloader.data.source.IDownloadTaskRepository
-import com.station.stationdownloader.data.source.local.engine.EngineStatus
 import com.station.stationdownloader.data.source.local.engine.IEngine
 import com.station.stationdownloader.data.source.local.engine.aria2.connection.client.ClientInstanceHolder
 import com.station.stationdownloader.data.source.local.engine.aria2.connection.client.WebSocketClient
@@ -37,10 +36,11 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import java.io.ByteArrayOutputStream
 import java.io.File
-import javax.inject.Inject
 import kotlin.coroutines.resume
 import kotlin.coroutines.suspendCoroutine
 
@@ -60,7 +60,9 @@ class Aria2Engine internal constructor(
     private var isInit = false
     private lateinit var reference: ClientInstanceHolder.Reference
     private val aria2GidData = mutableMapOf<String, String>()
-    private val listener = object : Aria2Ui.Listener {
+    private val connectMutex = Mutex()
+    private val initMutex = Mutex()
+    private val aria2UiListener = object : Aria2Ui.Listener {
         override fun onUpdateLogs(msg: MutableList<Aria2Ui.LogMessage>) {
         }
 
@@ -74,7 +76,7 @@ class Aria2Engine internal constructor(
     }
 
     init {
-        addAria2UiListener(listener)
+        addAria2UiListener(aria2UiListener)
     }
 
     override fun DLogger.tag(): String {
@@ -83,26 +85,36 @@ class Aria2Engine internal constructor(
 
     override suspend fun init(): IResult<String> = withContext(defaultDispatcher) {
         try {
-            logger("Aria2 hasInit? $isInit")
+            initMutex.lock()
             if (!isInit) {
-                logger("Aria2 init!!!")
-                isInit = true
-                profileManager.getInAppProfile()
-
                 loadAria2ServiceEnv()
                 aria2Service.ui.startService()
+                connectMutex.lock()
+            } else {
+                initMutex.unlock()
             }
         } catch (e: Exception) {
             e.printStackTrace()
             return@withContext IResult.Error(e)
         }
-        return@withContext IResult.Success("${DownloadEngine.ARIA2}[${aria2Service.ui.version()}")
+        connectMutex.withLock {
+            return@withContext IResult.Success("${DownloadEngine.ARIA2}}")
+        }
     }
 
     override suspend fun unInit() {
-        aria2Service.ui.stopService()
-        aria2Service.listeners.remove(listener)
-        isInit = false
+        initMutex.lock()
+        if (isInit) {
+            aria2Service.ui.stopService()
+            aria2Service.listeners.remove(aria2UiListener)
+            isInit = false
+        } else {
+            initMutex.unlock()
+        }
+    }
+
+    override suspend fun isInit(): Boolean {
+        return isInit
     }
 
     suspend fun addPauseTask(
@@ -195,6 +207,10 @@ class Aria2Engine internal constructor(
 
     suspend fun connect() {
         reference = ClientInstanceHolder.instantiate(profileManager.getInAppProfile())
+        loadOptions()
+        isInit = true
+        connectMutex.unlock()
+        initMutex.unlock()
     }
 
     override suspend fun stopTask(taskId: String): IResult<Boolean> {
@@ -257,7 +273,6 @@ class Aria2Engine internal constructor(
             Aria2Options.BtTrackerLastUpdate,
             System.currentTimeMillis().toString()
         )
-
     }
 
     private suspend fun addTorrent(
@@ -497,11 +512,8 @@ class Aria2Engine internal constructor(
         when (logMessage.type) {
             Message.Type.PROCESS_STARTED -> {
                 Log.d(tag(), "[PROCESS_STARTED]>>${logMessage.o}<<")
-                val job = Job()
-                val scope = CoroutineScope(job)
-                scope.launch {
+                CoroutineScope(defaultDispatcher).launch {
                     connect()
-                    loadOptions()
                 }
             }
 
@@ -559,6 +571,10 @@ class Aria2Engine internal constructor(
             }
         }
         return Base64.encodeToString(out.toByteArray(), Base64.NO_WRAP)
+    }
+
+    fun setNotifyListener(listener: WebSocketClient.OnNotify?) {
+        reference.setNotifyListener(listener)
     }
 
     private inner class Aria2UiDispatcher(context: Context) : Aria2Ui.Listener {

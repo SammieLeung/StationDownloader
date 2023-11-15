@@ -8,6 +8,7 @@ import com.station.stationdownloader.data.IResult
 interface IEngine {
     suspend fun init(): IResult<String>
     suspend fun unInit()
+    suspend fun isInit():Boolean
     suspend fun startTask(
         url: String,
         downloadPath: String,
