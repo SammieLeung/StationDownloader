@@ -11,23 +11,40 @@ class EngineRepoUseCase constructor(
     val engineRepo: DefaultEngineRepository,
     val scope: CoroutineScope
 ) {
-    inline fun initEngine(crossinline block: suspend ((DownloadEngine, IResult<String>) -> Unit)) {
+    inline fun initEngines(crossinline block: suspend ((DownloadEngine, IResult<String>) -> Unit)) {
         scope.launch {
-            engineRepo.init()
+            engineRepo.initEngines()
                 .collect {
                     block(it.first, it.second)
                 }
         }
     }
 
-    fun initEngine() {
+    inline fun initEngine(engine: DownloadEngine,crossinline  block: suspend (DownloadEngine, IResult<String>) -> Unit) {
         scope.launch {
-            engineRepo.init().collect()
+            engineRepo.initEngine(engine)
+                .collect {
+                    block(it.first, it.second)
+                }
         }
     }
 
-    fun unInitEngine() = scope.launch {
-        engineRepo.unInit()
+    suspend fun isEnginesInitialized(): Boolean {
+        return engineRepo.isEnginesInitialized()
+    }
+
+    suspend fun isEngineInitialized(engine: DownloadEngine): Boolean {
+        return engineRepo.isEngineInitialized(engine)
+    }
+
+    fun initEngines() {
+        scope.launch {
+            engineRepo.initEngines().collect()
+        }
+    }
+
+    fun unInitEngines() = scope.launch {
+        engineRepo.unInitEngines()
     }
 
 }

@@ -42,7 +42,7 @@ class DownloadWorker(
     }
 
     override suspend fun doWork(): Result {
-        mEngineRepo.init()
+        mEngineRepo.initEngines()
         Logger.d("doWork()==>start")
 
         val errorReason = workDataOf(

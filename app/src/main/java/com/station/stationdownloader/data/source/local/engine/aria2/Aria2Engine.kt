@@ -30,6 +30,7 @@ import com.station.stationdownloader.data.source.local.engine.aria2.connection.t
 import com.station.stationdownloader.data.source.local.engine.aria2.connection.transport.Aria2Requests
 import com.station.stationdownloader.data.source.remote.BtTrackerApiService
 import com.station.stationdownloader.data.source.repository.DefaultConfigurationRepository
+import com.station.stationdownloader.data.succeeded
 import com.station.stationdownloader.utils.DLogger
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
@@ -305,9 +306,19 @@ class Aria2Engine internal constructor(
             Exception(TaskExecuteError.ARIA2_GID_NOT_FOUND.name),
             TaskExecuteError.ARIA2_GID_NOT_FOUND.ordinal
         )
-        return sendToWebSocketSync(Aria2Requests.remove(gid)) {
-            aria2GidData.remove(realUrl)
-            true
+
+        try {
+            sendToWebSocketSync(Aria2Requests.remove(gid))
+            sendToWebSocketSync(Aria2Requests.removeDownloadResult(gid)) {
+                aria2GidData.filter { it.value == gid }.forEach {
+                    aria2GidData.remove(it.key)
+                }
+                true
+            }
+            Logger.d("RemoveTask Success $gid")
+            return IResult.Success(true)
+        } catch (e: Exception) {
+            return IResult.Error(e)
         }
     }
 
@@ -384,7 +395,7 @@ class Aria2Engine internal constructor(
         }
     }
 
-    private suspend inline fun sendToWebSocketSync(request: Aria2Request): IResult<Boolean> {
+    private suspend fun sendToWebSocketSync(request: Aria2Request): IResult<Boolean> {
         try {
             val result = suspendCoroutine { continuation ->
                 val job = Job()
@@ -411,7 +422,7 @@ class Aria2Engine internal constructor(
         }
     }
 
-    private suspend inline fun <R> sendToWebSocketSync(requestWithResult: Aria2RequestWithResult<R>): IResult<R> {
+    private suspend fun <R> sendToWebSocketSync(requestWithResult: Aria2RequestWithResult<R>): IResult<R> {
         try {
             val result = suspendCoroutine { continuation ->
                 val job = Job()
@@ -438,8 +449,8 @@ class Aria2Engine internal constructor(
         }
     }
 
-    private suspend inline fun sendToWebSocketSync(
-        request: Aria2Request, crossinline block: () -> Boolean
+    private suspend fun sendToWebSocketSync(
+        request: Aria2Request, block: () -> Boolean
     ): IResult<Boolean> {
         try {
             val result = suspendCoroutine { continuation ->
@@ -467,9 +478,9 @@ class Aria2Engine internal constructor(
         }
     }
 
-    private suspend inline fun <R> sendToWebSocketSync(
+    private suspend fun <R> sendToWebSocketSync(
         requestWithResult: Aria2RequestWithResult<R>,
-        crossinline block: suspend (R) -> R
+        block: suspend (R) -> R
     ): IResult<R> {
         try {
             val result = suspendCoroutine { continuation ->
@@ -495,6 +506,28 @@ class Aria2Engine internal constructor(
             return IResult.Success(result)
         } catch (e: Exception) {
             logErr("sendToWebSocketSync[Aria2RequestWithResult] ${requestWithResult.method} $e")
+            return IResult.Error(e)
+        }
+    }
+
+    private suspend fun <R> batch(sandBox: WebSocketClient.BatchSandBox<R>): IResult<R> {
+        try {
+            val result = suspendCoroutine<R> { continuation ->
+                CoroutineScope(Job()).launch(defaultDispatcher) {
+                    reference.batch(sandBox, object : WebSocketClient.OnResult<R> {
+                        override fun onResult(result: R) {
+                            continuation.resume(result)
+                        }
+
+                        override fun onException(ex: Exception) {
+                            continuation.resumeWith(Result.failure(ex))
+                        }
+                    })
+                }
+            }
+            return IResult.Success(result)
+        } catch (e: Exception) {
+            logErr("batch ${e.message}")
             return IResult.Error(e)
         }
     }

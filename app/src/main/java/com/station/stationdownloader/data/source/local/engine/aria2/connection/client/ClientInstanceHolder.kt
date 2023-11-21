@@ -57,5 +57,18 @@ class ClientInstanceHolder private constructor() {
             current?.send(request, onSuccess)
         }
 
+        override suspend fun <R> batch(
+            sandbox: WebSocketClient.BatchSandBox<R>,
+            listener: WebSocketClient.OnResult<R>
+        ) {
+            current?.batch(sandbox, listener)
+        }
+
+        override fun setNotifyListener(onNotify: WebSocketClient.OnNotify?) {
+            current?.setNotifyListener(onNotify)
+        }
+
+
+
     }
 }

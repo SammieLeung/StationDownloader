@@ -20,6 +20,7 @@ import com.station.stationdownloader.data.source.IDownloadTaskRepository
 import com.station.stationdownloader.data.source.ITorrentInfoRepository
 import com.station.stationdownloader.data.source.local.engine.NewTaskConfigModel
 import com.station.stationdownloader.data.source.local.engine.aria2.Aria2Engine
+import com.station.stationdownloader.data.source.local.engine.aria2.connection.client.WebSocketClient
 import com.station.stationdownloader.data.source.local.engine.xl.XLEngine
 import com.station.stationdownloader.data.source.local.model.StationDownloadTask
 import com.station.stationdownloader.data.source.local.model.asXLDownloadTaskEntity
@@ -32,11 +33,9 @@ import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
-import kotlinx.coroutines.flow.onCompletion
 import kotlinx.coroutines.withContext
 import java.io.File
 import java.util.concurrent.atomic.AtomicInteger
-import kotlin.math.max
 
 class DefaultEngineRepository(
     private val xlEngine: XLEngine,
@@ -49,16 +48,38 @@ class DefaultEngineRepository(
     private var maxThreadCount = AtomicInteger(0)
     private val downloadingTaskList: MutableList<String> = mutableListOf()
 
-    fun init(): Flow<Pair<DownloadEngine, IResult<String>>> =
+    fun initEngines(): Flow<Pair<DownloadEngine, IResult<String>>> =
         flow {
             emit(Pair(DownloadEngine.XL, xlEngine.init()))
             emit(Pair(DownloadEngine.ARIA2, aria2Engine.init()))
-        }.onCompletion {
-            Logger.d("${DownloadEngine.XL.name} init")
-            Logger.d("${DownloadEngine.ARIA2.name} init")
         }
 
-    suspend fun unInit(): IResult<Unit> {
+    suspend fun initEngine(engine: DownloadEngine): Flow<Pair<DownloadEngine, IResult<String>>> =
+        flow {
+            when (engine) {
+                DownloadEngine.XL -> {
+                    emit(Pair(DownloadEngine.XL, xlEngine.init()))
+                }
+
+                DownloadEngine.ARIA2 -> {
+                    emit(Pair(DownloadEngine.ARIA2, aria2Engine.init()))
+                }
+
+                DownloadEngine.INVALID_ENGINE -> {
+                    emit(
+                        Pair(
+                            DownloadEngine.INVALID_ENGINE, IResult.Error(
+                                Exception(TaskExecuteError.INVALID_ENGINE_TYPE.name),
+                                TaskExecuteError.INVALID_ENGINE_TYPE.ordinal
+                            )
+                        )
+                    )
+                }
+            }
+        }
+
+
+    suspend fun unInitEngines(): IResult<Unit> {
         return try {
             xlEngine.unInit()
             aria2Engine.unInit()
@@ -308,13 +329,8 @@ class DefaultEngineRepository(
 
     }
 
-    suspend fun removeAria2Task(url: String): IResult<Boolean> {
-        val task = taskRepo.getTaskByUrl(url) ?: return IResult.Error(
-            Exception(
-                TaskExecuteError.TASK_NOT_FOUND.name
-            ), TaskExecuteError.TASK_NOT_FOUND.ordinal
-        )
-        val removeTaskResponse = aria2Engine.removeTask(task.realUrl)
+    suspend fun removeAria2Task(realUrl: String): IResult<Boolean> {
+        val removeTaskResponse = aria2Engine.removeTask(realUrl)
         if (removeTaskResponse.isFailed) {
             return removeTaskResponse
         }
@@ -354,6 +370,30 @@ class DefaultEngineRepository(
                 xlEngine.setOptions(option, value)
             }
         }
+    }
+
+    fun setAria2NotifyListener(listener: WebSocketClient.OnNotify?) {
+        aria2Engine.setNotifyListener(listener)
+    }
+
+    suspend fun isEngineInitialized(engine: DownloadEngine): Boolean {
+        return when (engine) {
+            DownloadEngine.XL -> {
+                xlEngine.isInit()
+            }
+
+            DownloadEngine.ARIA2 -> {
+                aria2Engine.isInit()
+            }
+
+            DownloadEngine.INVALID_ENGINE -> {
+                false
+            }
+        }
+    }
+
+    suspend fun isEnginesInitialized(): Boolean {
+        return xlEngine.isInit() && aria2Engine.isInit()
     }
 
     override fun DLogger.tag(): String {

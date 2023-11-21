@@ -9,6 +9,7 @@ interface ClientInterface {
         requestWithResult: Aria2RequestWithResult<R>,
         onResult: WebSocketClient.OnResult<R>
     )
-
     suspend fun send(request: Aria2Request, onSuccess: WebSocketClient.OnSuccess)
+    suspend fun <R> batch(sandbox: WebSocketClient.BatchSandBox<R>, listener: WebSocketClient.OnResult<R>)
+    fun setNotifyListener(onNotify: WebSocketClient.OnNotify?)
 }
