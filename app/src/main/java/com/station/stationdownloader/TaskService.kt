@@ -203,7 +203,7 @@ class TaskService : Service(), DLogger, WebSocketClient.OnNotify {
                 val downloadTask = xlEntity.asStationDownloadTask()
                 val taskIdResult = engineRepo.startTask(downloadTask)
                 if (taskIdResult is IResult.Error) {
-                    Logger.e(taskIdResult.exception.message.toString())
+                    Logger.e("${taskIdResult.exception}")
                     sendLocalBroadcast(Intent(
                         ACTION_START_TASK_RESULT
                     ).apply {

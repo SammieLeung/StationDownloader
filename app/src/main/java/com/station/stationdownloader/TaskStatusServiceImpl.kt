@@ -194,7 +194,7 @@ class TaskStatusServiceImpl(
         predicate?.let { block ->
             block(
                 saveTaskResult.data.url,
-                saveTaskResult.data.downloadPath,
+                File(saveTaskResult.data.downloadPath,saveTaskResult.data.name).path,//FIXME 这里使用真实的下载路径，而不是配置的下载路径
                 (newTaskConfig._fileTree as TreeNode.Directory).getCheckedFilePaths()
                     .joinToString(";;"),
             )
