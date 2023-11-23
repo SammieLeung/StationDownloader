@@ -231,6 +231,9 @@ public class XLTaskHelper {
         TorrentInfo torrentInfo = new TorrentInfo();
         XLDownloadManager.getInstance().getTorrentInfo(torrentPath, torrentInfo);
         TorrentFileInfo[] fileInfos = torrentInfo.mSubFileInfo;
+        if(torrentInfo.mMultiFileBaseFolder!=null&&torrentInfo.mMultiFileBaseFolder.length()>0){
+            savePath = new File(savePath,torrentInfo.mMultiFileBaseFolder).getAbsolutePath();
+        }
         BtTaskParam taskParam = new BtTaskParam();
         taskParam.setCreateMode(1);
         taskParam.setFilePath(savePath);
