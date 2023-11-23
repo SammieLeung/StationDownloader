@@ -222,7 +222,7 @@ class XLEngine internal constructor(
             logger("downloadPath=$downloadPath torrentFileName=$torrentFileName")
 
             return withTimeout(TORRENT_DOWNLOAD_TASK_TIMEOUT) {
-                while (XLTaskHelper.instance()
+                while (XLTaskHelper.instance()//FIXME ITaskState是通用任务状态，不应该和XL下载的任务状态混用
                         .getTaskInfo(taskId).mTaskStatus != ITaskState.DONE.code || XLTaskHelper.instance()
                         .getTaskInfo(taskId).mTaskStatus != ITaskState.ERROR.code || XLTaskHelper.instance()
                         .getTaskInfo(taskId).mTaskStatus != ITaskState.FAILED.code || XLTaskHelper.instance()
@@ -275,7 +275,7 @@ class XLEngine internal constructor(
     private suspend fun initNormalUrl(
         originUrl: String, realUrl: String
     ): IResult<NewTaskConfigModel> {
-        val taskName = XLTaskHelper.instance().getFileName(realUrl)
+        var taskName = XLTaskHelper.instance().getFileName(realUrl)
         val downloadPath =
             File(configRepo.getValue(CommonOptions.DownloadPath)).path
         logger("initNormalUrl:realUrl=$realUrl originUrl=$originUrl")
@@ -289,7 +289,11 @@ class XLEngine internal constructor(
         )
 
         if (realUrl.urlType() == DownloadUrlType.MAGNET) {
-            return autoDownloadTorrent(originUrl, downloadPath, taskName)
+            return autoDownloadTorrent(
+                originUrl,
+                File(downloadPath, File(taskName).nameWithoutExtension).path,
+                taskName
+            )
         }
 
         if (realUrl.urlType() == DownloadUrlType.HTTP) {
@@ -297,6 +301,8 @@ class XLEngine internal constructor(
             if (result is IResult.Success) {
                 val fileContentHeader = result.data
                 if (fileContentHeader.content_length != -1L) {
+//                    if(fileContentHeader.url!=realUrl)
+//                        taskName=XLTaskHelper.instance().getFileName(fileContentHeader.url)
                     val root = TreeNode.Directory.createRoot()
                     val file = TreeNode.File(
                         fileIndex = 0,
@@ -418,11 +424,15 @@ class XLEngine internal constructor(
             withTimeout(timeOut) {
                 IResult.Success(waitForFileTree(taskId))
             }
-
         } catch (e: TimeoutCancellationException) {
             IResult.Error(
                 Exception(TaskExecuteError.GET_FILE_SIZE_TIMEOUT.name),
                 TaskExecuteError.GET_FILE_SIZE_TIMEOUT.ordinal
+            )
+        } catch (e: Exception) {
+            Logger.e("${e.message}")
+            IResult.Error(
+                e
             )
         } finally {
             XLTaskHelper.instance().deleteTask(taskId, savePathFile.path)
@@ -436,6 +446,7 @@ class XLEngine internal constructor(
                 if (taskInfo.mFileSize != 0L) {
                     Logger.d(taskInfo.toString())
                     val root = TreeNode.Directory.createRoot()
+                    //FIXME 处理当mFileName为null的情况
                     val file = TreeNode.File(
                         0, taskInfo.mFileName, taskInfo.mFileName.ext(),
                         taskInfo.mFileSize, true, root, 0
@@ -480,7 +491,7 @@ class XLEngine internal constructor(
                             fileInfo.mFileSize,
                             isChecked = TaskTools.isVideoFile(comp),
                             parent = currentNode,
-                            deep = idx
+                            deep = currentNode.deep + 1
                         )
                         currentNode.addChild(newChild)
                     } else {
@@ -491,7 +502,7 @@ class XLEngine internal constructor(
                             0,
                             children = mutableListOf(),
                             parent = currentNode,
-                            deep = idx
+                            deep = currentNode.deep + 1
                         )
                         currentNode.addChild(newChild)
                         currentNode = newChild
