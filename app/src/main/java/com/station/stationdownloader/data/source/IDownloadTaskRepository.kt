@@ -30,18 +30,5 @@ interface IDownloadTaskRepository {
     suspend fun updateTask(task: XLDownloadTaskEntity): IResult<Int>
     suspend fun updateTaskStatus(url:String,downloadSize:Long,totalSize: Long,status:DownloadTaskStatus): IResult<Int>
     suspend fun deleteTask(url: String, deleteFile: Boolean): IResult<Int>
-    suspend fun saveTask(newTask: NewTaskConfigModel): IResult<XLDownloadTaskEntity>
-    suspend fun saveTask(
-        torrentId: Long = -1,
-        originUrl: String,
-        realUrl: String,
-        taskName: String,
-        urlType: DownloadUrlType,
-        engine: DownloadEngine,
-        totalSize: Long,
-        downloadPath: String,
-        selectIndexes: List<Int>,
-        fileList: List<String> = emptyList(),
-        fileCount: Int
-    ): IResult<XLDownloadTaskEntity>
+    suspend fun validateAndPersistTask(newTask: NewTaskConfigModel): IResult<XLDownloadTaskEntity>
 }

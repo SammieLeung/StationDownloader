@@ -10,6 +10,8 @@ import com.station.stationdownloader.contants.FAILED
 import com.station.stationdownloader.contants.TaskExecuteError
 import com.station.stationdownloader.contants.XLOptions
 import com.station.stationdownloader.data.IResult
+import com.station.stationdownloader.data.isFailed
+import com.station.stationdownloader.data.result
 import com.station.stationdownloader.data.source.IDownloadTaskRepository
 import com.station.stationdownloader.data.source.ITorrentInfoRepository
 import com.station.stationdownloader.data.source.local.engine.NewTaskConfigModel
@@ -32,9 +34,7 @@ import dagger.hilt.InstallIn
 import dagger.hilt.android.EntryPointAccessors
 import dagger.hilt.components.SingletonComponent
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import org.json.JSONObject
 import java.io.File
 
 class TaskStatusServiceImpl(
@@ -183,23 +183,42 @@ class TaskStatusServiceImpl(
         }
 
         path?.let { newTaskConfig = newTaskConfig.update(downloadPath = it) }
-        val saveTaskResult = taskRepo.saveTask(newTaskConfig)
+        val validateResponse = taskRepo.validateAndPersistTask(newTaskConfig)
 
-        if (saveTaskResult is IResult.Error) {
-            callback?.onFailed(saveTaskResult.exception.message, saveTaskResult.code)
+        if (validateResponse is IResult.Error) {
+            callback?.onFailed(validateResponse.exception.message, validateResponse.code)
             return
         }
 
-        saveTaskResult as IResult.Success
         predicate?.let { block ->
-            block(
-                saveTaskResult.data.url,
-                File(saveTaskResult.data.downloadPath,saveTaskResult.data.name).path,//FIXME 这里使用真实的下载路径，而不是配置的下载路径
-                (newTaskConfig._fileTree as TreeNode.Directory).getCheckedFilePaths()
-                    .joinToString(";;"),
-            )
+            if(validateResponse.result().urlType==DownloadUrlType.TORRENT){
+                val torrentInfoResult=torrentRepo.getTorrentInfoById(validateResponse.result().torrentId)
+                if(torrentInfoResult.isFailed)
+                {
+                    torrentInfoResult as IResult.Error
+                    callback?.onFailed(torrentInfoResult.exception.message,torrentInfoResult.code)
+                    return@let
+                }
+                var realDownloadDir=File(validateResponse.result().downloadPath)
+                if(torrentInfoResult.result().multiFileBaseFolder.isNotEmpty()){
+                    realDownloadDir=File(realDownloadDir,torrentInfoResult.result().multiFileBaseFolder)
+                }
+                block(
+                    validateResponse.result().url,
+                    realDownloadDir.path,
+                    (newTaskConfig._fileTree as TreeNode.Directory).getCheckedFilePaths()
+                        .joinToString(";;"),
+                )
+            }else{
+                block(
+                    validateResponse.result().url,
+                    validateResponse.result().downloadPath,//FIXME 这里使用真实的下载路径，而不是配置的下载路径
+                    (newTaskConfig._fileTree as TreeNode.Directory).getCheckedFilePaths()
+                        .joinToString(";;"),
+                )
+            }
         } ?: {
-            service.startTask(saveTaskResult.data.url, callback)
+            service.startTask(validateResponse.result().url, callback)
             logger("take time 3 ${System.currentTimeMillis() - t} ms")
         }
 

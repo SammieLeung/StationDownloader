@@ -8,7 +8,6 @@ import com.orhanobut.logger.Logger
 import com.station.stationdownloader.DownloadEngine
 import com.station.stationdownloader.FreeSpaceState
 import com.station.stationdownloader.FileType
-import com.station.stationdownloader.ITaskState
 import com.station.stationdownloader.R
 import com.station.stationdownloader.TaskService
 import com.station.stationdownloader.TaskStatus
@@ -121,16 +120,9 @@ class MainViewModel @Inject constructor(
                 if (_newTaskState.value !is NewTaskState.PreparingData)
                     return@collect
                 val preparingData = _newTaskState.value as NewTaskState.PreparingData
-                //FIXME 需要判断当前任务是否已经在下载中，如果在下载中则不允许更换下载引擎
-//                if (preparingData.task._downloadEngine != action.engine) {
-//                    _toastState.update {
-//                        ToastState.Show(application.getString(R.string.downloading_task_can_not_change_engine))
-//                    }
-//                    return@collect
-//                }
 
                 val saveTaskResult =
-                    taskRepo.saveTask(preparingData.task.update(downloadEngine = action.engine))
+                    taskRepo.validateAndPersistTask(preparingData.task.update(downloadEngine = action.engine))
                 if (saveTaskResult is IResult.Error) {
                     when (saveTaskResult.code) {
                         TaskExecuteError.REPEATING_TASK_NOTHING_CHANGED.ordinal -> {
@@ -168,7 +160,7 @@ class MainViewModel @Inject constructor(
                         AddUriUiState.LOADING
                     }
                     _mainUiState.update {
-                        it.copy(true)
+                        it.copy(isLoading = true)
                     }
                     val result = engineRepo.initUrl(it.url)
                     emit(result)

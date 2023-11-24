@@ -48,8 +48,6 @@ class DefaultDownloadTaskRepository(
         return localDataSource.getTaskByUrl(url)
     }
 
-
-
     override suspend fun getTaskByUrl(
         url: String,
         engine: DownloadEngine,
@@ -76,13 +74,14 @@ class DefaultDownloadTaskRepository(
         return localDataSource.getTaskByRealUrl(realUrl)
     }
 
-    override suspend fun getTorrentTaskByHash(infoHash: String): XLDownloadTaskEntity?= withContext(defaultDispatcher) {
-        val torrentInfoResult = torrentDataSource.getTorrentByHash(infoHash)
-        torrentInfoResult as IResult.Success
-        if (torrentInfoResult.data.isEmpty())
-            return@withContext null
-        return@withContext localDataSource.getTaskByTorrentId(torrentInfoResult.data.keys.first().id)
-    }
+    override suspend fun getTorrentTaskByHash(infoHash: String): XLDownloadTaskEntity? =
+        withContext(defaultDispatcher) {
+            val torrentInfoResult = torrentDataSource.getTorrentByHash(infoHash)
+            torrentInfoResult as IResult.Success
+            if (torrentInfoResult.data.isEmpty())
+                return@withContext null
+            return@withContext localDataSource.getTaskByTorrentId(torrentInfoResult.data.keys.first().id)
+        }
 
     override fun getTasksStream(): Flow<IResult<List<XLDownloadTaskEntity>>> {
         return localDataSource.getTasksStream()
@@ -106,7 +105,7 @@ class DefaultDownloadTaskRepository(
     }
 
 
-    override suspend fun saveTask(
+    private suspend fun saveTask(
         torrentId: Long,
         originUrl: String,
         realUrl: String,
@@ -147,14 +146,15 @@ class DefaultDownloadTaskRepository(
                 )
             return@withContext IResult.Success(newTaskResult)
         }
-        if (assertTaskConfigNotChange(
-                existsTask,
-                engine,
-                realDownloadPath,
-                taskName,
-                selectIndexes
+
+        //已存在的任务不能修改引擎
+        if (existsTask.engine != engine)
+            return@withContext IResult.Error(
+                Exception(TaskExecuteError.ENGINE_CANNOT_BE_CHANGED.name),
+                TaskExecuteError.ENGINE_CANNOT_BE_CHANGED.ordinal
             )
-        ) {
+        //任务配置没有改变
+        if (areTaskConfigurationsEqual(existsTask, realDownloadPath, taskName, selectIndexes)) {
             if (existsTask.status == DownloadTaskStatus.COMPLETED)
                 return@withContext IResult.Error(
                     Exception(TaskExecuteError.TASK_COMPLETED.name),
@@ -184,8 +184,7 @@ class DefaultDownloadTaskRepository(
         )
     }
 
-
-    override suspend fun saveTask(newTask: NewTaskConfigModel): IResult<XLDownloadTaskEntity> =
+    override suspend fun validateAndPersistTask(newTask: NewTaskConfigModel): IResult<XLDownloadTaskEntity> =
         withContext(defaultDispatcher) {
             val rootDir = newTask._fileTree as TreeNode.Directory
             val fileSize = rootDir.totalCheckedFileSize
@@ -254,26 +253,13 @@ class DefaultDownloadTaskRepository(
         return localDataSource.deleteTask(url)
     }
 
-
-    private fun assertTaskConfigNotChange(
+    private fun areTaskConfigurationsEqual(
         existsTask: XLDownloadTaskEntity,
-        newTask: NewTaskConfigModel
-    ): Boolean {
-        return existsTask.engine == newTask._downloadEngine &&
-                existsTask.downloadPath == File(newTask._downloadPath, newTask._name).path &&
-                existsTask.name == newTask._name &&
-                existsTask.selectIndexes == (newTask._fileTree as TreeNode.Directory).getSelectedFileIndexes()
-    }
-
-    private fun assertTaskConfigNotChange(
-        existsTask: XLDownloadTaskEntity,
-        engine: DownloadEngine,
         realDownloadPath: String,
         taskName: String,
         selectedFileIndexes: List<Int>
     ): Boolean {
-        return existsTask.engine == engine &&
-                existsTask.downloadPath == realDownloadPath &&
+        return existsTask.downloadPath == realDownloadPath &&
                 existsTask.name == taskName &&
                 existsTask.selectIndexes == selectedFileIndexes
     }
