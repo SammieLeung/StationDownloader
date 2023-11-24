@@ -290,6 +290,7 @@ class Aria2Engine internal constructor(
                 put("select-file", OptionsMap.OptionValue(selectIndexes.map {
                     it + 1
                 }.joinToString(",")))
+                put("bt-remove-unselected-file", OptionsMap.OptionValue("true"))
                 put("dir", OptionsMap.OptionValue(downloadPath))
                 put("seed-time", OptionsMap.OptionValue("0")) //不做种
             }
@@ -340,6 +341,10 @@ class Aria2Engine internal constructor(
                 it
             }
         }
+    }
+
+    suspend fun getFiles(gid:String){
+        sendToWebSocketSync(Aria2Requests.getFiles(gid))
     }
 
     private suspend fun filterTask(tasks: List<Aria2TorrentTask>): List<Aria2TorrentTask> =

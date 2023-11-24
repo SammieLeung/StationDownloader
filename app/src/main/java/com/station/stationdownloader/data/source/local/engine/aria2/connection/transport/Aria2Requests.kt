@@ -1,5 +1,6 @@
 package com.station.stationdownloader.data.source.local.engine.aria2.connection.transport
 
+import com.orhanobut.logger.Logger
 import com.station.stationdownloader.Aria2TorrentTask
 import com.station.stationdownloader.DownloadEngine
 import com.station.stationdownloader.TaskId
@@ -118,6 +119,22 @@ object Aria2Requests {
             arrayOf(
                 gid,
                 STATUS_KEYS
+            )
+        )
+    }
+
+    fun getFiles(gid:String):Aria2RequestWithResult<Any>{
+        return Aria2RequestWithResult(
+            WebSocketClient.Method.GET_FILES,
+            object : ResponseProcessor<Any>() {
+                override fun process(client: WebSocketClient, obj: JSONObject): Unit {
+                    Logger.d(obj.toString())
+                    return
+                }
+            },
+            arrayOf(
+                gid,
+                TASKLIST_KEYS
             )
         )
     }
