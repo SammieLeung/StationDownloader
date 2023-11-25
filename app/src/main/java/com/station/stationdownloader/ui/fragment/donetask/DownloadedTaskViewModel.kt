@@ -9,7 +9,9 @@ import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.station.stationdownloader.DownloadTaskStatus
-import com.station.stationdownloader.data.IResult
+import com.station.stationdownloader.TaskService
+import com.station.stationdownloader.TaskService.Companion.ACTION_DELETE_TASK_RESULT
+import com.station.stationdownloader.contants.TaskExecuteError
 import com.station.stationdownloader.data.source.IDownloadTaskRepository
 import com.station.stationdownloader.data.source.local.model.StationDownloadTask
 import com.station.stationdownloader.data.source.local.room.entities.asStationDownloadTask
@@ -51,15 +53,24 @@ class DownloadedTaskViewModel @Inject constructor(
                         handleAddDoneTask(url)
                     }
 
+                    ACTION_DELETE_TASK_RESULT -> {
+                        val url = it.getStringExtra("url") ?: ""
+                        val result = it.getBooleanExtra("result", false)
+                        val reason = it.getStringExtra("reason")
+                        handleDeleteTaskCallback(url, result, reason)
+                    }
+
                     else -> {}
                 }
             }
         }
     }
 
+
     val intentFilter: IntentFilter by lazy {
         IntentFilter().apply {
             addAction(ACTION_NOTIFY_ADD_DONE_TASK)
+            addAction(ACTION_DELETE_TASK_RESULT)
         }
     }
 
@@ -141,7 +152,7 @@ class DownloadedTaskViewModel @Inject constructor(
             openFile.collect { action ->
                 logger("openFile")
                 val xlDownloadTaskEntity = taskRepo.getTaskByUrl(action.url) ?: return@collect
-                if (xlDownloadTaskEntity.torrentId<0) {
+                if (xlDownloadTaskEntity.torrentId < 0) {
 
                 } else {
                     val fileUri = Uri.fromFile(File(xlDownloadTaskEntity.downloadPath))
@@ -159,22 +170,22 @@ class DownloadedTaskViewModel @Inject constructor(
     private fun handleDeleteTask(deleteTask: Flow<UiAction.DeleteTask>) =
         viewModelScope.launch {
             deleteTask.collect { action ->
-                val deleteResult = taskRepo.deleteTask(action.url, action.isDeleteFile)
-                if (deleteResult is IResult.Error)
-                    return@collect
-
-                _uiState.update {
-                    val deleteItem =
-                        doneTaskItemList.find { it.url == action.url } ?: return@collect
-                    doneTaskItemList.remove(deleteItem)
-                    UiState.DeleteTaskResultState(isSuccess = true, deleteItem = deleteItem)
-                }
-
+                TaskService.deleteTask(application, action.url, action.isDeleteFile)
                 _menuDialogUiState.update {
-                    it.copy(isDelete = true)
+                    it.copy(isDeleting = true)
                 }
             }
         }
+
+
+    private fun handleDeleteTaskCallback(url: String, result: Boolean, reason: String?) {
+        _uiState.update {
+            val deleteItem =
+                doneTaskItemList.find { it.url == url } ?: return
+            doneTaskItemList.remove(deleteItem)
+            UiState.DeleteTaskResultState(isSuccess = result, deleteItem = deleteItem, reason = reason ?: "")
+        }
+    }
 
     private fun handleShowDeleteConfirmDialog(showDeleteConfirmDialog: Flow<UiAction.ShowDeleteConfirmDialog>) =
         viewModelScope.launch {
@@ -213,7 +224,7 @@ class DownloadedTaskViewModel @Inject constructor(
 
 data class MenuDialogUiState(
     val url: String = "",
-    val isDelete: Boolean = false,
+    val isDeleting: Boolean = false,
     val isShow: Boolean = false,
     val isShowDelete: Boolean = false
 )

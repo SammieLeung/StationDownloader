@@ -9,4 +9,40 @@
     <string name="running_task_list_empty">暂无下载中任务</string>
     <string name="done_task_list_empty">暂无已完成任务</string>
 
+    <string name="aria2_exit_status_3">错误3：未找到资源</string>
+    <string name="aria2_exit_status_9">错误9：没有足够的磁盘空间可用。</string>
+    <string name="aria2_exit_status_13">错误13：文件已经存在。</string>
+    <string name="aria2_exit_status_14">错误14：重命名文件失败。</string>
+    <string name="aria2_exit_status_15">错误15：无法打开现有文件</string>
+    <string name="aria2_exit_status_16">错误16：无法创建新文件或截断现有文件。</string>
+    <string name="aria2_exit_status_17">错误17：文件 I/O 错误</string>
+    <string name="aria2_exit_status_18">错误18：无法创建目录。</string>
+
+    <string name="aria2_exit_status_0">错误0：所有下载已完成</string>
+    <string name="aria2_exit_status_1">错误1：未知错误</string>
+    <string name="aria2_exit_status_2">错误2：超时</string>
+    <string name="aria2_exit_status_4">错误4：未找到资源，超过 max-file-not-found 限制</string>
+    <string name="aria2_exit_status_5">错误5：下载速度太慢导致停止</string>
+    <string name="aria2_exit_status_6">错误6：网络问题</string>
+    <string name="aria2_exit_status_7">错误7：未完成的下载，但用户退出</string>
+    <string name="aria2_exit_status_8">错误8：远程服务器不支持恢复以完成下载</string>
+    <string name="aria2_exit_status_10">错误10：分片长度错误</string>
+    <string name="aria2_exit_status_11">错误11：已在下载相同文件</string>
+    <string name="aria2_exit_status_12">错误12：已在下载相同 info hash 种子</string>
+    <string name="aria2_exit_status_19">错误19：名称解析失败</string>
+    <string name="aria2_exit_status_20">错误20：无法解析 Metalink 文档</string>
+    <string name="aria2_exit_status_21">错误21：FTP 命令失败</string>
+    <string name="aria2_exit_status_22">错误22：HTTP 响应头错误或不符合预期</string>
+    <string name="aria2_exit_status_23">错误23：发生太多重定向</string>
+    <string name="aria2_exit_status_24">错误24：HTTP 授权失败</string>
+    <string name="aria2_exit_status_25">错误25：无法解析 bencoded 文件</string>
+    <string name="aria2_exit_status_26">错误26：种子损坏或缺少所需信息</string>
+    <string name="aria2_exit_status_27">错误27：磁铁链接 URI 不正确</string>
+    <string name="aria2_exit_status_28">错误28：提供了错误/未识别的选项或提供了意外的选项参数</string>
+    <string name="aria2_exit_status_29">错误29：远程服务器由于临时超载或维护无法处理请求</string>
+    <string name="aria2_exit_status_30">错误30：无法解析 JSON-RPC 请求</string>
+    <string name="aria2_exit_status_31">错误31：保留，未使用</string>
+    <string name="aria2_exit_status_32">错误32：校验失败</string>
+
+    <string name="default_exit_status">错误%s</string>
 </resources>

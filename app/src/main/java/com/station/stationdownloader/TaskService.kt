@@ -3,7 +3,9 @@ package com.station.stationdownloader
 import android.app.Service
 import android.content.Context
 import android.content.Intent
+import android.os.Handler
 import android.os.IBinder
+import android.widget.Toast
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import com.orhanobut.logger.Logger
 import com.station.stationdownloader.TaskId.Companion.INVALID_ID
@@ -43,6 +45,7 @@ import javax.inject.Inject
 
 @AndroidEntryPoint
 class TaskService : Service(), DLogger, WebSocketClient.OnNotify {
+
     val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
     @Inject
@@ -60,6 +63,10 @@ class TaskService : Service(), DLogger, WebSocketClient.OnNotify {
 
     @Inject
     lateinit var taskRepo: IDownloadTaskRepository
+
+    private val uiHandler: Handler by lazy {
+        Handler(mainLooper)
+    }
 
     var taskStatusBinder: TaskStatusServiceImpl? = null
 
@@ -320,11 +327,15 @@ class TaskService : Service(), DLogger, WebSocketClient.OnNotify {
         if (entity == null) {
             callback?.onFailed(
                 "Task not found!",
-                TaskExecuteError.STOP_TASK_FAILED.ordinal
+                TaskExecuteError.TASK_NOT_FOUND.ordinal
             ) ?: sendErrorToClient(
                 command = "remove_task",
                 reason = "Task not found!",
-                code = TaskExecuteError.STOP_TASK_FAILED.ordinal
+                code = TaskExecuteError.TASK_NOT_FOUND.ordinal
+            )
+            sendLocalBroadcast(
+                Intent(ACTION_DELETE_TASK_RESULT).putExtra("url", url)
+                    .putExtra("result", false)
             )
             return@launch
         }
@@ -519,6 +530,17 @@ class TaskService : Service(), DLogger, WebSocketClient.OnNotify {
             val taskStatusResult = engineRepo.getAria2TaskStatus(taskId.id, url)
             if (taskStatusResult is IResult.Error) {
                 logError(taskStatusResult.exception)
+                updateTaskStatus(
+                    url,
+                    TaskStatus(
+                        taskId = taskId,
+                        url = url,
+                        speed = 0,
+                        downloadSize = 0,
+                        totalSize = 0,
+                        status = ITaskState.ERROR.code,
+                    )
+                )
                 return
             }
             val taskStatus = (taskStatusResult as IResult.Success).data
@@ -536,30 +558,6 @@ class TaskService : Service(), DLogger, WebSocketClient.OnNotify {
             )
             logger("updateTaskStatus ${taskStatus.status}")
             if (taskStatus.status == ITaskState.STOP.code) {
-
-//            if (taskStatus.status == ITaskState.DONE.code || taskStatus.status == ITaskState.STOP.code) {
-//                if (taskStatus.status == ITaskState.DONE.code) {
-//                    Logger.w("下载完成 [${taskStatus}]")
-//                    engineRepo.stopTask(
-//                        taskId,
-//                        taskRepo.getTaskByUrl(url)?.asStationDownloadTask() ?: return
-//                    )
-//                    sendToClient(
-//                        "download_status",
-//                        MoshiHelper.toJson(
-//                            RemoteTaskStatus(
-//                                download_size = taskStatus.downloadSize,
-//                                speed = taskStatus.speed,
-//                                status = ITaskState.DONE.ordinal,
-//                                url = url,
-//                                is_done = true,
-//                                total_size = taskStatus.totalSize,
-//                                task_id = taskId.id
-//                            )
-//                        ),
-//                        null
-//                    )
-//                }
                 downloadingTaskStatusData.remove(url)
                 watchTaskJobMap.remove(url)?.cancel()
                 return
@@ -652,44 +650,49 @@ class TaskService : Service(), DLogger, WebSocketClient.OnNotify {
 
     override suspend fun onDownloadComplete(gid: String) {
         logger("onDownloadComplete 下载完成 [${gid}]")
-        downloadingTaskStatusData.forEach { (url, taskStatus) ->
-            if (taskStatus.taskId.id == gid) {
-                val statusResponse = engineRepo.getAria2TaskStatus(gid, url)
-                if (statusResponse.succeeded) {
-                    val newTaskStatus = statusResponse.result()
-                    taskRepo.updateTaskStatus(
-                        url,
-                        newTaskStatus.downloadSize,
-                        newTaskStatus.totalSize,
-                        when (newTaskStatus.status) {
-                            ITaskState.RUNNING.code -> DownloadTaskStatus.DOWNLOADING
-                            ITaskState.STOP.code -> DownloadTaskStatus.PAUSE
-                            ITaskState.DONE.code -> DownloadTaskStatus.COMPLETED
-                            else -> DownloadTaskStatus.FAILED
-                        }
-                    )
-                    updateTaskStatus(url, newTaskStatus)
-                    logger("onDownloadComplete updateTaskStatus ${newTaskStatus.status}")
-                    downloadingTaskStatusData.remove(url)
-                    watchTaskJobMap.remove(url)?.cancel()
-                    sendToClient(
-                        "download_status",
-                        MoshiHelper.toJson(
-                            RemoteTaskStatus(
-                                download_size = newTaskStatus.downloadSize,
-                                speed = newTaskStatus.speed,
-                                status = ITaskState.DONE.ordinal,
-                                url = url,
-                                is_done = true,
-                                total_size = newTaskStatus.totalSize,
-                                task_id = gid
-                            )
-                        ),
-                        null
-                    )
+        try {
+            val iterator = downloadingTaskStatusData.iterator()
+            while (iterator.hasNext()) {
+                val (url, taskStatus) = iterator.next()
+                if (taskStatus.taskId.id == gid) {
+                    val statusResponse = engineRepo.getAria2TaskStatus(gid, url)
+                    if (statusResponse.succeeded) {
+                        val newTaskStatus = statusResponse.result()
+                        taskRepo.updateTaskStatus(
+                            url,
+                            newTaskStatus.downloadSize,
+                            newTaskStatus.totalSize,
+                            when (newTaskStatus.status) {
+                                ITaskState.RUNNING.code -> DownloadTaskStatus.DOWNLOADING
+                                ITaskState.STOP.code -> DownloadTaskStatus.PAUSE
+                                ITaskState.DONE.code -> DownloadTaskStatus.COMPLETED
+                                else -> DownloadTaskStatus.FAILED
+                            }
+                        )
+                        _taskStatusFlow.update { newTaskStatus }
+                        iterator.remove()
+                        watchTaskJobMap.remove(url)?.cancel()
+                        sendToClient(
+                            "download_status",
+                            MoshiHelper.toJson(
+                                RemoteTaskStatus(
+                                    download_size = newTaskStatus.downloadSize,
+                                    speed = newTaskStatus.speed,
+                                    status = ITaskState.DONE.ordinal,
+                                    url = url,
+                                    is_done = true,
+                                    total_size = newTaskStatus.totalSize,
+                                    task_id = gid
+                                )
+                            ),
+                            null
+                        )
+                    }
+                    return
                 }
-                return@forEach
             }
+        } catch (e: Exception) {
+            Logger.e("${e.message}")
         }
     }
 
@@ -699,6 +702,11 @@ class TaskService : Service(), DLogger, WebSocketClient.OnNotify {
     override suspend fun onBtDownloadComplete(gid: String) {
     }
 
+    fun showToastOnUIThread(msg: String) {
+        uiHandler.post {
+            Toast.makeText(this, msg, Toast.LENGTH_SHORT).show()
+        }
+    }
 
     companion object {
         private const val ACTION_WATCH_TASK = "action.watch.task"
