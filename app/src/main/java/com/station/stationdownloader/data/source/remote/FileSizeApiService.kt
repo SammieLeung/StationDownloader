@@ -4,7 +4,10 @@ import com.orhanobut.logger.Logger
 import com.station.stationdownloader.data.source.remote.api.FileSizeApi
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeout
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
@@ -22,14 +25,22 @@ class FileSizeApiService(
                 override fun onResponse(call: Call<Void>, response: Response<Void>) {
                     if (response.isSuccessful) {
                         Logger.d(response.headers().toString())
-                        val contentLength = response.headers().get("Content-Length")?:"-1"
-                        val contentType=response.headers().get("Content-Type")?:""
+                        val contentLength = response.headers().get("Content-Length") ?: "-1"
+                        val contentType = response.headers().get("Content-Type") ?: ""
                         continuation.resume(
                             FileContentHeader(
+                                url = url,
                                 content_length = contentLength.toLong(),
                                 content_type = contentType
                             )
                         )
+                    } else if (response.code() == 302) {
+                        val location = response.headers().get("Location") ?: ""
+                        launch(ioDispatcher) {
+                            val header = getHttpFileHeader(location)
+                            continuation.resume(header)
+                        }
+
                     } else {
                         continuation.resumeWithException(Exception("请求失败"))
                     }
@@ -45,6 +56,7 @@ class FileSizeApiService(
 }
 
 data class FileContentHeader(
+    val url:String,
     val content_length: Long,
     val content_type: String
 )
