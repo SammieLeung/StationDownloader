@@ -21,6 +21,7 @@ import com.station.stationdownloader.data.source.ITorrentInfoRepository
 import com.station.stationdownloader.data.source.local.engine.NewTaskConfigModel
 import com.station.stationdownloader.data.source.local.engine.aria2.Aria2Engine
 import com.station.stationdownloader.data.source.local.engine.aria2.connection.client.WebSocketClient
+import com.station.stationdownloader.data.source.local.engine.aria2.connection.exception.Aria2Exception
 import com.station.stationdownloader.data.source.local.engine.xl.XLEngine
 import com.station.stationdownloader.data.source.local.model.StationDownloadTask
 import com.station.stationdownloader.data.source.local.model.asXLDownloadTaskEntity
@@ -144,9 +145,9 @@ class DefaultEngineRepository(
             val fileCount: Int = stationDownloadTask.fileCount
             val selectIndexes: IntArray = stationDownloadTask.selectIndexes.toIntArray()
             val maxThread = configRepo.getValue(CommonOptions.MaxThread).toInt()
-
-
             var downloadStatus = DownloadTaskStatus.DOWNLOADING
+
+
             return@withContext when (stationDownloadTask.engine) {
                 DownloadEngine.XL -> {
                     if (maxThreadCount.get() >= maxThread) {
@@ -219,8 +220,6 @@ class DefaultEngineRepository(
                     }
                     startTaskResult as IResult.Success
                     val taskId = startTaskResult.data
-                    logger("add aria2 taskId(${taskId}) ...")
-
                     taskRepo.updateTask(
                         stationDownloadTask.copy(status = downloadStatus).asXLDownloadTaskEntity()
                     )
@@ -335,6 +334,15 @@ class DefaultEngineRepository(
             return removeTaskResponse
         }
         return removeTaskResponse
+    }
+
+    suspend fun getAria2TaskStatusByUrl(url: String): IResult<TaskStatus> {
+        val entity = taskRepo.getTaskByUrl(url)
+            ?: return IResult.Error(
+                Exception(TaskExecuteError.TASK_NOT_FOUND.name),
+                TaskExecuteError.TASK_NOT_FOUND.ordinal
+            )
+        return aria2Engine.tellStatusByUrl(url,entity.realUrl )
     }
 
     suspend fun getAria2TaskStatus(gid: String, url: String): IResult<TaskStatus> {

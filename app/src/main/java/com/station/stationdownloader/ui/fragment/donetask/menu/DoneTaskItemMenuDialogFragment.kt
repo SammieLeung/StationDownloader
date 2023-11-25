@@ -7,6 +7,7 @@ import android.os.Bundle
 import android.provider.DocumentsContract
 import android.view.View
 import androidx.lifecycle.lifecycleScope
+import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import com.station.stationdownloader.databinding.DialogDoneTaskItemMenuBinding
 import com.station.stationdownloader.ui.base.BaseDialogFragment
 import com.station.stationdownloader.ui.fragment.donetask.DownloadedTaskFragment
@@ -61,7 +62,7 @@ class DoneTaskItemMenuDialogFragment : BaseDialogFragment<DialogDoneTaskItemMenu
 
         lifecycleScope.launch {
             menuState.collect {
-                if (it.isDelete) {
+                if (it.isDeleting) {
                     dismiss()
                 }
                 if (!it.isShow) {
@@ -122,6 +123,10 @@ class DoneTaskItemMenuDialogFragment : BaseDialogFragment<DialogDoneTaskItemMenu
             .commit()
     }
 
+    override fun DLogger.tag(): String {
+        return DoneTaskItemMenuDialogFragment.javaClass.simpleName
+    }
+
     companion object {
         const val FIREFLY_FILE_MANAGER = "com.firefly.resourcemanager"
         const val EXTRA_URL = "url"
@@ -134,8 +139,5 @@ class DoneTaskItemMenuDialogFragment : BaseDialogFragment<DialogDoneTaskItemMenu
         }
     }
 
-    override fun DLogger.tag(): String {
-        return DoneTaskItemMenuDialogFragment.javaClass.simpleName
-    }
 
 }

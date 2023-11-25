@@ -62,9 +62,12 @@
     <string name="defalut_engine_initailize_error">[默认下载器] 加载失败!</string>
     <string name="defalut_engine_initailize_succeed">[默认下载器] 加载成功!</string>
 
-   <string name="aria2_engine_initailize_error">[Aria2下载器] 加载失败!</string>
+    <string name="aria2_engine_initailize_error">[Aria2下载器] 加载失败!</string>
     <string name="aria2_engine_initailize_succeed">[Aria2下载器] 加载成功!</string>
     <string name="aria2_setting_status_obtaining">获取服务状态中...</string>
     <string name="aria2_setting_status_on">Aria2服务已开启</string>
     <string name="aria2_setting_status_off">Aria2服务已停止</string>
+
+    <string name="subscribe_start_notify">设备收到一个订阅请求！</string>
+    <string name="subscribe_finish_notify">订阅成功！影片正在下载中</string>
 </resources>

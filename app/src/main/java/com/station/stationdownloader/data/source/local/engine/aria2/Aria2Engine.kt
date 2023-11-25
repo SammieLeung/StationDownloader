@@ -30,7 +30,6 @@ import com.station.stationdownloader.data.source.local.engine.aria2.connection.t
 import com.station.stationdownloader.data.source.local.engine.aria2.connection.transport.Aria2Requests
 import com.station.stationdownloader.data.source.remote.BtTrackerApiService
 import com.station.stationdownloader.data.source.repository.DefaultConfigurationRepository
-import com.station.stationdownloader.data.succeeded
 import com.station.stationdownloader.utils.DLogger
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
@@ -331,6 +330,14 @@ class Aria2Engine internal constructor(
             }
             true
         }
+    }
+
+    suspend fun tellStatusByUrl(url:String,realUrl:String):IResult<TaskStatus>{
+        val gid = aria2GidData[realUrl] ?: return IResult.Error(
+            Exception(TaskExecuteError.ARIA2_GID_NOT_FOUND.name),
+            TaskExecuteError.ARIA2_GID_NOT_FOUND.ordinal
+        )
+        return tellStatus(gid,url)
     }
 
     suspend fun tellStatus(gid: String, url: String? = null): IResult<TaskStatus> {

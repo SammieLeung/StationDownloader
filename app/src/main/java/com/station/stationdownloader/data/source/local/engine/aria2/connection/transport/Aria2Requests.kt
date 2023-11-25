@@ -23,7 +23,6 @@ object Aria2Requests {
             "infoHash",
             "status",
             "errorCode",
-            "errorMessage"
         ), true
     )
 
@@ -35,7 +34,6 @@ object Aria2Requests {
             "completedLength",
             "downloadSpeed",
             "errorCode",
-            "errorMessage"
         ), true
     )
 
@@ -56,8 +54,8 @@ object Aria2Requests {
                     val taskJSONObject = array.getJSONObject(i)
                     if (!taskJSONObject.has("bittorrent"))
                         continue
-                    if (taskJSONObject.getJSONObject("bittorrent").has("info"))
-                        aria2TaskList.add(Aria2TorrentTask.create(array.getJSONObject(i)))
+                    if (taskJSONObject.getJSONObject("bittorrent").has("info"))//FIXME ????
+                        aria2TaskList.add(Aria2TorrentTask.create(taskJSONObject))
                 }
                 return aria2TaskList
             }
@@ -111,9 +109,7 @@ object Aria2Requests {
             WebSocketClient.Method.TELL_STATUS,
             object : ResponseProcessor<TaskStatus>() {
                 override fun process(client: WebSocketClient, obj: JSONObject): TaskStatus {
-                    return TaskStatus(taskId = TaskId(engine = DownloadEngine.ARIA2, id = gid)).parseJSONObject(
-                        obj.getJSONObject("result")
-                    )
+                    return TaskStatus.createForAria2(obj.getJSONObject("result"))
                 }
             },
             arrayOf(
@@ -123,7 +119,7 @@ object Aria2Requests {
         )
     }
 
-    fun getFiles(gid:String):Aria2RequestWithResult<Any>{
+    fun getFiles(gid: String): Aria2RequestWithResult<Any> {
         return Aria2RequestWithResult(
             WebSocketClient.Method.GET_FILES,
             object : ResponseProcessor<Any>() {
@@ -138,7 +134,6 @@ object Aria2Requests {
             )
         )
     }
-
 
 
     fun tellActive(): Aria2RequestWithResult<List<Aria2TorrentTask>> {

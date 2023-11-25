@@ -46,7 +46,7 @@ class DownloadWorker(
         Logger.d("doWork()==>start")
 
         val errorReason = workDataOf(
-            FAILURE_REASON to TaskExecuteError.NOT_ENOUGH_WORKER_INPUT_ARGUMENTS.name
+            FAILURE_REASON to TaskExecuteError.NOT_ENOUGH_WORKER_INPUT_ARGUMENTS
         )
         logger("获取输入数据")
         val url: String = inputData.getString(IN_URL) ?: return Result.failure(errorReason)

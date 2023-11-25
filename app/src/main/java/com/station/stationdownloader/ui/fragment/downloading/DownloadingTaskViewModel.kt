@@ -336,7 +336,7 @@ class DownloadingTaskViewModel @Inject constructor(
             taskStatus.collect { taskStatus ->
                 val url = taskStatus.url
                 val taskItem = downloadingTaskItemList.find {
-                        it.url == url
+                    it.url == url
                 } ?: return@collect
                 val index = downloadingTaskItemList.indexOf(taskItem)
                 logger("collectTaskStatus $url ${index}")
@@ -352,6 +352,12 @@ class DownloadingTaskViewModel @Inject constructor(
                             taskStatus.downloadSize,
                             taskStatus.totalSize
                         ),
+                        status = taskStatus.status
+                    )
+                } else if (taskStatus.status == ITaskState.ERROR.code) {
+                    downloadingTaskItemList[index] = taskItem.copy(
+                        taskId = taskStatus.taskId,
+                        speed = taskStatus.errorCode.toErrorMessage(application),
                         status = taskStatus.status
                     )
                 } else {

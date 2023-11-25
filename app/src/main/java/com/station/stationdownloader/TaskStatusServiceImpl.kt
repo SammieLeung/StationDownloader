@@ -2,6 +2,7 @@ package com.station.stationdownloader
 
 import android.content.ContentValues
 import android.net.Uri
+import android.widget.Toast
 import com.orhanobut.logger.Logger
 import com.station.stationdownloader.TaskId.Companion.INVALID_ID
 import com.station.stationdownloader.contants.Aria2Options
@@ -84,6 +85,7 @@ class TaskStatusServiceImpl(
         movieType: String?,
         callback: ITaskServiceCallback?
     ) {
+        service.showToastOnUIThread("开始订阅影片！")
         serviceScope.launch {
             handleStartTask(
                 url,
@@ -106,6 +108,7 @@ class TaskStatusServiceImpl(
                 },
                 callback
             )
+            service.showToastOnUIThread("订阅已完成，影片正在下载中！")
         }
 
     }

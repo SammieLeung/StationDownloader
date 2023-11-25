@@ -247,39 +247,33 @@ open class WebSocketClient private constructor(
                 }
 
             val method: String = response.optString("method", "")
-            logger("onMessage:\n  $text")
+            Logger.d("onMessage:\n  $text")
             if (method.isNotEmpty() && method.startsWith("aria2.on")) {
                 scope.launch {
                     val gid = response.getJSONArray("params").getJSONObject(0).getString("gid")
                     when (method) {
                         "aria2.onDownloadStart" -> {
                             notifyReference.get()?.onDownloadStart(gid)
-                            Logger.d("aria2.onDownloadStart: $gid")
                         }
 
                         "aria2.onDownloadPause" -> {
                             notifyReference.get()?.onDownloadPause(gid)
-                            Logger.d("aria2.onDownloadPause: $gid")
                         }
 
                         "aria2.onDownloadStop" -> {
                             notifyReference.get()?.onDownloadStop(gid)
-                            Logger.d("aria2.onDownloadStop: $gid")
                         }
 
                         "aria2.onDownloadComplete" -> {
-                            Logger.d("aria2.onDownloadComplete: $gid")
                             notifyReference.get()?.onDownloadComplete(gid)
                         }
 
                         "aria2.onDownloadError" -> {
                             notifyReference.get()?.onDownloadError(gid)
-                            Logger.d("aria2.onDownloadError: $gid")
                         }
 
                         "aria2.onBtDownloadComplete" -> {
                             notifyReference.get()?.onBtDownloadComplete(gid)
-                            Logger.d("aria2.onBtDownloadComplete: $gid")
                         }
                     }
                 }

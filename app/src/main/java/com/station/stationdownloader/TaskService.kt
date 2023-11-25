@@ -221,7 +221,7 @@ class TaskService : Service(), DLogger, WebSocketClient.OnNotify {
                     updateTaskStatusNow(
                         url,
                         TaskId(downloadTask.engine, INVALID_ID),
-                        ITaskState.STOP.code
+                        ITaskState.ERROR.code
                     )
                     callback?.onFailed(
                         /* reason = */ taskIdResult.exception.message.toString(),
@@ -593,9 +593,26 @@ class TaskService : Service(), DLogger, WebSocketClient.OnNotify {
             }
 
             DownloadEngine.ARIA2 -> {
-                serviceScope.launch {
-                    updateTaskStatus(url, TaskStatus(taskId = taskId, url = url, status = status))
+                if (status == ITaskState.ERROR.code) {
+                    serviceScope.launch {
+                        val statusResponse = engineRepo.getAria2TaskStatusByUrl(url)
+                        if (statusResponse.succeeded) {
+                            updateTaskStatus(url, statusResponse.result())
+                        } else {
+                            logLine((statusResponse as IResult.Error).exception)
+                            updateTaskStatus(
+                                url,
+                                TaskStatus(
+                                    taskId = taskId,
+                                    url = url,
+                                    status = ITaskState.ERROR.code
+                                )
+                            )
+                        }
+                    }
+                    return
                 }
+                updateTaskStatus(url, TaskStatus(taskId = taskId, url = url, status = status))
             }
 
             DownloadEngine.INVALID_ENGINE -> TODO()
