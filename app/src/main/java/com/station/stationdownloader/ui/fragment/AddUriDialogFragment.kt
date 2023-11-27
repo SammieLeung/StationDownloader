@@ -1,5 +1,7 @@
 package com.station.stationdownloader.ui.fragment
 
+import android.animation.AnimatorInflater
+import android.animation.AnimatorSet
 import android.content.DialogInterface
 import android.os.Bundle
 import android.view.View
@@ -17,13 +19,13 @@ import com.station.stationdownloader.ui.contract.OpenFileManagerV2Contract
 import com.station.stationdownloader.ui.viewmodel.AddUriUiState
 import com.station.stationdownloader.ui.viewmodel.DialogAction
 import com.station.stationdownloader.ui.viewmodel.MainViewModel
+import com.station.stationdownloader.ui.viewmodel.ToastAction
 import com.station.stationdownloader.ui.viewmodel.UiAction
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import javax.inject.Inject
 
 
 @AndroidEntryPoint
@@ -36,6 +38,7 @@ class AddUriDialogFragment : BaseDialogFragment<DialogFragmentAddUriBinding>() {
         if (it != null) {
             if (vm.assertTorrentFile(it.toString())) {
                 mBinding.inputView.setText(it.toString())
+                mBinding.okBtn.requestFocus()
             } else {
                 mBinding.inputView.text = null
                 Toast.makeText(context, R.string.assert_torrent_file, Toast.LENGTH_SHORT).show()
@@ -52,6 +55,7 @@ class AddUriDialogFragment : BaseDialogFragment<DialogFragmentAddUriBinding>() {
                     val uri = intent.getStringExtra("path") ?: return@registerForActivityResult
                     if (vm.assertTorrentFile(uri)) {
                         mBinding.inputView.setText(uri)
+                        mBinding.okBtn.requestFocus()
                     } else {
                         mBinding.inputView.text = null
                         Toast.makeText(context, R.string.assert_torrent_file, Toast.LENGTH_SHORT)
@@ -66,15 +70,17 @@ class AddUriDialogFragment : BaseDialogFragment<DialogFragmentAddUriBinding>() {
         mBinding.bindState(
             vm.addUriUiState,
             vm.accept,
+            vm.emitToast
         )
     }
 
     private fun DialogFragmentAddUriBinding.bindState(
         uiState: Flow<AddUriUiState<StationDownloadTask>>,
         accept: (UiAction) -> Unit,
+        emitToast: (ToastAction) -> Unit
     ) {
         okBtn.setOnClickListener {
-            done(accept)
+            done(accept, emitToast)
         }
         selectTorrentBtn.setOnClickListener {
             if (app.useV2FileManager) {
@@ -89,6 +95,7 @@ class AddUriDialogFragment : BaseDialogFragment<DialogFragmentAddUriBinding>() {
                 if (it is AddUriUiState.LOADING) {
                     this@AddUriDialogFragment.dialog?.hide()
                 } else if (it is AddUriUiState.ERROR) {
+                    inputView.shake()
                     withContext(Dispatchers.Main) {
                         Toast.makeText(activity, it.errMsg, Toast.LENGTH_SHORT).show()
                     }
@@ -108,15 +115,18 @@ class AddUriDialogFragment : BaseDialogFragment<DialogFragmentAddUriBinding>() {
                 OpenFileManagerV1Contract.EXTRA_SELECT_TYPE,
                 OpenFileManagerV1Contract.SelectType.SELECT_TYPE_FILE.ordinal
             )
-            putString(OpenFileManagerV1Contract.EXTRA_TITLE, getString(R.string.title_select_torrent_file))
+            putString(
+                OpenFileManagerV1Contract.EXTRA_TITLE,
+                getString(R.string.title_select_torrent_file)
+            )
             putBoolean(OpenFileManagerV1Contract.EXTRA_SUPPORT_NET, false)
             putBoolean(OpenFileManagerV1Contract.EXTRA_CONFIRM_DIALOG, true)
         })
     }
 
     private fun openFileWithV2FileManager() {
-       openStationV2Picker.launch(Bundle().apply {
-           putString(OpenFileManagerV2Contract.EXTRA_MIME_TYPE,"application/x-bittorrent")
+        openStationV2Picker.launch(Bundle().apply {
+            putString(OpenFileManagerV2Contract.EXTRA_MIME_TYPE, "application/x-bittorrent")
         })
     }
 
@@ -125,8 +135,19 @@ class AddUriDialogFragment : BaseDialogFragment<DialogFragmentAddUriBinding>() {
         vm.dialogAccept(DialogAction.ResetAddUriDialogState)
     }
 
-    private fun done(accept: (UiAction) -> Unit) {
+    private fun done(accept: (UiAction) -> Unit, emitToast: (ToastAction) -> Unit) {
         if (mBinding.inputView.text.toString().isNotEmpty())
             accept(UiAction.InitTask(mBinding.inputView.text.toString()))
+        else {
+            mBinding.inputView.shake()
+            emitToast(ToastAction.ShowToast(requireContext().getString(R.string.uri_is_empty)))
+        }
+    }
+
+    private fun View.shake() {
+            AnimatorInflater.loadAnimator(context, R.animator.view_shake).apply {
+                setTarget(this@shake)
+                start()
+            }
     }
 }

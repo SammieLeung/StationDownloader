@@ -346,7 +346,7 @@ class MainViewModel @Inject constructor(
     private fun initEmitToastAction(): (ToastAction) -> Unit {
         val actionStateFlow: MutableSharedFlow<ToastAction> = MutableSharedFlow()
         val initToast = actionStateFlow.filterIsInstance<ToastAction.InitToast>()
-        val emitToast = actionStateFlow.filterIsInstance<ToastAction.EmitToast>()
+        val emitToast = actionStateFlow.filterIsInstance<ToastAction.ShowToast>()
 
         handleInitToast(initToast)
         handleEmitToast(emitToast)
@@ -367,7 +367,7 @@ class MainViewModel @Inject constructor(
             }
         }
 
-    private fun handleEmitToast(emitToastFlow: Flow<ToastAction.EmitToast>) =
+    private fun handleEmitToast(emitToastFlow: Flow<ToastAction.ShowToast>) =
         viewModelScope.launch {
             emitToastFlow.collect { emitToast ->
                 _toastState.update {
@@ -401,7 +401,7 @@ sealed class DialogAction {
 
 sealed class ToastAction {
     object InitToast : ToastAction()
-    data class EmitToast(val msg: String) : ToastAction()
+    data class ShowToast(val msg: String) : ToastAction()
 }
 
 data class MainUiState(

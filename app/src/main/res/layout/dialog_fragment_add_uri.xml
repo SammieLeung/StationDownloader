@@ -17,10 +17,11 @@
             android:layout_width="690dp"
             android:layout_height="wrap_content"
             android:background="@drawable/station_dialog_background"
-            android:paddingHorizontal="30dp"
+            android:paddingEnd="30dp"
             android:paddingVertical="30dp">
 
             <EditText
+                android:layout_marginStart="30dp"
                 android:hint="@string/add_uri_hint"
                 android:paddingVertical="5dp"
                 android:textFontWeight="300"
@@ -30,6 +31,7 @@
                 android:maxHeight="372dp"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:nextFocusRight="@id/okBtn"
                 android:layout_toLeftOf="@id/selectTorrentBtn" />
 
             <Button
