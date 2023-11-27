@@ -672,6 +672,8 @@ class TaskService : Service(), DLogger, WebSocketClient.OnNotify {
             while (iterator.hasNext()) {
                 val (url, taskStatus) = iterator.next()
                 if (taskStatus.taskId.id == gid) {
+                    stopTask(url)
+                    //FIXME 处理Aria2下载完成的流程
                     val statusResponse = engineRepo.getAria2TaskStatus(gid, url)
                     if (statusResponse.succeeded) {
                         val newTaskStatus = statusResponse.result()

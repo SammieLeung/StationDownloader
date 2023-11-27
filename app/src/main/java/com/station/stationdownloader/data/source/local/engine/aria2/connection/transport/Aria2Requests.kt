@@ -80,6 +80,23 @@ object Aria2Requests {
         )
     }
 
+    @Throws(JSONException::class)
+    fun addUri(
+        uris: Collection<String?> = emptyList(),
+        pos: Int = Int.MAX_VALUE,
+        options: OptionsMap = OptionsMap()
+    ): Aria2RequestWithResult<String> {
+        return Aria2RequestWithResult(
+            WebSocketClient.Method.ADD_URI,
+            STRING_PROCESSOR,
+            arrayOf(
+                CommonUtils.toJSONArray(uris, true),
+                options.toJson(),
+                pos
+            )
+        )
+    }
+
     fun pause(gid: String): Aria2Request {
         return Aria2Request(WebSocketClient.Method.FORCE_PAUSE, arrayOf(gid))
     }

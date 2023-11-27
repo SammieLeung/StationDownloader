@@ -123,22 +123,44 @@ class Aria2Engine internal constructor(
         urlType: DownloadUrlType,
         selectIndexes: IntArray
     ): IResult<String> {
-        if (urlType != DownloadUrlType.TORRENT)
-            return IResult.Error(
-                Exception(TaskExecuteError.NOT_SUPPORT_URL.name),
-                TaskExecuteError.NOT_SUPPORT_URL.ordinal
-            )
-        val gidResponse = addTorrent(
-            realUrl,
-            downloadPath,
-            selectIndexes,
-            true
-        )
-        if (gidResponse is IResult.Error) {
-            return gidResponse
+        return when (urlType) {
+            DownloadUrlType.TORRENT -> {
+                val gidResponse = addTorrent(
+                    realUrl,
+                    downloadPath,
+                    selectIndexes,
+                    true
+                )
+                if (gidResponse is IResult.Error) {
+                    return gidResponse
+                }
+                aria2GidData[realUrl] = (gidResponse as IResult.Success).data
+                gidResponse
+            }
+
+            DownloadUrlType.HTTP -> {
+                val gidResponse = addUri(
+                    realUrl,
+                    downloadPath,
+                    selectIndexes,
+                    true
+                )
+                if (gidResponse is IResult.Error) {
+                    return gidResponse
+                }
+                aria2GidData[realUrl] = (gidResponse as IResult.Success).data
+                gidResponse
+            }
+
+            else -> {
+                return IResult.Error(
+                    Exception(TaskExecuteError.NOT_SUPPORT_URL.name),
+                    TaskExecuteError.NOT_SUPPORT_URL.ordinal
+                )
+            }
         }
-        aria2GidData[realUrl] = (gidResponse as IResult.Success).data
-        return gidResponse
+
+
     }
 
     override suspend fun startTask(
@@ -150,7 +172,7 @@ class Aria2Engine internal constructor(
         selectIndexes: IntArray
     ): IResult<String> {
         when (urlType) {
-            DownloadUrlType.TORRENT -> {
+            DownloadUrlType.TORRENT, DownloadUrlType.HTTP -> {
                 val gid = aria2GidData[realUrl]
                 gid?.let {
                     val unpauseResponse = sendToWebSocketSync(Aria2Requests.unpause(gid))
@@ -176,12 +198,12 @@ class Aria2Engine internal constructor(
                     }
                     return IResult.Success(it)
                 } ?: run {
-                    val gidResponse = addTorrent(
-                        realUrl,
-                        downloadPath,
-                        selectIndexes,
-                        false
-                    )
+
+                    val gidResponse = if (urlType == DownloadUrlType.TORRENT) {
+                        addTorrent(realUrl, downloadPath, selectIndexes, false)
+                    } else {
+                        addUri(realUrl, downloadPath, selectIndexes, false)
+                    }
                     if (gidResponse is IResult.Error) {
                         return gidResponse
                     }
@@ -189,6 +211,7 @@ class Aria2Engine internal constructor(
                     return gidResponse
                 }
             }
+
 
             else -> {
                 return IResult.Error(
@@ -297,6 +320,25 @@ class Aria2Engine internal constructor(
         return gidResponse
     }
 
+    private suspend fun addUri(
+        realUrl: String,
+        downloadPath: String,
+        selectIndexes: IntArray,
+        isPause: Boolean
+    ): IResult<String> {
+        val gidResponse = sendToWebSocketSync(Aria2Requests.addUri(
+            uris = listOf(realUrl),
+            options = OptionsMap().apply {
+                put("pause", OptionsMap.OptionValue(isPause.toString()))
+                put("dir", OptionsMap.OptionValue(downloadPath))
+                put("select-file", OptionsMap.OptionValue(selectIndexes.map {
+                    it + 1
+                }.joinToString(",")))
+            }
+        ))
+        return gidResponse
+    }
+
     private suspend fun changeGlobalOptions(optionsMap: OptionsMap) {
         sendToWebSocketSync(Aria2Requests.changeGlobalOptions(optionsMap))
     }
@@ -332,12 +374,12 @@ class Aria2Engine internal constructor(
         }
     }
 
-    suspend fun tellStatusByUrl(url:String,realUrl:String):IResult<TaskStatus>{
+    suspend fun tellStatusByUrl(url: String, realUrl: String): IResult<TaskStatus> {
         val gid = aria2GidData[realUrl] ?: return IResult.Error(
             Exception(TaskExecuteError.ARIA2_GID_NOT_FOUND.name),
             TaskExecuteError.ARIA2_GID_NOT_FOUND.ordinal
         )
-        return tellStatus(gid,url)
+        return tellStatus(gid, url)
     }
 
     suspend fun tellStatus(gid: String, url: String? = null): IResult<TaskStatus> {
@@ -350,7 +392,7 @@ class Aria2Engine internal constructor(
         }
     }
 
-    suspend fun getFiles(gid:String){
+    suspend fun getFiles(gid: String) {
         sendToWebSocketSync(Aria2Requests.getFiles(gid))
     }
 
