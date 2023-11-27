@@ -41,7 +41,7 @@
     <string name="aria2_setting">Aria2下载器设置</string>
     <string name="aria2_setting_status">Aria2状态</string>
 
-    <string name="common_setting_download_path">下载路径</string>
+    <string name="common_setting_download_path">添加下载任务时的默认下载路径</string>
     <string name="common_setting_max_thread">最大同时下载任务数量</string>
     <string name="common_setting_download_speed_limit">下载速度限制</string>
     <string name="common_setting_default_download_engine">添加下载任务时的默认下载器</string>
@@ -62,11 +62,11 @@
     <string name="delete_file_at_same_time">同时删除文件</string>
 
 
-    <string name="defalut_engine_initailize_error">[默认下载器] 加载失败!</string>
-    <string name="defalut_engine_initailize_succeed">[默认下载器] 加载成功!</string>
+    <string name="defalut_engine_initailize_error">默认下载器>> 加载失败!</string>
+    <string name="defalut_engine_initailize_succeed">默认下载器>> 加载成功!</string>
 
-    <string name="aria2_engine_initailize_error">[Aria2下载器] 加载失败!</string>
-    <string name="aria2_engine_initailize_succeed">[Aria2下载器] 加载成功!</string>
+    <string name="aria2_engine_initailize_error">Aria2下载器>> 加载失败!</string>
+    <string name="aria2_engine_initailize_succeed">Aria2下载器>> 加载成功!</string>
     <string name="aria2_setting_status_obtaining">获取服务状态中...</string>
     <string name="aria2_setting_status_on">Aria2服务已开启</string>
     <string name="aria2_setting_status_off">Aria2服务已停止</string>

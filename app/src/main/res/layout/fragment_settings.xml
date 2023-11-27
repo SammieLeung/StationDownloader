@@ -138,6 +138,7 @@
                 <include
                     android:id="@+id/aria2Status"
                     layout="@layout/setting_item"
+                    app:nonConfigurable="@{true}"
                     app:content="@{aria2ItemStateList.get(0).content}"
                     app:extraContent="@{aria2ItemStateList.get(0).extraContent}"
                     app:title="@{aria2ItemStateList.get(0).title}" />

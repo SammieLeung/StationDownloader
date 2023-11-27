@@ -16,6 +16,10 @@
             name="extraContent"
             type="String" />
 
+        <variable
+            name="nonConfigurable"
+            type="Boolean" />
+
     </data>
 
     <FrameLayout
@@ -59,7 +63,7 @@
                 android:layout_centerVertical="true"
                 android:layout_marginEnd="16dp"
                 android:layout_toEndOf="@id/appendTextView"
-                android:drawableEnd="@drawable/ic_enter"
+                android:drawableEnd="@{nonConfigurable==true?null:@drawable/ic_enter}"
                 android:drawablePadding="15dp"
                 android:drawableTint="@color/setting_text_color_tint"
                 android:lines="1"

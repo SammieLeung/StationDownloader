@@ -145,7 +145,28 @@ class SettingViewModel @Inject constructor(
                                                 selectMaxThread = false,
                                                 selectSpeedLimit = false,
                                                 selectEngine = false,
-                                                downloadPath =  configRepo.getValue(CommonOptions.DownloadPath)
+                                                downloadPath = configRepo.getValue(CommonOptions.DownloadPath)
+                                            )
+                                        }
+                                    }
+                                }
+                            ),
+
+                            SettingItemState(
+                                title = application.getString(R.string.common_setting_default_download_engine),
+                                extraContent = "",
+                                content = defaultDownloadEngine.formatHumanName(),
+                                onClick = {
+                                    viewModelScope.launch {
+                                        _dialogState.update {
+                                            it.copy(
+                                                selectDownloadPath = false,
+                                                selectMaxThread = false,
+                                                selectSpeedLimit = false,
+                                                selectEngine = true,
+                                                defaultDownloadEngine = configRepo.getValue(
+                                                    CommonOptions.DefaultDownloadEngine
+                                                )
                                             )
                                         }
                                     }
@@ -163,32 +184,15 @@ class SettingViewModel @Inject constructor(
                                                 selectMaxThread = true,
                                                 selectSpeedLimit = false,
                                                 selectEngine = false,
-                                                maxThread = configRepo.getValue(CommonOptions.MaxThread).toInt()
+                                                maxThread = configRepo.getValue(CommonOptions.MaxThread)
+                                                    .toInt()
                                             )
                                         }
                                     }
                                 }
                             ),
-                            SettingItemState(
-                                title = application.getString(R.string.common_setting_default_download_engine),
-                                extraContent = "",
-                                content = defaultDownloadEngine.formatHumanName(),
-                                onClick = {
-                                    viewModelScope.launch {
-                                        _dialogState.update {
-                                            it.copy(
-                                                selectDownloadPath = false,
-                                                selectMaxThread = false,
-                                                selectSpeedLimit = false,
-                                                selectEngine = true,
-                                                defaultDownloadEngine =    configRepo.getValue(CommonOptions.DefaultDownloadEngine)
-                                            )
-                                        }
-                                    }
-                                }
-                            )
 
-                        )
+                            )
                     )
                 }
 
@@ -208,7 +212,8 @@ class SettingViewModel @Inject constructor(
                                                 selectSpeedLimit = true,
                                                 selectEngine = false,
                                                 speedLimitOption = XLOptions.SpeedLimit,
-                                                downloadSpeedLimit = configRepo.getValue(XLOptions.SpeedLimit).toLong()
+                                                downloadSpeedLimit = configRepo.getValue(XLOptions.SpeedLimit)
+                                                    .toLong()
                                             )
                                         }
                                     }
@@ -235,7 +240,9 @@ class SettingViewModel @Inject constructor(
                                                 selectSpeedLimit = true,
                                                 selectEngine = false,
                                                 speedLimitOption = Aria2Options.SpeedLimit,
-                                                downloadSpeedLimit = configRepo.getValue(Aria2Options.SpeedLimit).toLong()
+                                                downloadSpeedLimit = configRepo.getValue(
+                                                    Aria2Options.SpeedLimit
+                                                ).toLong()
                                             )
                                         }
                                     }
