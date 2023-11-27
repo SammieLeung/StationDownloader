@@ -185,16 +185,10 @@
 
                 <Button
                     android:id="@+id/downloadBtn"
-                    android:layout_width="wrap_content"
+                    android:layout_width="300dp"
                     android:layout_height="wrap_content"
                     android:text="@string/download_btn" />
 
-                <Button
-                    android:id="@+id/cancelBtn"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginLeft="50dp"
-                    android:text="@string/cancel_btn" />
             </LinearLayout>
         </RelativeLayout>
     </RelativeLayout>

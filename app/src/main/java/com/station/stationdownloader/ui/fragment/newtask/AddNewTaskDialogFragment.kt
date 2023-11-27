@@ -92,9 +92,6 @@ class AddNewTaskDialogFragment : BaseDialogFragment<DialogFragmentAddNewTaskBind
         dialogAccept: (DialogAction) -> Unit
     ) {
         downloadPathView.isSelected = true
-        cancelBtn.setOnClickListener {
-            dismiss()
-        }
 
         downloadBtn.setOnClickListener {
             accept(
