@@ -73,12 +73,8 @@ class AddUriDialogFragment : BaseDialogFragment<DialogFragmentAddUriBinding>() {
         uiState: Flow<AddUriUiState<StationDownloadTask>>,
         accept: (UiAction) -> Unit,
     ) {
-        inputView.setText(DEBUG_URL)
         okBtn.setOnClickListener {
             done(accept)
-        }
-        cancelBtn.setOnClickListener {
-            dismiss()
         }
         selectTorrentBtn.setOnClickListener {
             if (app.useV2FileManager) {
@@ -132,9 +128,5 @@ class AddUriDialogFragment : BaseDialogFragment<DialogFragmentAddUriBinding>() {
     private fun done(accept: (UiAction) -> Unit) {
         if (mBinding.inputView.text.toString().isNotEmpty())
             accept(UiAction.InitTask(mBinding.inputView.text.toString()))
-    }
-
-    companion object{
-        const val DEBUG_URL = "magnet:?xt=urn:btih:FA75229646CCDD424634E24554B21945D4CA3B42"
     }
 }

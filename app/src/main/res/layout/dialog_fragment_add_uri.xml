@@ -17,52 +17,41 @@
             android:layout_width="690dp"
             android:layout_height="wrap_content"
             android:background="@drawable/station_dialog_background"
-            android:paddingHorizontal="20dp"
+            android:paddingHorizontal="30dp"
             android:paddingVertical="30dp">
 
             <EditText
+                android:hint="@string/add_uri_hint"
                 android:paddingVertical="5dp"
                 android:textFontWeight="300"
+                android:minHeight="124dp"
                 android:textSize="18sp"
                 android:id="@+id/inputView"
+                android:maxHeight="372dp"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_toLeftOf="@id/selectTorrentBtn" />
 
-            <ImageButton
-                android:src="@drawable/ic_open_folder"
-                android:tint="@android:color/white"
+            <Button
+                android:text="@string/add_torrent"
+                android:drawableStart="@drawable/ic_open_folder"
+                android:drawableTint="@android:color/white"
                 android:scaleType="centerInside"
                 android:id="@+id/selectTorrentBtn"
-                android:layout_width="87dp"
-                android:layout_height="57dp"
+                android:layout_width="195dp"
+                android:layout_height="53dp"
                 android:layout_alignParentEnd="true"
                 android:layout_marginStart="30dp"
                 tools:ignore="UseAppTint" />
 
-            <LinearLayout
+            <Button
+                android:id="@+id/okBtn"
+                android:layout_marginTop="18dp"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_below="@id/inputView"
-                android:layout_centerHorizontal="true"
-                android:layout_marginTop="30dp">
-
-                <Button
-                    android:id="@+id/okBtn"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_below="@id/inputView"
-                    android:text="@android:string/ok" />
-
-                <Button
-                    android:id="@+id/cancelBtn"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_below="@id/inputView"
-                    android:layout_alignParentEnd="true"
-                    android:layout_marginStart="38dp"
-                    android:text="@android:string/cancel" />
-            </LinearLayout>
+                android:layout_alignParentEnd="true"
+                android:layout_below="@id/selectTorrentBtn"
+                android:text="@android:string/ok" />
 
         </RelativeLayout>
     </RelativeLayout>

@@ -2,6 +2,8 @@
     <string name="app_name">资源下载器</string>
     <string name="menu_title">资源下载器</string>
     <string name="add_uri">添加</string>
+    <string name="add_torrent">添加种子</string>
+    <string name="add_uri_hint">添加链接提示：支持迅雷、HTTP、磁力和种子下载</string>
 
     <string name="welcome_message">正在初始化...</string>
     <string name="welcome_enter_message">正在进入应用...</string>
