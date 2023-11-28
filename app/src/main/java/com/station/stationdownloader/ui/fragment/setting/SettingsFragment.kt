@@ -7,6 +7,7 @@ import androidx.fragment.app.viewModels
 import androidx.lifecycle.lifecycleScope
 import com.gianlu.aria2lib.Aria2Ui
 import com.orhanobut.logger.Logger
+import com.station.stationdownloader.BuildConfig
 import com.station.stationdownloader.R
 import com.station.stationdownloader.StationDownloaderApp
 import com.station.stationdownloader.data.source.local.engine.aria2.Aria2Engine
@@ -77,6 +78,7 @@ class SettingsFragment : BaseFragment<FragmentSettingsBinding>(), DLogger, Aria2
         aria2SettingFlow: StateFlow<Aria2SettingState>,
         dialogStateFlow: StateFlow<DialogState>,
     ) {
+        versionName=BuildConfig.VERSION_NAME
         lifecycleScope.launch {
             commonSettingStateFlow.collect { settingState ->
                 commonItemStateList = settingState.settingItemStates
