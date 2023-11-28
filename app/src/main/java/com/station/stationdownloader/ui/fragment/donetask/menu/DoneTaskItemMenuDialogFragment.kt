@@ -74,45 +74,11 @@ class DoneTaskItemMenuDialogFragment : BaseDialogFragment<DialogDoneTaskItemMenu
         lifecycleScope.launch {
             uiState.collect {
                 if (it is UiState.OpenFileState) {
-//                    openFile(it.uri)
-
-                    if (PackageTools.isAppInstalled(
-                            requireContext(),
-                            FIREFLY_FILE_MANAGER
-                        )
-                    ) {
-                        openFileWithFirefly(it.uri)
-                    } else {
-                        openFile(it.uri)
-                    }
                     dismiss()
                 }
             }
         }
 
-    }
-
-    private fun openFileWithFirefly(uri: Uri) {
-        val action = "$FIREFLY_FILE_MANAGER.OPEN"
-        startActivity(Intent(action).apply {
-            putExtra("path", uri.path)
-        })
-    }
-
-    private fun openFile(uri: Uri) {
-        val intent = Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
-            addCategory(Intent.CATEGORY_OPENABLE)
-            type = "*/*"
-
-            // Optionally, specify a URI for the file that should appear in the
-            // system file picker when it loads.
-            putExtra(DocumentsContract.EXTRA_INITIAL_URI, uri)
-        }
-        if (intent.resolveActivity(requireActivity().packageManager) != null) {
-            startActivity(intent);
-        } else {
-            logger("处理没有文件管理器应用的情况")
-        }
     }
 
     private fun showConfirmDeleteDialog() {

@@ -128,6 +128,8 @@
                 android:layout_height="11dp" />
 
             <TextView
+                android:drawableStart="@drawable/ic_engine"
+                android:drawablePadding="5dp"
                 android:id="@+id/engine"
                 style="@style/TaskItemSmallText"
                 android:layout_width="wrap_content"

@@ -329,7 +329,7 @@ class TaskService : Service(), DLogger, WebSocketClient.OnNotify {
                 "Task not found!",
                 TaskExecuteError.TASK_NOT_FOUND.ordinal
             ) ?: sendErrorToClient(
-                command = "remove_task",
+                command = if (isDeleteFile) "remove_task_and_file" else "remove_task",
                 reason = "Task not found!",
                 code = TaskExecuteError.TASK_NOT_FOUND.ordinal
             )
@@ -353,7 +353,7 @@ class TaskService : Service(), DLogger, WebSocketClient.OnNotify {
                 "delete task 【$url】failed",
                 TaskExecuteError.DELETE_TASK_FAILED.ordinal
             ) ?: sendErrorToClient(
-                command = "remove_task",
+                command = if (isDeleteFile) "remove_task_and_file" else "remove_task",
                 reason = "delete task 【$url】failed",
                 code = TaskExecuteError.DELETE_TASK_FAILED.ordinal
             )
@@ -365,7 +365,7 @@ class TaskService : Service(), DLogger, WebSocketClient.OnNotify {
             deleteResult as IResult.Success
             callback?.onResult(MoshiHelper.toJson(RemoteDeleteTask(url)))
                 ?: sendToClient(
-                    command = "remove_task",
+                    command = if (isDeleteFile) "remove_task_and_file" else "remove_task",
                     data = MoshiHelper.toJson(RemoteDeleteTask(url)),
                     expendJson = null
                 )

@@ -85,9 +85,11 @@
                 android:id="@+id/divider_2"
                 style="@style/Divider.Vertical"
                 android:layout_width="1dp"
-                android:layout_height="11dp" />
+                android:layout_height="match_parent" />
 
             <TextView
+                android:drawableStart="@drawable/ic_engine"
+                android:drawablePadding="5dp"
                 android:id="@+id/engine"
                 style="@style/TaskItemSmallText"
                 android:layout_width="wrap_content"

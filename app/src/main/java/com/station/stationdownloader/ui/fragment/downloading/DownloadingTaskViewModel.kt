@@ -10,8 +10,10 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
+import com.station.stationdownloader.DownloadEngine
 import com.station.stationdownloader.DownloadTaskStatus
 import com.station.stationdownloader.ITaskState
+import com.station.stationdownloader.R
 import com.station.stationdownloader.TaskId
 import com.station.stationdownloader.TaskService
 import com.station.stationdownloader.TaskStatus
@@ -422,7 +424,11 @@ class DownloadingTaskViewModel @Inject constructor(
             sizeInfo = TaskTools.formatSizeInfo(downloadSize, totalSize),
             speed = "",
             downloadPath = this.downloadPath,
-            engine = this.engine.name
+            engine = when (this.engine) {
+                DownloadEngine.XL -> application.getString(R.string.xl_engine)
+                DownloadEngine.ARIA2 -> application.getString(R.string.aria2_engine)
+                else -> ""
+            }
         )
     }
 

@@ -8,7 +8,9 @@ import android.content.IntentFilter
 import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.station.stationdownloader.DownloadEngine
 import com.station.stationdownloader.DownloadTaskStatus
+import com.station.stationdownloader.R
 import com.station.stationdownloader.TaskService
 import com.station.stationdownloader.TaskService.Companion.ACTION_DELETE_TASK_RESULT
 import com.station.stationdownloader.contants.TaskExecuteError
@@ -150,13 +152,16 @@ class DownloadedTaskViewModel @Inject constructor(
     private fun handleOpenFile(openFile: Flow<UiAction.OpenFile>) =
         viewModelScope.launch {
             openFile.collect { action ->
-                logger("openFile")
                 val xlDownloadTaskEntity = taskRepo.getTaskByUrl(action.url) ?: return@collect
                 if (xlDownloadTaskEntity.torrentId < 0) {
-
+                    _uiState.update {
+                        UiState.OpenFileState(
+                            uri = Uri.fromFile(File(xlDownloadTaskEntity.downloadPath)),
+                            isVideo = false
+                        )
+                    }
                 } else {
                     val fileUri = Uri.fromFile(File(xlDownloadTaskEntity.downloadPath))
-                    logger("fileUri:$fileUri")
                     _uiState.update {
                         UiState.OpenFileState(
                             uri = fileUri,
@@ -217,7 +222,11 @@ class DownloadedTaskViewModel @Inject constructor(
             taskName = this.name,
             sizeInfo = TaskTools.formatSizeInfo(downloadSize, totalSize),
             downloadPath = this.downloadPath,
-            engine = this.engine.name
+            engine = when(this.engine){
+                DownloadEngine.XL->application.getString(R.string.xl_engine)
+                DownloadEngine.ARIA2 -> application.getString(R.string.aria2_engine)
+                else -> ""
+            }
         )
     }
 }

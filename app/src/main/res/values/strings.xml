@@ -37,21 +37,23 @@
     <string name="menu_play_done_task">打开任务</string>
 
     <string name="common_setting">通用设置</string>
-    <string name="xl_setting">默认下载器设置</string>
-    <string name="aria2_setting">Aria2下载器设置</string>
+    <string name="xl_setting">默认下载设置</string>
+    <string name="aria2_setting">Aria2下载设置</string>
     <string name="aria2_setting_status">Aria2状态</string>
 
     <string name="common_setting_download_path">添加下载任务时的默认下载路径</string>
     <string name="common_setting_max_thread">最大同时下载任务数量</string>
     <string name="common_setting_download_speed_limit">下载速度限制</string>
-    <string name="common_setting_default_download_engine">添加下载任务时的默认下载器</string>
+    <string name="common_setting_default_download_engine">添加下载任务时的默认下载方式</string>
 
-    <string name="download_with_xl">默认下载器</string>
-    <string name="download_with_aria2">Aria2下载器</string>
+    <string name="xl_engine">默认下载</string>
+    <string name="aria2_engine">Aria2下载</string>
+    <string name="download_with_xl">使用默认下载</string>
+    <string name="download_with_aria2">使用Aria2下载</string>
 
 
-    <string name="xl_setting_download_speed_limit">默认下载器下载速度限制</string>
-    <string name="aria2_setting_download_speed_limit">Aria2下载器速度限制</string>
+    <string name="xl_setting_download_speed_limit">默认下载速度限制</string>
+    <string name="aria2_setting_download_speed_limit">Aria2下载速度限制</string>
 
     <string name="speed_no_limit">无限制</string>
 

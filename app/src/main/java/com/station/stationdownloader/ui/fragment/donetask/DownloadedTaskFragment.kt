@@ -1,6 +1,9 @@
 package com.station.stationdownloader.ui.fragment.donetask
 
+import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
+import android.provider.DocumentsContract
 import android.view.View
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.lifecycleScope
@@ -10,6 +13,7 @@ import com.station.stationdownloader.databinding.FragmentDownloadtaskBinding
 import com.station.stationdownloader.ui.base.BaseFragment
 import com.station.stationdownloader.ui.fragment.donetask.menu.DoneTaskItemMenuDialogFragment
 import com.station.stationdownloader.utils.DLogger
+import com.station.stationkitkt.PackageTools
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
@@ -73,6 +77,17 @@ class DownloadedTaskFragment : BaseFragment<FragmentDownloadtaskBinding>(), DLog
                         isEmpty = it.doneTaskItemList.isEmpty()
                         taskListAdapter.fillData(it.doneTaskItemList)
                     }
+                    is UiState.OpenFileState->{
+                        if (PackageTools.isAppInstalled(
+                                requireContext(),
+                                DoneTaskItemMenuDialogFragment.FIREFLY_FILE_MANAGER
+                            )
+                        ) {
+                            openFileWithFirefly(it.uri)
+                        } else {
+                            openFile(it.uri)
+                        }
+                    }
                     else -> {}
                 }
             }
@@ -90,6 +105,29 @@ class DownloadedTaskFragment : BaseFragment<FragmentDownloadtaskBinding>(), DLog
 
     fun getViewModel(): DownloadedTaskViewModel {
         return vm
+    }
+
+    private fun openFileWithFirefly(uri: Uri) {
+        val action = "${DoneTaskItemMenuDialogFragment.FIREFLY_FILE_MANAGER}.OPEN"
+        startActivity(Intent(action).apply {
+            putExtra("path", uri.path)
+        })
+    }
+
+    private fun openFile(uri: Uri) {
+        val intent = Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
+            addCategory(Intent.CATEGORY_OPENABLE)
+            type = "*/*"
+
+            // Optionally, specify a URI for the file that should appear in the
+            // system file picker when it loads.
+            putExtra(DocumentsContract.EXTRA_INITIAL_URI, uri)
+        }
+        if (intent.resolveActivity(requireActivity().packageManager) != null) {
+            startActivity(intent);
+        } else {
+            logger("处理没有文件管理器应用的情况")
+        }
     }
 
 

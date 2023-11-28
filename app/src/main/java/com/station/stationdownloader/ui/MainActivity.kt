@@ -43,6 +43,7 @@ class MainActivity : BaseActivity<ActivityMainBinding>(), DLogger {
 
     val vm: MainViewModel by viewModels()
     var toast: Toast? = null
+    var focusView: View? = null
 
 
     @Inject
@@ -101,6 +102,7 @@ class MainActivity : BaseActivity<ActivityMainBinding>(), DLogger {
         super.onCreate(savedInstanceState)
         initTabLayout()
         mBinding.bindState()
+        focusView = currentFocus
     }
 
     override fun onResume() {
@@ -110,7 +112,9 @@ class MainActivity : BaseActivity<ActivityMainBinding>(), DLogger {
             serviceConnection,
             Context.BIND_AUTO_CREATE
         )
+        requestFocusOnSelectedTab()
     }
+
 
     override fun onPause() {
         super.onPause()
@@ -123,6 +127,16 @@ class MainActivity : BaseActivity<ActivityMainBinding>(), DLogger {
             AddUriDialogFragment().show(supportFragmentManager, "")
         }
 
+    }
+
+
+    private fun requestFocusOnSelectedTab() {
+        tabViewList.forEach {
+            if (it.isSelected) {
+                it.requestFocus()
+                logger(focusView)
+            }
+        }
     }
 
     private fun initTabLayout() {
