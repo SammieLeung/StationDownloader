@@ -15,4 +15,5 @@ public abstract class Aria2PK {
     public static final Prefs.Key CUSTOM_OPTIONS = new Prefs.Key("customOptions");
     public static final Prefs.KeyWithDefault<Boolean> SAVE_SESSION = new Prefs.KeyWithDefault<>("saveSession", true);
     public static final Prefs.Key BARE_CONFIG_PROVIDER = new Prefs.Key("bareConfigProvider");
+    public static final Prefs.KeyWithDefault ARIA2_LAST_MD5=new Prefs.KeyWithDefault<>("aria2LastMd5","");
 }

@@ -16,14 +16,19 @@ import androidx.annotation.Nullable;
 import androidx.annotation.UiThread;
 import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 
+import com.gianlu.aria2lib.commonutils.Md5CheckSum;
 import com.gianlu.aria2lib.commonutils.Prefs;
 import com.gianlu.aria2lib.internal.Aria2;
 import com.gianlu.aria2lib.internal.Aria2Service;
 import com.gianlu.aria2lib.internal.Message;
 
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.io.Serializable;
+import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -99,9 +104,48 @@ public class Aria2Ui {
         }
     }
 
-    public void loadEnv(@NonNull Context context) throws BadEnvironmentException {
+    public void loadEnv(@NonNull Context context) throws BadEnvironmentException, IOException, NoSuchAlgorithmException {
         File parent = context.getFilesDir();
-        aria2.loadEnv(parent, new File(context.getApplicationInfo().nativeLibraryDir, "libaria2c.so"), new File(parent, "session"));
+        if (!checkAria2ExecFileExist() || !isAssetMd5MatchesLastCopiedFileMd5(context.getAssets().open("aria2c"))) {
+            installExecFromAssets();
+        }
+        aria2.loadEnv(parent, new File(parent, "aria2cExec/aria2c"), new File(parent, "session"));
+    }
+
+    private boolean isAssetMd5MatchesLastCopiedFileMd5(InputStream aria2c) throws NoSuchAlgorithmException, IOException {
+        return Prefs.getString(Aria2PK.ARIA2_LAST_MD5).equalsIgnoreCase(Md5CheckSum.checkMd5Sum(aria2c));
+    }
+
+    private void installExecFromAssets() throws NoSuchAlgorithmException {
+        try {
+            File parent = context.getFilesDir();
+            File execDir = new File(parent, "aria2cExec");
+            if (!execDir.exists()) {
+                execDir.mkdirs();
+            }
+            File execFile = new File(execDir, "aria2c");
+            if (!execFile.exists()) {
+                execFile.createNewFile();
+            }
+            InputStream assertFileInputStream = context.getAssets().open("aria2c");
+            OutputStream fos = new FileOutputStream(execFile);
+            byte[] buffer = new byte[1024];
+            int len;
+            while ((len = assertFileInputStream.read(buffer)) > 0) {
+                fos.write(buffer, 0, len);
+            }
+            fos.flush();
+            fos.close();
+            assertFileInputStream.close();
+            Prefs.putString(Aria2PK.ARIA2_LAST_MD5, Md5CheckSum.checkMd5Sum(execFile));
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private Boolean checkAria2ExecFileExist() {
+        File file = new File(context.getFilesDir(), "aria2cExec/aria2c");
+        return file.exists();
     }
 
     @NonNull

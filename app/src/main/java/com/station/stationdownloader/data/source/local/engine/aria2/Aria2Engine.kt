@@ -41,6 +41,8 @@ import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import java.io.ByteArrayOutputStream
 import java.io.File
+import java.io.IOException
+import java.security.NoSuchAlgorithmException
 import kotlin.coroutines.resume
 import kotlin.coroutines.suspendCoroutine
 
@@ -87,6 +89,7 @@ class Aria2Engine internal constructor(
         try {
             initMutex.lock()
             if (!isInit) {
+                profileManager.getInAppProfile()
                 loadAria2ServiceEnv()
                 aria2Service.ui.startService()
                 connectMutex.lock()
@@ -263,7 +266,7 @@ class Aria2Engine internal constructor(
         return IResult.Success(false)
     }
 
-    @Throws(BadEnvironmentException::class)
+    @Throws(BadEnvironmentException::class,IOException::class, NoSuchAlgorithmException::class)
     private fun loadAria2ServiceEnv() {
         if (!aria2Service.ui.hasEnv()) {
             aria2Service.ui.loadEnv(appContext)
