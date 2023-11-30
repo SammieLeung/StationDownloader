@@ -293,6 +293,9 @@ class MainViewModel @Inject constructor(
                         (it.task._fileTree as TreeNode.Directory).totalCheckedFileSize
                     val checkedFileCount = it.task._fileTree.checkedFileCount
                     val downloadPathFile = File(it.task._downloadPath)
+                    if(!downloadPathFile.exists()){
+                        downloadPathFile.mkdirs()
+                    }
                     val freeSpace = downloadPathFile.freeSpace
                     val totalSpace = downloadPathFile.totalSpace
                     var downloadPathSizeInfo = application.getString(
