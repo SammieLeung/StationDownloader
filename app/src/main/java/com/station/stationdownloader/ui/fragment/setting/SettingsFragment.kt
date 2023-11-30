@@ -4,6 +4,7 @@ import android.os.Bundle
 import android.util.Base64
 import android.view.View
 import androidx.fragment.app.viewModels
+import androidx.lifecycle.findViewTreeViewModelStoreOwner
 import androidx.lifecycle.lifecycleScope
 import com.gianlu.aria2lib.Aria2Ui
 import com.orhanobut.logger.Logger
@@ -48,7 +49,7 @@ class SettingsFragment : BaseFragment<FragmentSettingsBinding>(), DLogger, Aria2
     }
 
     @Inject
-    lateinit var aria2Engine:Aria2Engine
+    lateinit var aria2Engine: Aria2Engine
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
@@ -78,24 +79,25 @@ class SettingsFragment : BaseFragment<FragmentSettingsBinding>(), DLogger, Aria2
         aria2SettingFlow: StateFlow<Aria2SettingState>,
         dialogStateFlow: StateFlow<DialogState>,
     ) {
-        versionName=BuildConfig.VERSION_NAME
+        versionName = BuildConfig.VERSION_NAME
+
         lifecycleScope.launch {
             commonSettingStateFlow.collect { settingState ->
                 commonItemStateList = settingState.settingItemStates
                 downloadPath.root.setOnClickListener {
                     settingState.settingItemStates[0].onClick()
                 }
-                maxConcurrentDownloads.root.setOnClickListener {
+                defaultDownloadEngine.root.setOnClickListener {
                     settingState.settingItemStates[1].onClick()
                 }
-                defaultDownloadEngine.root.setOnClickListener {
+                maxConcurrentDownloads.root.setOnClickListener {
                     settingState.settingItemStates[2].onClick()
                 }
             }
         }
 
         lifecycleScope.launch {
-            xlSettingFlow.collect{settingState->
+            xlSettingFlow.collect { settingState ->
                 xlItemStateList = settingState.settingItemStates
                 xlDownloadSpeedLimit.root.setOnClickListener {
                     settingState.settingItemStates[0].onClick()

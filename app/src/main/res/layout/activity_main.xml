@@ -61,6 +61,7 @@
                 android:text="@string/menu_downloaded" />
 
             <TextView
+                android:nextFocusRight="@id/downloadPath"
                 android:id="@+id/settingItem"
                 style="@style/LeftMenuButton"
                 android:text="@string/menu_setting" />

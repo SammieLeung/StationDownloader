@@ -70,14 +70,14 @@
                     app:title="@{commonItemStateList.get(0).title}" />
 
                 <include
-                    android:id="@+id/maxConcurrentDownloads"
+                    android:id="@+id/defaultDownloadEngine"
                     layout="@layout/setting_item"
                     app:content="@{commonItemStateList.get(1).content}"
                     app:extraContent="@{commonItemStateList.get(1).extraContent}"
                     app:title="@{commonItemStateList.get(1).title}" />
 
                 <include
-                    android:id="@+id/defaultDownloadEngine"
+                    android:id="@+id/maxConcurrentDownloads"
                     layout="@layout/setting_item"
                     app:content="@{commonItemStateList.get(2).content}"
                     app:extraContent="@{commonItemStateList.get(2).extraContent}"
