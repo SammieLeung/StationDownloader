@@ -7,8 +7,7 @@
 
     <RelativeLayout
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:theme="@style/AppTheme.Dialog">
+        android:layout_height="match_parent">
 
         <RelativeLayout
             android:layout_width="525dp"
@@ -26,9 +25,9 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_below="@id/titleView"
-                android:layout_marginEnd="48dp"
                 android:layout_marginStart="48dp"
-                android:layout_marginTop="23dp" />
+                android:layout_marginTop="23dp"
+                android:layout_marginEnd="48dp" />
 
             <RelativeLayout
                 android:layout_width="wrap_content"
@@ -46,10 +45,10 @@
                     android:text="@string/ok_btn" />
 
                 <Button
-                    android:layout_alignParentEnd="true"
                     android:id="@+id/cancelBtn"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
+                    android:layout_alignParentEnd="true"
                     android:text="@string/cancel_btn" />
             </RelativeLayout>
 

@@ -20,14 +20,13 @@ open class BaseDialogFragment<VDB : ViewDataBinding> : DialogFragment() {
         container: ViewGroup?,
         savedInstanceState: Bundle?,
     ): View {
-        mBinding = ViewDataBindingHelper.inflateVDB(requireContext(), this::class) as VDB
+        mBinding = ViewDataBindingHelper.inflateVDB(inflater,container, this::class) as VDB
         mBinding.lifecycleOwner = this.viewLifecycleOwner
         return mBinding.root
     }
 
     override fun onStart() {
         super.onStart()
-        dialog?.window?.setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
         dialog?.window?.setLayout(MATCH_PARENT, WRAP_CONTENT)
     }
 

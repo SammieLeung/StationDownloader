@@ -74,8 +74,8 @@ object ViewDataBindingHelper {
      * @return ViewDataBinding?
      */
     fun inflateVDB(
-        context: Context,
-        parent: ViewGroup,
+        inflater: LayoutInflater,
+        parent: ViewGroup?,
         kClass: KClass<*>,
     ): ViewDataBinding? {
         try {
@@ -85,7 +85,7 @@ object ViewDataBindingHelper {
                 ViewGroup::class.java,
                 Boolean::class.java)
             return inflate?.invoke(null,
-                LayoutInflater.from(context),
+                inflater,
                 parent,
                 false) as? ViewDataBinding
         } catch (e: Exception) {
