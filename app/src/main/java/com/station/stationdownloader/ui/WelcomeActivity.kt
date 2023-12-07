@@ -58,7 +58,7 @@ class WelcomeActivity : PermissionActivity<ActivityWelcomeBinding>(
                                 messageList.add(getString(R.string.welcome_enter_message))
                                 mBinding.process= messageList.joinToString("\n")
                                 delay(1000)
-                                startActivity(MainActivity.newIntent(this@WelcomeActivity))
+                                startActivity(MainActivity.newIntent(this@WelcomeActivity,intent))
                                 finish()
                             }
 
@@ -67,7 +67,7 @@ class WelcomeActivity : PermissionActivity<ActivityWelcomeBinding>(
                     }
                 }
                 else{
-                    startActivity(MainActivity.newIntent(this@WelcomeActivity))
+                    startActivity(MainActivity.newIntent(this@WelcomeActivity,intent))
                     finish()
                 }
 

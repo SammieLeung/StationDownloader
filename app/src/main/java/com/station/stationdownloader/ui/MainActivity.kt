@@ -16,6 +16,7 @@ import androidx.lifecycle.repeatOnLifecycle
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
 import com.orhanobut.logger.Logger
+import com.station.stationdownloader.R
 import com.station.stationdownloader.TaskService
 import com.station.stationdownloader.TaskStatusServiceImpl
 import com.station.stationdownloader.databinding.ActivityMainBinding
@@ -103,7 +104,15 @@ class MainActivity : BaseActivity<ActivityMainBinding>(), DLogger {
         initTabLayout()
         mBinding.bindState()
         focusView = currentFocus
+        onNewIntent(intent)
     }
+
+
+    override fun onNewIntent(intent: Intent?) {
+        super.onNewIntent(intent)
+        handleAddUriIntent(intent,vm.accept,vm.emitToast)
+    }
+
 
     override fun onResume() {
         super.onResume()
@@ -164,6 +173,23 @@ class MainActivity : BaseActivity<ActivityMainBinding>(), DLogger {
             OnFocusChangeListener { v, hasFocus -> if (hasFocus) v.performClick() }
     }
 
+    private fun handleAddUriIntent(
+        intent: Intent?,
+        accept: (UiAction) -> Unit,
+        emitToast: (ToastAction) -> Unit
+    ) {
+        if(intent == null) return
+        when(intent.action){
+            ACTION_ADD_URI->{
+                val uri = intent.getStringExtra(Intent.EXTRA_TEXT)
+                uri?.let {
+                    accept(UiAction.InitTask(uri))
+                } ?: emitToast(ToastAction.ShowToast(getString(R.string.uri_is_empty)))
+            }
+            else->{}
+        }
+    }
+
 
     private fun showToast(context: Context, message: String) {
         toast?.cancel()
@@ -191,9 +217,18 @@ class MainActivity : BaseActivity<ActivityMainBinding>(), DLogger {
     }
 
     companion object {
+        const val ACTION_ADD_URI = "com.station.stationdownloader.ADD_URI"
+
         @JvmStatic
-        fun newIntent(welcomeActivity: WelcomeActivity): Intent? {
-            return Intent(welcomeActivity, MainActivity::class.java)
+        fun newIntent(welcomeActivity: WelcomeActivity, intent: Intent? = null): Intent? {
+            return Intent(welcomeActivity, MainActivity::class.java).apply {
+                intent?.let {
+                    this.putExtras(it)
+                    this.data = it.data
+                    this.action = it.action
+                    this.type = it.type
+                }
+            }
         }
     }
 }
