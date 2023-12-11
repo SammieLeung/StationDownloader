@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">資源下載器</string>
+    <string name="menu_title">資源下載器</string>
+    <string name="add_uri">添加</string>
+    <string name="add_torrent">選擇種子</string>
+    <string name="add_uri_hint">添加連結提示：支援迅雷、HTTP、磁力和種子下載</string>
+    <string name="uri_is_empty">連結不能為空！</string>
+
+    <string name="welcome_message">正在初始化...</string>
+    <string name="welcome_enter_message">正在進入應用...</string>
+
+    <string name="menu_downloading">下載中</string>
+    <string name="menu_downloaded">下載完成</string>
+    <string name="menu_setting">設定</string>
+
+    <string name="filter_all">全部</string>
+    <string name="filter_video">視頻</string>
+    <string name="filter_audio">音頻</string>
+    <string name="filter_image">圖片</string>
+    <string name="filter_other">其他</string>
+
+    <string name="download_btn">開始下載</string>
+    <string name="ok_btn">確定</string>
+    <string name="cancel_btn">取消</string>
+
+    <string name="title_select_device">選擇下載的設備</string>
+    <string name="title_select_download_path">選擇下載目錄</string>
+    <string name="title_select_torrent_file">選擇一個種子文件</string>
+
+    <string name="start_to_download">開始下載</string>
+
+    <string name="title_task_item_menu">任務菜單</string>
+
+    <string name="menu_resume_task">繼續下載</string>
+    <string name="menu_pause_task">暫停下載</string>
+    <string name="menu_delete_task">刪除任務</string>
+    <string name="menu_play_done_task">打開任務</string>
+
+    <string name="common_setting">通用設定</string>
+    <string name="xl_setting">默認下載設定</string>
+    <string name="aria2_setting">Aria2下載設定</string>
+    <string name="aria2_setting_status">Aria2狀態</string>
+
+    <string name="common_setting_download_path">添加下載任務時的默認下載路徑</string>
+    <string name="common_setting_max_thread">最大同時下載任務數量</string>
+    <string name="common_setting_download_speed_limit">下載速度限制</string>
+    <string name="common_setting_default_download_engine">添加下載任務時的默認下載方式</string>
+
+    <string name="xl_engine">默認下載</string>
+    <string name="aria2_engine">Aria2下載</string>
+    <string name="download_with_xl">使用默認下載</string>
+    <string name="download_with_aria2">使用Aria2下載</string>
+
+    <string name="xl_setting_download_speed_limit">默認下載速度限制</string>
+    <string name="aria2_setting_download_speed_limit">Aria2下載速度限制</string>
+
+    <string name="speed_no_limit">無限制</string>
+
+    <string name="new_task_size_info">已選%1$d個文件 共%2$s</string>
+    <string name="download_size_info">剩餘:%1$s</string>
+
+    <string name="confirm_delete_task">確定刪除任務？</string>
+    <string name="delete_file_at_same_time">同時刪除文件</string>
+
+    <string name="defalut_engine_initailize_error">默認下載器>> 加載失敗!</string>
+    <string name="defalut_engine_initailize_succeed">默認下載器>> 加載成功!</string>
+
+    <string name="aria2_engine_initailize_error">Aria2下載器>> 加載失敗!</string>
+    <string name="aria2_engine_initailize_succeed">Aria2下載器>> 加載成功!</string>
+    <string name="aria2_setting_status_obtaining">獲取服務狀態中...</string>
+    <string name="aria2_setting_status_on">Aria2服務已開啟</string>
+    <string name="aria2_setting_status_off">Aria2服務已停止</string>
+
+    <string name="subscribe_start_notify">設備收到一個訂閱請求！</string>
+    <string name="subscribe_finish_notify">訂閱成功！影片正在下載中</string>
+</resources>

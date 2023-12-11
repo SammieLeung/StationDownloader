@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="downloading_task_can_not_change_engine">下載中的任務無法修改下載方式</string>
+
+    <string name="repeating_task_nothing_changed">相同的任務已在下載中，而且下載設置沒有修改</string>
+    <string name="assert_torrent_file">這不是一個種子文件，請重新選擇！</string>
+    <string name="free_space_not_enough">空間不足</string>
+    <string name="free_space_shortage">剩餘空間過低</string>
+    <string name="running_task_list_empty">暫無下載中任務</string>
+    <string name="done_task_list_empty">暫無已完成任務</string>
+
+    <string name="aria2_exit_status_3">錯誤3：未找到資源</string>
+    <string name="aria2_exit_status_9">錯誤9：沒有足夠的磁盤空間可用。</string>
+    <string name="aria2_exit_status_13">錯誤13：文件已經存在。</string>
+    <string name="aria2_exit_status_14">錯誤14：重命名文件失敗。</string>
+    <string name="aria2_exit_status_15">錯誤15：無法打開現有文件</string>
+    <string name="aria2_exit_status_16">錯誤16：無法創建新文件或截斷現有文件。</string>
+    <string name="aria2_exit_status_17">錯誤17：文件 I/O 錯誤</string>
+    <string name="aria2_exit_status_18">錯誤18：無法創建目錄。</string>
+
+    <string name="aria2_exit_status_0">錯誤0：所有下載已完成</string>
+    <string name="aria2_exit_status_1">錯誤1：未知錯誤</string>
+    <string name="aria2_exit_status_2">錯誤2：超時</string>
+    <string name="aria2_exit_status_4">錯誤4：未找到資源，超過 max-file-not-found 限制</string>
+    <string name="aria2_exit_status_5">錯誤5：下載速度太慢導致停止</string>
+    <string name="aria2_exit_status_6">錯誤6：網絡問題</string>
+    <string name="aria2_exit_status_7">錯誤7：未完成的下載，但用戶退出</string>
+    <string name="aria2_exit_status_8">錯誤8：遠程服務器不支持恢復以完成下載</string>
+    <string name="aria2_exit_status_10">錯誤10：分片長度錯誤</string>
+    <string name="aria2_exit_status_11">錯誤11：已在下載相同文件</string>
+    <string name="aria2_exit_status_12">錯誤12：已在下載相同 info hash 種子</string>
+    <string name="aria2_exit_status_19">錯誤19：名稱解析失敗</string>
+    <string name="aria2_exit_status_20">錯誤20：無法解析 Metalink 文檔</string>
+    <string name="aria2_exit_status_21">錯誤21：FTP 命令失敗</string>
+    <string name="aria2_exit_status_22">錯誤22：HTTP 響應頭錯誤或不符合預期</string>
+    <string name="aria2_exit_status_23">錯誤23：發生太多重定向</string>
+    <string name="aria2_exit_status_24">錯誤24：HTTP 授權失敗</string>
+    <string name="aria2_exit_status_25">錯誤25：無法解析 bencoded 文件</string>
+    <string name="aria2_exit_status_26">錯誤26：種子損壞或缺少所需信息</string>
+    <string name="aria2_exit_status_27">錯誤27：磁鐵鏈接 URI 不正確</string>
+    <string name="aria2_exit_status_28">錯誤28：提供了錯誤/未識別的選項或提供了意外的選項參數</string>
+    <string name="aria2_exit_status_29">錯誤29：遠程服務器由於臨時超載或維護無法處理請求</string>
+    <string name="aria2_exit_status_30">錯誤30：無法解析 JSON-RPC 請求</string>
+    <string name="aria2_exit_status_31">錯誤31：保留，未使用</string>
+    <string name="aria2_exit_status_32">錯誤32：校驗失敗</string>
+
+    <string name="default_exit_status">錯誤%s</string>
+</resources>

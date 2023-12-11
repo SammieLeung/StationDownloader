@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Downloader</string>
+    <string name="menu_title">Downloader</string>
+    <string name="add_uri">Add</string>
+    <string name="add_torrent">Torrent File</string>
+    <string name="add_uri_hint">Tips: Supports Thunder, HTTP, Magnet, and Torrent downloads</string>
+    <string name="uri_is_empty">Link cannot be empty!</string>
+
+    <string name="welcome_message">Initializing...</string>
+    <string name="welcome_enter_message">Entering the app...</string>
+
+    <string name="menu_downloading">Downloading</string>
+    <string name="menu_downloaded">Downloaded</string>
+    <string name="menu_setting">Settings</string>
+
+    <string name="filter_all">All</string>
+    <string name="filter_video">Video</string>
+    <string name="filter_audio">Audio</string>
+    <string name="filter_image">Image</string>
+    <string name="filter_other">Other</string>
+
+    <string name="download_btn">Start Download</string>
+    <string name="ok_btn">OK</string>
+    <string name="cancel_btn">Cancel</string>
+
+    <string name="title_select_device">Select Download Device</string>
+    <string name="title_select_download_path">Select Download Directory</string>
+    <string name="title_select_torrent_file">Select a Torrent File</string>
+
+    <string name="start_to_download">Start Download</string>
+
+    <string name="title_task_item_menu">Task Menu</string>
+
+    <string name="menu_resume_task">Resume Download</string>
+    <string name="menu_pause_task">Pause Download</string>
+    <string name="menu_delete_task">Delete Task</string>
+    <string name="menu_play_done_task">Open Task</string>
+
+    <string name="common_setting">Common Settings</string>
+    <string name="xl_setting">Default Download Settings</string>
+    <string name="aria2_setting">Aria2 Download Settings</string>
+    <string name="aria2_setting_status">Aria2 Status</string>
+
+    <string name="common_setting_download_path">Default Download Path for Added Tasks</string>
+    <string name="common_setting_max_thread">Maximum Simultaneous Download Tasks</string>
+    <string name="common_setting_download_speed_limit">Download Speed Limit</string>
+    <string name="common_setting_default_download_engine">Default Download Method for Added Tasks</string>
+
+    <string name="xl_engine">Default Download</string>
+    <string name="aria2_engine">Aria2 Download</string>
+    <string name="download_with_xl">Use Default Download</string>
+    <string name="download_with_aria2">Use Aria2 Download</string>
+
+    <string name="xl_setting_download_speed_limit">Default Download Speed Limit</string>
+    <string name="aria2_setting_download_speed_limit">Aria2 Download Speed Limit</string>
+
+    <string name="speed_no_limit">No Limit</string>
+
+    <string name="new_task_size_info">%1$d files selected. Total size: %2$s</string>
+    <string name="download_size_info">Remaining: %1$s</string>
+
+    <string name="confirm_delete_task">Confirm deletion of the task?</string>
+    <string name="delete_file_at_same_time">Delete Files Simultaneously</string>
+
+    <string name="defalut_engine_initailize_error">Default Downloader >> Failed to load!</string>
+    <string name="defalut_engine_initailize_succeed">Default Downloader >> Loaded successfully!</string>
+
+    <string name="aria2_engine_initailize_error">Aria2 Downloader >> Failed to load!</string>
+    <string name="aria2_engine_initailize_succeed">Aria2 Downloader >> Loaded successfully!</string>
+    <string name="aria2_setting_status_obtaining">Obtaining service status...</string>
+    <string name="aria2_setting_status_on">Aria2 service is active</string>
+    <string name="aria2_setting_status_off">Aria2 service is inactive</string>
+
+    <string name="subscribe_start_notify">Device received a subscription request!</string>
+    <string name="subscribe_finish_notify">Subscription successful! Movie is currently downloading</string>
+</resources>

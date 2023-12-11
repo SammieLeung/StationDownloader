@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="downloading_task_can_not_change_engine">Cannot change download method for tasks in progress</string>
+
+    <string name="repeating_task_nothing_changed">The same task is already in progress, and download settings have not been modified</string>
+    <string name="assert_torrent_file">This is not a torrent file. Please select again!</string>
+    <string name="free_space_not_enough">Insufficient space</string>
+    <string name="free_space_shortage">Low remaining space</string>
+    <string name="running_task_list_empty">No tasks currently in progress</string>
+    <string name="done_task_list_empty">No completed tasks</string>
+
+    <string name="aria2_exit_status_3">Error 3: Resource not found</string>
+    <string name="aria2_exit_status_9">Error 9: Not enough disk space available</string>
+    <string name="aria2_exit_status_13">Error 13: File already exists</string>
+    <string name="aria2_exit_status_14">Error 14: Failed to rename file</string>
+    <string name="aria2_exit_status_15">Error 15: Unable to open existing file</string>
+    <string name="aria2_exit_status_16">Error 16: Unable to create new file or truncate existing file</string>
+    <string name="aria2_exit_status_17">Error 17: File I/O error</string>
+    <string name="aria2_exit_status_18">Error 18: Unable to create directory</string>
+
+    <string name="aria2_exit_status_0">Error 0: All downloads completed</string>
+    <string name="aria2_exit_status_1">Error 1: Unknown error</string>
+    <string name="aria2_exit_status_2">Error 2: Timeout</string>
+    <string name="aria2_exit_status_4">Error 4: Resource not found, exceeding max-file-not-found limit</string>
+    <string name="aria2_exit_status_5">Error 5: Download speed too slow, causing stop</string>
+    <string name="aria2_exit_status_6">Error 6: Network problem</string>
+    <string name="aria2_exit_status_7">Error 7: Unfinished download, but user exited</string>
+    <string name="aria2_exit_status_8">Error 8: Remote server does not support resumption to complete download</string>
+    <string name="aria2_exit_status_10">Error 10: Incorrect piece length</string>
+    <string name="aria2_exit_status_11">Error 11: Already downloading the same file</string>
+    <string name="aria2_exit_status_12">Error 12: Already downloading the same info hash seed</string>
+    <string name="aria2_exit_status_19">Error 19: Name resolution failed</string>
+    <string name="aria2_exit_status_20">Error 20: Unable to parse Metalink document</string>
+    <string name="aria2_exit_status_21">Error 21: FTP command failed</string>
+    <string name="aria2_exit_status_22">Error 22: HTTP response header error or not as expected</string>
+    <string name="aria2_exit_status_23">Error 23: Too many redirections</string>
+    <string name="aria2_exit_status_24">Error 24: HTTP authorization failed</string>
+    <string name="aria2_exit_status_25">Error 25: Unable to parse bencoded file</string>
+    <string name="aria2_exit_status_26">Error 26: Torrent is damaged or missing required information</string>
+    <string name="aria2_exit_status_27">Error 27: Incorrect magnet link URI</string>
+    <string name="aria2_exit_status_28">Error 28: Provided incorrect/unrecognized options or unexpected option parameters</string>
+    <string name="aria2_exit_status_29">Error 29: Remote server unable to handle request due to temporary overload or maintenance</string>
+    <string name="aria2_exit_status_30">Error 30: Unable to parse JSON-RPC request</string>
+    <string name="aria2_exit_status_31">Error 31: Reserved, not used</string>
+    <string name="aria2_exit_status_32">Error 32: Verification failed</string>
+
+    <string name="default_exit_status">Error %s</string>
+</resources>
