@@ -36,6 +36,7 @@
                 android:drawablePadding="13dp"
                 android:gravity="center"
                 android:text="@string/menu_title"
+                android:lines="1"
                 android:textFontWeight="600"
                 android:textSize="31sp">
 

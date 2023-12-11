@@ -36,9 +36,11 @@
             <Button
                 android:text="@string/add_torrent"
                 android:drawableStart="@drawable/ic_open_folder"
+                android:drawablePadding="15dp"
                 android:drawableTint="@android:color/white"
                 android:scaleType="centerInside"
                 android:id="@+id/selectTorrentBtn"
+                android:autoSizeMinTextSize="10sp"
                 android:layout_width="195dp"
                 android:layout_height="53dp"
                 android:layout_alignParentEnd="true"
