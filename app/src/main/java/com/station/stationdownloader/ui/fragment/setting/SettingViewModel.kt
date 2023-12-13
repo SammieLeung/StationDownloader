@@ -261,7 +261,7 @@ class SettingViewModel @Inject constructor(
                 engineRepo.changeOption(CommonOptions.DefaultDownloadEngine, action.engine.name)
                 _commonSetting.update {
                     val list = it.settingItemStates.toMutableList()
-                    list[2] = list[2].copy(content = action.engine.formatHumanName())
+                    list[1] = list[1].copy(content = action.engine.formatHumanName())
                     it.copy(settingItemStates = list.toList())
                 }
             }
@@ -286,7 +286,7 @@ class SettingViewModel @Inject constructor(
                 engineRepo.changeOption(CommonOptions.MaxThread, action.maxThread.toString())
                 _commonSetting.update {
                     val list = it.settingItemStates.toMutableList()
-                    list[1] = list[1].copy(content = action.maxThread.toString())
+                    list[2] = list[2].copy(content = action.maxThread.toString())
                     it.copy(settingItemStates = list.toList())
                 }
             }
