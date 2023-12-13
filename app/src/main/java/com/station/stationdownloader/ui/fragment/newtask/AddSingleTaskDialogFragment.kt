@@ -14,7 +14,7 @@ import com.station.stationdownloader.FileType
 import com.station.stationdownloader.R
 import com.station.stationdownloader.StationDownloaderApp
 import com.station.stationdownloader.data.source.local.model.TreeNode
-import com.station.stationdownloader.databinding.DialogFragmentAddNewTaskBinding
+import com.station.stationdownloader.databinding.DialogFragmentAddSingleTaskBinding
 import com.station.stationdownloader.ui.base.BaseDialogFragment
 import com.station.stationdownloader.ui.contract.OpenFileManagerV1Contract
 import com.station.stationdownloader.ui.contract.OpenFileManagerV2Contract
@@ -31,7 +31,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 
 
-class AddNewTaskDialogFragment : BaseDialogFragment<DialogFragmentAddNewTaskBinding>(), DLogger {
+class AddSingleTaskDialogFragment : BaseDialogFragment<DialogFragmentAddSingleTaskBinding>(), DLogger {
     private val app by lazy {
         requireActivity().application as StationDownloaderApp
     }
@@ -71,13 +71,13 @@ class AddNewTaskDialogFragment : BaseDialogFragment<DialogFragmentAddNewTaskBind
         }
     }
 
-    private fun DialogFragmentAddNewTaskBinding.initRecyclerView() {
+    private fun DialogFragmentAddSingleTaskBinding.initRecyclerView() {
         taskFileList.adapter = taskFileListAdapter
         //动画时间设置为0，因为动画可能会导致项目闪烁
         taskFileList.itemAnimator?.changeDuration = 0
     }
 
-    private fun DialogFragmentAddNewTaskBinding.initSpinner(dialogAccept: (DialogAction) -> Unit) {
+    private fun DialogFragmentAddSingleTaskBinding.initSpinner(dialogAccept: (DialogAction) -> Unit) {
         val adapter: StationSpinnerAdapter<CharSequence?> =
             StationSpinnerAdapter<CharSequence?>(
                 requireContext(), arrayOf<String?>(getString(R.string.download_with_xl), getString(R.string.download_with_aria2))
@@ -86,7 +86,7 @@ class AddNewTaskDialogFragment : BaseDialogFragment<DialogFragmentAddNewTaskBind
         engineSpinner.adapter = adapter
     }
 
-    private fun DialogFragmentAddNewTaskBinding.bindState(
+    private fun DialogFragmentAddSingleTaskBinding.bindState(
         newTaskState: Flow<NewTaskState>,
         accept: (UiAction) -> Unit,
         dialogAccept: (DialogAction) -> Unit
@@ -126,14 +126,14 @@ class AddNewTaskDialogFragment : BaseDialogFragment<DialogFragmentAddNewTaskBind
             newTaskState.filter {
                 it is NewTaskState.PreparingData
             }.map {
-                (it as NewTaskState.PreparingData).task._fileTree
+                (it as NewTaskState.PreparingData).singleNewTaskConfig._fileTree
             }.distinctUntilChanged().collect {
                 taskFileListAdapter.fillData(it as TreeNode.Directory)
             }
         }
     }
 
-    private fun DialogFragmentAddNewTaskBinding.collectFileFilterGroup(
+    private fun DialogFragmentAddSingleTaskBinding.collectFileFilterGroup(
         newTaskState: Flow<NewTaskState>,
         dialogAccept: (DialogAction) -> Unit
     ) {
@@ -159,7 +159,7 @@ class AddNewTaskDialogFragment : BaseDialogFragment<DialogFragmentAddNewTaskBind
         }
     }
 
-    private fun DialogFragmentAddNewTaskBinding.collectTaskSizeInfo(newTaskState: Flow<NewTaskState>) {
+    private fun DialogFragmentAddSingleTaskBinding.collectTaskSizeInfo(newTaskState: Flow<NewTaskState>) {
         lifecycleScope.launch {
             newTaskState.filter { it is NewTaskState.PreparingData }.map {
                 (it as NewTaskState.PreparingData).taskSizeInfo
@@ -183,30 +183,30 @@ class AddNewTaskDialogFragment : BaseDialogFragment<DialogFragmentAddNewTaskBind
         }
     }
 
-    private fun DialogFragmentAddNewTaskBinding.collectTaskName(newTaskState: Flow<NewTaskState>) {
+    private fun DialogFragmentAddSingleTaskBinding.collectTaskName(newTaskState: Flow<NewTaskState>) {
         lifecycleScope.launch {
             newTaskState.filter { it is NewTaskState.PreparingData }.map {
-                (it as NewTaskState.PreparingData).task._name
+                (it as NewTaskState.PreparingData).singleNewTaskConfig._name
             }.distinctUntilChanged().collect {
                 taskName = it
             }
         }
     }
 
-    private fun DialogFragmentAddNewTaskBinding.collectDownloadPath(newTaskState: Flow<NewTaskState>) {
+    private fun DialogFragmentAddSingleTaskBinding.collectDownloadPath(newTaskState: Flow<NewTaskState>) {
         lifecycleScope.launch {
             newTaskState.filter { it is NewTaskState.PreparingData }.map {
-                (it as NewTaskState.PreparingData).task._downloadPath
+                (it as NewTaskState.PreparingData).singleNewTaskConfig._downloadPath
             }.distinctUntilChanged().collect {
                 downloadPath = it
             }
         }
     }
 
-    private fun DialogFragmentAddNewTaskBinding.collectDownloadEngine(newTaskState: Flow<NewTaskState>) {
+    private fun DialogFragmentAddSingleTaskBinding.collectDownloadEngine(newTaskState: Flow<NewTaskState>) {
         lifecycleScope.launch {
             newTaskState.filter { it is NewTaskState.PreparingData }.map {
-                (it as NewTaskState.PreparingData).task._downloadEngine
+                (it as NewTaskState.PreparingData).singleNewTaskConfig._downloadEngine
             }.distinctUntilChanged().collect {
                 when (it) {
                     DownloadEngine.XL -> engineSpinner.setSelection(0)

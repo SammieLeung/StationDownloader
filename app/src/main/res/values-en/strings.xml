@@ -20,7 +20,9 @@
     <string name="filter_image">Image</string>
     <string name="filter_other">Other</string>
 
-    <string name="download_btn">Start Download</string>
+    <string name="single_download_btn">Start Download</string>
+    <string name="multi_download_btn">Download All</string>
+
     <string name="ok_btn">OK</string>
     <string name="cancel_btn">Cancel</string>
 
@@ -74,4 +76,11 @@
 
     <string name="subscribe_start_notify">Device received a subscription request!</string>
     <string name="subscribe_finish_notify">Subscription successful! Movie is currently downloading</string>
+
+    <string name="add_multi_tasks_title">Add Multiple Tasks</string>
+    <string name="initailizing_url">Parsing: %1$s</string>
+    <string name="initailizing_result">Parsed: %1$s/%2$s</string>
+    <string name="initailized_success">Successful: %1$s</string>
+    <string name="initailized_failed">Failed: %1$s</string>
+    <string name="show_initialization_detail">Details</string>
 </resources>

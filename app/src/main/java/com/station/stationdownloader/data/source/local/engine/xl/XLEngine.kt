@@ -13,9 +13,10 @@ import com.station.stationdownloader.contants.TaskExecuteError
 import com.station.stationdownloader.contants.XLOptions
 import com.station.stationdownloader.contants.tryDownloadDirectoryPath
 import com.station.stationdownloader.data.IResult
+import com.station.stationdownloader.data.MultiTaskResult
 import com.station.stationdownloader.data.source.ITorrentInfoRepository
-import com.station.stationdownloader.data.source.local.engine.EngineStatus
 import com.station.stationdownloader.data.source.local.engine.IEngine
+import com.station.stationdownloader.data.source.local.engine.MultiNewTaskConfigModel
 import com.station.stationdownloader.data.source.local.engine.NewTaskConfigModel
 import com.station.stationdownloader.data.source.local.model.TreeNode
 import com.station.stationdownloader.data.source.remote.FileContentHeader
@@ -32,12 +33,13 @@ import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
 import java.io.File
-import javax.inject.Inject
 
 class XLEngine internal constructor(
     private val context: Context,
@@ -113,6 +115,48 @@ class XLEngine internal constructor(
                 )
             } else {
                 initTorrentUrl(decodeUrl)
+            }
+        }
+
+    suspend fun initMultiUrl(urlList: List<String>): IResult<MultiNewTaskConfigModel> =
+        withContext(defaultDispatcher) {
+            val multiTask = MultiNewTaskConfigModel(
+                downloadPath = configRepo.getValue(CommonOptions.DownloadPath),
+                engine = DownloadEngine.valueOf(configRepo.getValue(CommonOptions.DefaultDownloadEngine)),
+                linkCount = urlList.size
+            )
+            for (url in urlList) {
+                val result = initUrl(url)
+                if (result is IResult.Success) {
+                    multiTask.addTask(result.data)
+                } else {
+                    multiTask.addFailedLink(url, result as IResult.Error)
+                }
+            }
+            return@withContext IResult.Success(multiTask)
+        }
+
+    suspend fun initMultiUrlFlow(urlList: List<String>): Flow<MultiTaskResult> =
+        withContext(defaultDispatcher) {
+            flow {
+                val multiTask = MultiNewTaskConfigModel(
+                    downloadPath = configRepo.getValue(CommonOptions.DownloadPath),
+                    engine = DownloadEngine.valueOf(configRepo.getValue(CommonOptions.DefaultDownloadEngine)),
+                    linkCount = urlList.size
+                )
+                emit(MultiTaskResult.Begin(multiTask))
+                for (url in urlList) {
+                    emit(MultiTaskResult.InitializingTask(url))
+                    val result = initUrl(url)
+                    if (result is IResult.Success) {
+                        multiTask.addTask(result.data)
+                        emit(MultiTaskResult.Success(result.data))
+                    } else {
+                        multiTask.addFailedLink(url, result as IResult.Error)
+                        emit(MultiTaskResult.Failed(url, result))
+                    }
+                }
+                emit(MultiTaskResult.Finish)
             }
         }
 
@@ -278,7 +322,7 @@ class XLEngine internal constructor(
         var taskName = XLTaskHelper.instance().getFileName(realUrl)
         val downloadPath =
             File(configRepo.getValue(CommonOptions.DownloadPath)).path
-        logger("initNormalUrl:realUrl=$realUrl originUrl=$originUrl")
+        logLine("initNormalUrl:realUrl=$realUrl originUrl=$originUrl")
         val normalTask = NewTaskConfigModel.NormalTask(
             originUrl = originUrl,
             url = realUrl,
@@ -512,6 +556,7 @@ class XLEngine internal constructor(
         }
         return root
     }
+
 
 
 }

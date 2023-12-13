@@ -1,7 +1,6 @@
 package com.station.stationdownloader.ui.fragment
 
 import android.animation.AnimatorInflater
-import android.animation.AnimatorSet
 import android.content.DialogInterface
 import android.os.Bundle
 import android.view.View
@@ -101,7 +100,6 @@ class AddUriDialogFragment : BaseDialogFragment<DialogFragmentAddUriBinding>() {
                     }
                     this@AddUriDialogFragment.dialog?.show()
                 } else if (it is AddUriUiState.SUCCESS) {
-                    Logger.d("dialog launch")
                     dismiss()
                 }
             }
@@ -136,18 +134,36 @@ class AddUriDialogFragment : BaseDialogFragment<DialogFragmentAddUriBinding>() {
     }
 
     private fun done(accept: (UiAction) -> Unit, emitToast: (ToastAction) -> Unit) {
-        if (mBinding.inputView.text.toString().isNotEmpty())
-            accept(UiAction.InitTask(mBinding.inputView.text.toString()))
-        else {
+        if (mBinding.inputView.text.toString().isNotEmpty()) {
+            val inputString = mBinding.inputView.text.toString()
+            if (inputString.isMultiUri()) {
+                val uriList = inputString.split("\n").filter { it.isNotEmpty() }
+                if (uriList.isEmpty()) {
+                    mBinding.inputView.shake()
+                    emitToast(ToastAction.ShowToast(requireContext().getString(R.string.uri_is_empty)))
+                    return
+                } else if (uriList.size == 1) {
+                    accept(UiAction.InitSingleTask(uriList.get(0)))
+                } else {
+                    accept(UiAction.InitMultiTask(uriList))
+                }
+            } else {
+                accept(UiAction.InitSingleTask(inputString))
+            }
+        } else {
             mBinding.inputView.shake()
             emitToast(ToastAction.ShowToast(requireContext().getString(R.string.uri_is_empty)))
         }
     }
 
     private fun View.shake() {
-            AnimatorInflater.loadAnimator(context, R.animator.view_shake).apply {
-                setTarget(this@shake)
-                start()
-            }
+        AnimatorInflater.loadAnimator(context, R.animator.view_shake).apply {
+            setTarget(this@shake)
+            start()
+        }
     }
+}
+
+private fun String.isMultiUri(): Boolean {
+    return this.contains("\n")
 }

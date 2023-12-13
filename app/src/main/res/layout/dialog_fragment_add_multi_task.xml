@@ -4,15 +4,23 @@
     xmlns:tools="http://schemas.android.com/tools">
 
     <data>
-
         <variable
-            name="taskName"
+            name="initializingUrl"
             type="String" />
 
         <variable
             name="downloadPath"
             type="String" />
 
+        <variable
+            name="initializeResult"
+            type="String" />
+        <variable
+            name="initSucceeded"
+            type="String" />
+        <variable
+            name="initFailed"
+            type="String" />
 
         <variable
             name="taskSizeInfo"
@@ -22,8 +30,7 @@
     <RelativeLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:gravity="center"
-        >
+        android:gravity="center">
 
         <RelativeLayout
             android:layout_width="750dp"
@@ -32,31 +39,94 @@
             android:paddingHorizontal="45dp"
             android:paddingTop="30dp"
             android:paddingBottom="45dp">
-
             <TextView
                 android:id="@+id/titleView"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="15dp"
-                android:text="@{taskName}"
+                android:gravity="center"
+                android:text="@string/add_multi_tasks_title"
                 android:textFontWeight="500"
                 android:textSize="24sp" />
-
-            <androidx.recyclerview.widget.RecyclerView
-                android:id="@+id/taskFileList"
-                android:layout_width="match_parent"
-                android:layout_height="263dp"
+            <LinearLayout
                 android:layout_below="@id/titleView"
+                android:id="@+id/infoView"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
                 android:background="@drawable/file_list_bg"
-                android:orientation="vertical"
-                app:layoutManager="LinearLayoutManager" />
+                android:orientation="vertical">
+
+                <TextView
+                    android:id="@+id/statusTextView"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:autoSizeMinTextSize="13sp"
+                    android:padding="15dp"
+                    android:textSize="18sp"
+                    android:autoSizeTextType="uniform"
+                    android:text="@{initializingUrl}" />
+
+                <RelativeLayout
+                    android:background="@drawable/file_item_bg"
+                    android:id="@+id/initializeResultView"
+                    android:paddingHorizontal="15dp"
+                    android:layout_width="match_parent"
+                    android:layout_height="57dp"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+
+                    <TextView
+                        android:autoSizeMinTextSize="13sp"
+                        android:textSize="18sp"
+                        android:autoSizeTextType="uniform"
+                        android:id="@+id/totalView"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@{initializeResult}"
+                       />
+                    <TextView
+                        android:layout_toEndOf="@id/totalView"
+                        android:autoSizeMinTextSize="13sp"
+                        android:textSize="18sp"
+                        android:layout_marginStart="15dp"
+                        android:autoSizeTextType="uniform"
+                        android:id="@+id/successView"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@{initSucceeded}"
+                        />
+                    <TextView
+                        android:layout_marginStart="15dp"
+                        android:layout_toEndOf="@id/successView"
+                        android:layout_toStartOf="@id/showFailedDetailView"
+                        android:autoSizeMinTextSize="13sp"
+                        android:textSize="18sp"
+                        android:autoSizeTextType="uniform"
+                        android:id="@+id/failedView"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@{initFailed}"
+                        />
+                    <TextView
+                        android:layout_marginStart="15dp"
+                        android:id="@+id/showFailedDetailView"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_alignBottom="@id/totalView"
+                        android:layout_alignParentEnd="true"
+                        android:drawablePadding="6dp"
+                        android:text="@string/show_initialization_detail"
+                        android:textSize="18sp"
+                        android:drawableEnd="@drawable/ic_enter" />
+                </RelativeLayout>
+            </LinearLayout>
 
 
             <LinearLayout
                 android:id="@+id/filterSets"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_below="@id/taskFileList"
+                android:layout_below="@id/infoView"
                 android:layout_marginTop="15dp"
                 android:theme="@style/AppTheme.CheckBox">
 
@@ -103,7 +173,7 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_below="@id/taskFileList"
+                android:layout_below="@id/infoView"
                 android:layout_alignParentEnd="true"
                 android:layout_marginTop="15dp"
                 android:layout_toEndOf="@id/filterSets"
@@ -187,7 +257,7 @@
                     android:id="@+id/downloadBtn"
                     android:layout_width="300dp"
                     android:layout_height="wrap_content"
-                    android:text="@string/download_btn" />
+                    android:text="@string/multi_download_btn" />
 
             </LinearLayout>
         </RelativeLayout>

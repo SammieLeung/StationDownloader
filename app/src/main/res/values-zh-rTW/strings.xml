@@ -20,7 +20,9 @@
     <string name="filter_image">圖片</string>
     <string name="filter_other">其他</string>
 
-    <string name="download_btn">開始下載</string>
+    <string name="single_download_btn">開始下載</string>
+    <string name="multi_download_btn">下載全部</string>
+
     <string name="ok_btn">確定</string>
     <string name="cancel_btn">取消</string>
 
@@ -74,4 +76,11 @@
 
     <string name="subscribe_start_notify">設備收到一個訂閱請求！</string>
     <string name="subscribe_finish_notify">訂閱成功！影片正在下載中</string>
+
+    <string name="add_multi_tasks_title">添加多個任務</string>
+    <string name="initailizing_url">正在解析：%1$s</string>
+    <string name="initailizing_result">已解析：%1$s/%2$s</string>
+    <string name="initailized_success">成功：%1$s</string>
+    <string name="initailized_failed">失敗：%1$s</string>
+    <string name="show_initialization_detail">查看詳情</string>
 </resources>

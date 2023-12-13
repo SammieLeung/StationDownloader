@@ -24,7 +24,8 @@ import com.station.stationdownloader.navgator.AppNavigator
 import com.station.stationdownloader.navgator.Destination
 import com.station.stationdownloader.ui.base.BaseActivity
 import com.station.stationdownloader.ui.fragment.AddUriDialogFragment
-import com.station.stationdownloader.ui.fragment.newtask.AddNewTaskDialogFragment
+import com.station.stationdownloader.ui.fragment.newtask.AddMultiTaskDialogFragment
+import com.station.stationdownloader.ui.fragment.newtask.AddSingleTaskDialogFragment
 import com.station.stationdownloader.ui.viewmodel.MainViewModel
 import com.station.stationdownloader.ui.viewmodel.ToastAction
 import com.station.stationdownloader.ui.viewmodel.ToastState
@@ -70,16 +71,29 @@ class MainActivity : BaseActivity<ActivityMainBinding>(), DLogger {
                         mBinding.isLoading = it.isLoading
                         if (it.isShowAddNewTask) {
                             if (supportFragmentManager.findFragmentByTag(
-                                    AddNewTaskDialogFragment::class.java.simpleName
+                                    AddSingleTaskDialogFragment::class.java.simpleName
                                 )?.isVisible == true
                             ) {
                                 return@collect
                             }
-                            val dialog = AddNewTaskDialogFragment()
+                            val dialog = AddSingleTaskDialogFragment()
                             Logger.d("dialog = $dialog")
                             dialog.show(
                                 supportFragmentManager,
-                                AddNewTaskDialogFragment::class.java.simpleName
+                                AddSingleTaskDialogFragment::class.java.simpleName
+                            )
+                        }else if (it.isShowAddMultiTask){
+                            if (supportFragmentManager.findFragmentByTag(
+                                    AddMultiTaskDialogFragment::class.java.simpleName
+                                )?.isVisible == true
+                            ) {
+                                return@collect
+                            }
+                            val dialog = AddMultiTaskDialogFragment()
+                            Logger.d("dialog = $dialog")
+                            dialog.show(
+                                supportFragmentManager,
+                                AddMultiTaskDialogFragment::class.java.simpleName
                             )
                         }
                     }
@@ -183,7 +197,7 @@ class MainActivity : BaseActivity<ActivityMainBinding>(), DLogger {
             ACTION_ADD_URI->{
                 val uri = intent.getStringExtra(Intent.EXTRA_TEXT)
                 uri?.let {
-                    accept(UiAction.InitTask(uri))
+                    accept(UiAction.InitSingleTask(uri))
                 } ?: emitToast(ToastAction.ShowToast(getString(R.string.uri_is_empty)))
             }
             else->{}

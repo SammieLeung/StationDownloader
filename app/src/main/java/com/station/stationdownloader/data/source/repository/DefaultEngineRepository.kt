@@ -14,10 +14,12 @@ import com.station.stationdownloader.contants.Options
 import com.station.stationdownloader.contants.TaskExecuteError
 import com.station.stationdownloader.contants.XLOptions
 import com.station.stationdownloader.data.IResult
+import com.station.stationdownloader.data.MultiTaskResult
 import com.station.stationdownloader.data.isFailed
 import com.station.stationdownloader.data.result
 import com.station.stationdownloader.data.source.IDownloadTaskRepository
 import com.station.stationdownloader.data.source.ITorrentInfoRepository
+import com.station.stationdownloader.data.source.local.engine.MultiNewTaskConfigModel
 import com.station.stationdownloader.data.source.local.engine.NewTaskConfigModel
 import com.station.stationdownloader.data.source.local.engine.aria2.Aria2Engine
 import com.station.stationdownloader.data.source.local.engine.aria2.connection.client.WebSocketClient
@@ -92,6 +94,14 @@ class DefaultEngineRepository(
 
     suspend fun initUrl(url: String): IResult<NewTaskConfigModel> {
         return xlEngine.initUrl(url)
+    }
+
+    suspend fun initMultiUrl(urlList:List<String>):IResult<MultiNewTaskConfigModel>{
+        return xlEngine.initMultiUrl(urlList)
+    }
+
+    suspend fun initMultiUrlFlow(urlList:List<String>):Flow<MultiTaskResult>{
+        return xlEngine.initMultiUrlFlow(urlList)
     }
 
     suspend fun getTorrentInfo(torrentPath: String): IResult<Map<TorrentInfoEntity, List<TorrentFileInfoEntity>>> =
@@ -406,6 +416,7 @@ class DefaultEngineRepository(
     override fun DLogger.tag(): String {
         return "DefaultEngineRepository"
     }
+
 
 
 

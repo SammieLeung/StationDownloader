@@ -19,7 +19,9 @@
     <string name="filter_image">图片</string>
     <string name="filter_other">其他</string>
 
-    <string name="download_btn">开始下载</string>
+    <string name="single_download_btn">开始下载</string>
+    <string name="multi_download_btn">下载全部</string>
+
     <string name="ok_btn">确定</string>
     <string name="cancel_btn">取消</string>
 
@@ -58,7 +60,7 @@
     <string name="speed_no_limit">无限制</string>
 
     <string name="new_task_size_info">已选%1$d个文件 共%2$s</string>
-    <string name="download_size_info">剩余:%1$s</string>
+    <string name="download_size_info">剩余：%1$s</string>
 
     <string name="confirm_delete_task">确定删除任务？</string>
     <string name="delete_file_at_same_time">同时删除文件</string>
@@ -75,4 +77,11 @@
 
     <string name="subscribe_start_notify">设备收到一个订阅请求！</string>
     <string name="subscribe_finish_notify">订阅成功！影片正在下载中</string>
+
+    <string name="add_multi_tasks_title">添加多个任务</string>
+    <string name="initailizing_url">正在解析：%1$s</string>
+    <string name="initailizing_result">已解析：%1$s/%2$s</string>
+    <string name="initailized_success">成功：%1$s</string>
+    <string name="initailized_failed">失败：%1$s</string>
+    <string name="show_initialization_detail">查看详情</string>
 </resources>

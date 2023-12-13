@@ -13,8 +13,10 @@ import com.station.stationdownloader.TaskService
 import com.station.stationdownloader.TaskStatus
 import com.station.stationdownloader.contants.TaskExecuteError
 import com.station.stationdownloader.data.IResult
+import com.station.stationdownloader.data.MultiTaskResult
 import com.station.stationdownloader.data.source.IDownloadTaskRepository
 import com.station.stationdownloader.data.source.ITorrentInfoRepository
+import com.station.stationdownloader.data.source.local.engine.MultiNewTaskConfigModel
 import com.station.stationdownloader.data.source.local.engine.NewTaskConfigModel
 import com.station.stationdownloader.data.source.local.model.StationDownloadTask
 import com.station.stationdownloader.data.source.local.model.TreeNode
@@ -26,11 +28,13 @@ import com.station.stationdownloader.utils.DLogger
 import com.station.stationdownloader.utils.MB
 import com.station.stationdownloader.utils.XLEngineTools
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flow
@@ -90,11 +94,13 @@ class MainViewModel @Inject constructor(
 
     private fun initAcceptAction(): (UiAction) -> Unit {
         val actionStateFlow: MutableSharedFlow<UiAction> = MutableSharedFlow()
-        val initTask = actionStateFlow.filterIsInstance<UiAction.InitTask>()
+        val initTask = actionStateFlow.filterIsInstance<UiAction.InitSingleTask>()
+        val initMultiTask = actionStateFlow.filterIsInstance<UiAction.InitMultiTask>()
         val startTask = actionStateFlow.filterIsInstance<UiAction.StartDownloadTask>()
         val saveSession = actionStateFlow.filterIsInstance<UiAction.SaveSession>()
 
-        handleInitTaskAction(initTask)
+        handleInitSingleTaskAction(initTask)
+        handleInitMultiTaskAction(initMultiTask)
         handleStartTaskAction(startTask)
         handleSaveSessionAction(saveSession)
 
@@ -122,7 +128,11 @@ class MainViewModel @Inject constructor(
                 val preparingData = _newTaskState.value as NewTaskState.PreparingData
 
                 val saveTaskResult =
-                    taskRepo.validateAndPersistTask(preparingData.task.update(downloadEngine = action.engine))
+                    taskRepo.validateAndPersistTask(
+                        preparingData.singleNewTaskConfig.update(
+                            downloadEngine = action.engine
+                        )
+                    )
                 if (saveTaskResult is IResult.Error) {
                     when (saveTaskResult.code) {
                         TaskExecuteError.REPEATING_TASK_NOTHING_CHANGED.ordinal -> {
@@ -152,7 +162,7 @@ class MainViewModel @Inject constructor(
             }
         }
 
-    private fun handleInitTaskAction(initTaskFlow: Flow<UiAction.InitTask>) =
+    private fun handleInitSingleTaskAction(initTaskFlow: Flow<UiAction.InitSingleTask>) =
         viewModelScope.launch {
             initTaskFlow.flatMapLatest {
                 flow {
@@ -160,14 +170,14 @@ class MainViewModel @Inject constructor(
                         AddUriUiState.LOADING
                     }
                     _mainUiState.update {
-                        it.copy(isLoading = true)
+                        it.isLoading()
                     }
                     val result = engineRepo.initUrl(it.url)
                     emit(result)
                 }
             }.collect { result ->
                 _mainUiState.update {
-                    it.copy(isLoading = false)
+                    it.hideLoading()
                 }
                 if (result is IResult.Error) {
                     _addUriState.update {
@@ -184,16 +194,138 @@ class MainViewModel @Inject constructor(
                 val newTaskModel = (result as IResult.Success).data
                 _newTaskState.update {
                     NewTaskState.PreparingData(
-                        task = newTaskModel,
+                        singleNewTaskConfig = newTaskModel,
                     )
                 }
                 _mainUiState.update {
-                    it.copy(isShowAddNewTask = true)
+                    it.showAddNewTask()
                 }
                 dialogAccept(DialogAction.CalculateSizeInfo)
             }
+
         }
 
+    private fun handleInitMultiTaskAction(initMultiTaskFlow: Flow<UiAction.InitMultiTask>) =
+        viewModelScope.launch {
+            initMultiTaskFlow.collect {
+                _addUriState.update {
+                    AddUriUiState.LOADING
+                }
+                _mainUiState.update {
+                    it.isLoading()
+                }
+                initMultiUrlWithProgress(it.urlList)
+//                    initMultiUrlWithoutProgress(it.urlList)
+            }
+        }
+
+    private fun initMultiUrlWithProgress(urlList: List<String>) = viewModelScope.launch {
+        engineRepo.initMultiUrlFlow(urlList)
+            .collect { multiTaskResult ->
+                when (multiTaskResult) {
+                    is MultiTaskResult.Begin -> {
+                        logLine("Begin")
+                        _addUriState.update {
+                            AddUriUiState.SUCCESS
+                        }
+                        _mainUiState.update {
+                            it.hideLoading()
+                        }
+                        _mainUiState.update {
+                            it.showAddMultiTask()
+                        }
+                        _newTaskState.update {
+                            NewTaskState.PreparingMultiData(
+                                multiNewTaskConfig = multiTaskResult.multiNewTaskConfigModel
+                            )
+                        }
+                    }
+
+                    is MultiTaskResult.InitializingTask -> {
+                        logLine("InitializingTask ${multiTaskResult.url}")
+                        _newTaskState.update {
+                            if (it is NewTaskState.PreparingMultiData) {
+                                it.copy(initializingUrl = multiTaskResult.url)
+                            } else it
+                        }
+                    }
+
+                    is MultiTaskResult.Failed -> {
+                        logLine("Failed ${multiTaskResult.url}")
+//                        _newTaskState.update {
+//                            if (it is NewTaskState.PreparingMultiData) {
+//                                it.copy(
+//                                    multiNewTaskConfig = it.multiNewTaskConfig.addFailedLink(
+//                                        multiTaskResult.url,
+//                                    )
+//                                )
+//                            } else it
+//                        }
+                    }
+
+                    is MultiTaskResult.Success -> {
+                        logLine("Success ${multiTaskResult.taskConfigModel}")
+//                        _newTaskState.update {
+//                            if (it is NewTaskState.PreparingMultiData) {
+//                                it.copy(
+//                                    multiNewTaskConfig = it.multiNewTaskConfig
+//                                )
+//                            } else it
+//                        }
+                    }
+
+                    MultiTaskResult.Finish -> {
+                        logLine("Finish")
+
+                        _newTaskState.update {
+                            if (it is NewTaskState.PreparingMultiData) {
+                                it.copy(
+                                    isPrepared = true
+                                )
+                            } else it
+                        }
+                        dialogAccept(DialogAction.CalculateSizeInfo)
+                        this.cancel()
+                    }
+                }
+            }
+    }
+
+    private suspend fun initMultiUrlWithoutProgress(urlList: List<String>) {
+        _addUriState.update {
+            AddUriUiState.LOADING
+        }
+        _mainUiState.update {
+            it.isLoading()
+        }
+        val multiConfigResult = engineRepo.initMultiUrl(urlList)
+        _mainUiState.update {
+            it.hideLoading()
+        }
+        if (multiConfigResult is IResult.Error) {
+            _addUriState.update {
+                AddUriUiState.ERROR(multiConfigResult.exception.message.toString())
+            }
+            Logger.e(multiConfigResult.exception.message.toString())
+            return
+        }
+
+        _addUriState.update {
+            AddUriUiState.SUCCESS
+        }
+
+        val multiTaskConfigs = (multiConfigResult as IResult.Success).data
+        _newTaskState.update {
+            NewTaskState.PreparingMultiData(
+                isPrepared = true,
+                multiNewTaskConfig = multiTaskConfigs
+            )
+        }
+        _mainUiState.update {
+            it.showAddMultiTask()
+        }
+        dialogAccept(DialogAction.CalculateSizeInfo)
+    }
 
     private fun initAddUriDialogAcceptAction(): (DialogAction) -> Unit {
         val actionStateFlow: MutableSharedFlow<DialogAction> = MutableSharedFlow()
@@ -237,7 +369,7 @@ class MainViewModel @Inject constructor(
             initTaskSettingStateFlow.collect {
                 _newTaskState.value = NewTaskState.INIT
                 _mainUiState.update {
-                    it.copy(isShowAddNewTask = false)
+                    it.hideDialog()
                 }
             }
         }
@@ -246,97 +378,217 @@ class MainViewModel @Inject constructor(
         viewModelScope.launch {
             filterStateFlow.collect { checkState ->
                 logger("actionCheckStateFlow collect")
-                _newTaskState.update {
-                    if (it is NewTaskState.PreparingData) {
-                        it.task._fileTree as TreeNode.Directory
-                        it.task._fileTree.filterFile(checkState.fileType, checkState.isSelect)
-                        val filterGroup = when (checkState.fileType) {
-                            FileType.VIDEO -> it.fileFilterGroup.copy(selectVideo = checkState.isSelect)
-                            FileType.AUDIO -> it.fileFilterGroup.copy(selectAudio = checkState.isSelect)
-                            FileType.IMG -> it.fileFilterGroup.copy(selectImage = checkState.isSelect)
-                            FileType.OTHER -> it.fileFilterGroup.copy(selectOther = checkState.isSelect)
-                            FileType.ALL -> it.fileFilterGroup.copy(selectAll = checkState.isSelect)
-                        }
-                        dialogAccept(DialogAction.CalculateSizeInfo)
-                        it.copy(
-                            fileFilterGroup = filterGroup
-                        )
-                    } else {
-                        it
+                when (_newTaskState.value) {
+                    is NewTaskState.PreparingData -> {
+                        updateSingleFileTreeAndFileGroup(checkState)
                     }
+
+                    is NewTaskState.PreparingMultiData -> {
+                        updateMultiFileTreeAndFileGroup(checkState)
+                    }
+
+                    else -> return@collect
                 }
+
             }
         }
+
+    private fun updateSingleFileTreeAndFileGroup(checkState: DialogAction.FilterGroupState) {
+        _newTaskState.update {
+            it as NewTaskState.PreparingData
+            it.singleNewTaskConfig._fileTree as TreeNode.Directory
+            it.singleNewTaskConfig._fileTree.filterFile(
+                checkState.fileType,
+                checkState.isSelect
+            )
+            val filterGroup = when (checkState.fileType) {
+                FileType.VIDEO -> it.fileFilterGroup.copy(selectVideo = checkState.isSelect)
+                FileType.AUDIO -> it.fileFilterGroup.copy(selectAudio = checkState.isSelect)
+                FileType.IMG -> it.fileFilterGroup.copy(selectImage = checkState.isSelect)
+                FileType.OTHER -> it.fileFilterGroup.copy(selectOther = checkState.isSelect)
+                FileType.ALL -> it.fileFilterGroup.copy(selectAll = checkState.isSelect)
+            }
+            dialogAccept(DialogAction.CalculateSizeInfo)
+            it.copy(
+                fileFilterGroup = filterGroup
+            )
+        }
+    }
+
+    private fun updateMultiFileTreeAndFileGroup(checkState: DialogAction.FilterGroupState) {
+        _newTaskState.update {
+            it as NewTaskState.PreparingMultiData
+            it.multiNewTaskConfig.filterFile(checkState.fileType, checkState.isSelect)
+            val filterGroup = when (checkState.fileType) {
+                FileType.VIDEO -> it.fileFilterGroup.copy(selectVideo = checkState.isSelect)
+                FileType.AUDIO -> it.fileFilterGroup.copy(selectAudio = checkState.isSelect)
+                FileType.IMG -> it.fileFilterGroup.copy(selectImage = checkState.isSelect)
+                FileType.OTHER -> it.fileFilterGroup.copy(selectOther = checkState.isSelect)
+                FileType.ALL -> it.fileFilterGroup.copy(selectAll = checkState.isSelect)
+            }
+            dialogAccept(DialogAction.CalculateSizeInfo)
+            it.copy(
+                fileFilterGroup = filterGroup
+            )
+        }
+    }
+
 
     private fun handleChangeDownloadPathFlow(setDownloadPathFlow: Flow<DialogAction.ChangeDownloadPath>) =
         viewModelScope.launch {
             setDownloadPathFlow.collect { changeDownloadPath ->
-                if (_newTaskState.value is NewTaskState.PreparingData) {
-                    _newTaskState.update {
-                        (it as NewTaskState.PreparingData).copy(
-                            task = it.task.update(
-                                downloadPath = changeDownloadPath.downloadPath
-                            )
-                        )
-                    }
-                    dialogAccept(DialogAction.CalculateSizeInfo)
+                when (_newTaskState.value) {
+                    is NewTaskState.PreparingData -> changeSingleDownloadPath(changeDownloadPath)
+                    is NewTaskState.PreparingMultiData -> changeMultiDownloadPath(changeDownloadPath)
+                    else -> return@collect
                 }
             }
         }
+
+    private fun changeSingleDownloadPath(changeDownloadPath: DialogAction.ChangeDownloadPath) {
+        _newTaskState.update {
+            (it as NewTaskState.PreparingData).copy(
+                singleNewTaskConfig = it.singleNewTaskConfig.update(
+                    downloadPath = changeDownloadPath.downloadPath
+                )
+            )
+        }
+        dialogAccept(DialogAction.CalculateSizeInfo)
+    }
+
+    private fun changeMultiDownloadPath(changeDownloadPath: DialogAction.ChangeDownloadPath) {
+        _newTaskState.update {
+            it as NewTaskState.PreparingMultiData
+            it.copy(
+                multiNewTaskConfig = it.multiNewTaskConfig.update(
+                    downloadPath = changeDownloadPath.downloadPath
+                ),
+            )
+        }
+        dialogAccept(DialogAction.CalculateSizeInfo)
+    }
 
     private fun handleCalculateSizeInfo(calculateSizeInfoFlow: Flow<DialogAction.CalculateSizeInfo>) =
         viewModelScope.launch {
             calculateSizeInfoFlow.collect {
-                _newTaskState.update {
-                    it as NewTaskState.PreparingData
-                    val totalCheckedFileSize =
-                        (it.task._fileTree as TreeNode.Directory).totalCheckedFileSize
-                    val checkedFileCount = it.task._fileTree.checkedFileCount
-                    val downloadPathFile = File(it.task._downloadPath)
-                    if(!downloadPathFile.exists()){
-                        downloadPathFile.mkdirs()
+                when (_newTaskState.value) {
+                    is NewTaskState.PreparingData -> calculatePreparingDataSizeInfo()
+                    is NewTaskState.PreparingMultiData -> calculatePreparingMultiDataSizeInfo()
+                    else -> {
+                        logLine("handleCalculateSizeInfo error: Unsupport ${_newTaskState.value}")
                     }
-                    val freeSpace = downloadPathFile.freeSpace
-                    val totalSpace = downloadPathFile.totalSpace
-                    var downloadPathSizeInfo = application.getString(
-                        R.string.download_size_info,
-                        freeSpace.toHumanReading()
-                    )
-                    var freeSpaceState = FreeSpaceState.ENOUGH
-                    if (freeSpace < 100.MB || freeSpace.toDouble() / totalSpace.toDouble() < 0.02) {
-                        downloadPathSizeInfo =
-                            "<font color=\"#FF9800\">${application.getString(R.string.free_space_shortage)}</font>"
-                        freeSpaceState = FreeSpaceState.FREE_SPACE_SHORTAGE
-                    }
-
-                    if (freeSpace < totalCheckedFileSize) {
-                        downloadPathSizeInfo =
-                            "<font color=\"#FF1200\">${application.getString(R.string.free_space_not_enough)}</font>"
-                        freeSpaceState = FreeSpaceState.NOT_ENOUGH_SPACE
-                    }
-
-                    it.copy(
-                        taskSizeInfo = TaskSizeInfo(
-                            taskSizeInfo = application.getString(
-                                R.string.new_task_size_info,
-                                checkedFileCount,
-                                totalCheckedFileSize.toHumanReading()
-                            ),
-                            downloadPathSizeInfo = downloadPathSizeInfo,
-                            freeSpaceState = freeSpaceState
-                        )
-                    )
                 }
+
             }
         }
+
+    private fun calculatePreparingDataSizeInfo() {
+        _newTaskState.update {
+            it as NewTaskState.PreparingData
+            val totalCheckedFileSize =
+                (it.singleNewTaskConfig._fileTree as TreeNode.Directory).totalCheckedFileSize
+            val checkedFileCount = it.singleNewTaskConfig._fileTree.checkedFileCount
+            val downloadPathFile = File(it.singleNewTaskConfig._downloadPath)
+            if (!downloadPathFile.exists()) {
+                downloadPathFile.mkdirs()
+            }
+            val freeSpace = downloadPathFile.freeSpace
+            val totalSpace = downloadPathFile.totalSpace
+            var downloadPathSizeInfo = application.getString(
+                R.string.download_size_info,
+                freeSpace.toHumanReading()
+            )
+            var freeSpaceState = FreeSpaceState.ENOUGH
+            if (freeSpace < 100.MB || freeSpace.toDouble() / totalSpace.toDouble() < 0.02) {
+                downloadPathSizeInfo =
+                    "<font color=\"#FF9800\">${application.getString(R.string.free_space_shortage)}</font>"
+                freeSpaceState = FreeSpaceState.FREE_SPACE_SHORTAGE
+            }
+
+            if (freeSpace < totalCheckedFileSize) {
+                downloadPathSizeInfo =
+                    "<font color=\"#FF1200\">${application.getString(R.string.free_space_not_enough)}</font>"
+                freeSpaceState = FreeSpaceState.NOT_ENOUGH_SPACE
+            }
+
+            it.copy(
+                taskSizeInfo = TaskSizeInfo(
+                    taskSizeInfo = application.getString(
+                        R.string.new_task_size_info,
+                        checkedFileCount,
+                        totalCheckedFileSize.toHumanReading()
+                    ),
+                    downloadPathSizeInfo = downloadPathSizeInfo,
+                    freeSpaceState = freeSpaceState
+                )
+            )
+        }
+    }
+
+    private fun calculatePreparingMultiDataSizeInfo() {
+        _newTaskState.update { newTaskState ->
+            newTaskState as NewTaskState.PreparingMultiData
+            val totalSelectedFileSize =
+                newTaskState.multiNewTaskConfig.taskConfigs.sumOf { taskConfig ->
+                    (taskConfig._fileTree as TreeNode.Directory).totalCheckedFileSize
+                }
+            val selectedFileCount =
+                newTaskState.multiNewTaskConfig.taskConfigs.sumOf { taskConfig ->
+                    (taskConfig._fileTree as TreeNode.Directory).checkedFileCount
+                }
+
+            val downloadPathFile = File(newTaskState.multiNewTaskConfig.downloadPath)
+            if (!downloadPathFile.exists()) {
+                downloadPathFile.mkdirs()
+            }
+            val freeSpace = downloadPathFile.freeSpace
+            val totalSpace = downloadPathFile.totalSpace
+            var downloadPathSizeInfo = application.getString(
+                R.string.download_size_info,
+                freeSpace.toHumanReading()
+            )
+            var freeSpaceState = FreeSpaceState.ENOUGH
+            if (freeSpace < 100.MB || freeSpace.toDouble() / totalSpace.toDouble() < 0.02) {
+                downloadPathSizeInfo =
+                    "<font color=\"#FF9800\">${application.getString(R.string.free_space_shortage)}</font>"
+                freeSpaceState = FreeSpaceState.FREE_SPACE_SHORTAGE
+            }
+
+            if (freeSpace < totalSelectedFileSize) {
+                downloadPathSizeInfo =
+                    "<font color=\"#FF1200\">${application.getString(R.string.free_space_not_enough)}</font>"
+                freeSpaceState = FreeSpaceState.NOT_ENOUGH_SPACE
+            }
+
+            newTaskState.copy(
+                taskSizeInfo = TaskSizeInfo(
+                    taskSizeInfo = application.getString(
+                        R.string.new_task_size_info,
+                        selectedFileCount,
+                        totalSelectedFileSize.toHumanReading()
+                    ),
+                    downloadPathSizeInfo = downloadPathSizeInfo,
+                    freeSpaceState = freeSpaceState
+                )
+            )
+        }
+    }
 
     private fun handleDownloadEngineFlow(changeDownloadEngineFlow: Flow<DialogAction.ChangeDownloadEngine>) =
         viewModelScope.launch {
             changeDownloadEngineFlow.collect { changeDownloadEngine ->
+                when (_newTaskState.value) {
+                    is NewTaskState.PreparingData -> changeSingleDownloadEngine(changeDownloadEngine)
+                    is NewTaskState.PreparingMultiData -> changeMultiDownloadEngine(
+                        changeDownloadEngine
+                    )
+
+                    else -> return@collect
+                }
                 if (_newTaskState.value is NewTaskState.PreparingData) {
                     _newTaskState.update {
                         (it as NewTaskState.PreparingData).copy(
-                            task = it.task.update(
+                            singleNewTaskConfig = it.singleNewTaskConfig.update(
                                 downloadEngine = changeDownloadEngine.engine
                             )
                         )
@@ -345,6 +597,25 @@ class MainViewModel @Inject constructor(
             }
         }
 
+    private fun changeSingleDownloadEngine(changeDownloadEngine: DialogAction.ChangeDownloadEngine) {
+        _newTaskState.update {
+            (it as NewTaskState.PreparingData).copy(
+                singleNewTaskConfig = it.singleNewTaskConfig.update(
+                    downloadEngine = changeDownloadEngine.engine
+                )
+            )
+        }
+    }
+
+    private fun changeMultiDownloadEngine(changeDownloadEngine: DialogAction.ChangeDownloadEngine) {
+        _newTaskState.update {
+            (it as NewTaskState.PreparingMultiData).copy(
+                multiNewTaskConfig = it.multiNewTaskConfig.update(
+                    downloadEngine = changeDownloadEngine.engine
+                )
+            )
+        }
+    }
 
     private fun initEmitToastAction(): (ToastAction) -> Unit {
         val actionStateFlow: MutableSharedFlow<ToastAction> = MutableSharedFlow()
@@ -387,7 +658,8 @@ class MainViewModel @Inject constructor(
 }
 
 sealed class UiAction {
-    data class InitTask(val url: String) : UiAction()
+    data class InitSingleTask(val url: String) : UiAction()
+    data class InitMultiTask(val urlList: List<String>) : UiAction()
     data class StartDownloadTask(val engine: DownloadEngine) : UiAction()
     object SaveSession : UiAction()
 }
@@ -410,7 +682,25 @@ sealed class ToastAction {
 data class MainUiState(
     val isLoading: Boolean = false,
     val isShowAddNewTask: Boolean = false,
-)
+    val isShowAddMultiTask: Boolean = false,
+) {
+    fun isLoading(): MainUiState =
+        copy(isLoading = true)
+
+    fun hideLoading(): MainUiState =
+        copy(isLoading = false)
+
+    fun showAddNewTask(): MainUiState =
+        copy(isShowAddNewTask = true, isShowAddMultiTask = false)
+
+
+    fun showAddMultiTask(): MainUiState =
+        copy(isShowAddNewTask = false, isShowAddMultiTask = true)
+
+    fun hideDialog(): MainUiState =
+        copy(isShowAddNewTask = false, isShowAddMultiTask = false)
+
+}
 
 sealed class ToastState {
     object INIT : ToastState()
@@ -420,7 +710,15 @@ sealed class ToastState {
 sealed class NewTaskState {
     object INIT : NewTaskState()
     data class PreparingData(
-        val task: NewTaskConfigModel,
+        val singleNewTaskConfig: NewTaskConfigModel,
+        val fileFilterGroup: fileFilterGroup = fileFilterGroup(),
+        val taskSizeInfo: TaskSizeInfo = TaskSizeInfo()
+    ) : NewTaskState()
+
+    data class PreparingMultiData(
+        val isPrepared: Boolean = false,
+        val initializingUrl: String? = null,
+        val multiNewTaskConfig: MultiNewTaskConfigModel,
         val fileFilterGroup: fileFilterGroup = fileFilterGroup(),
         val taskSizeInfo: TaskSizeInfo = TaskSizeInfo()
     ) : NewTaskState()

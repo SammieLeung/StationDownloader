@@ -1,0 +1,195 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <data>
+
+        <variable
+            name="taskName"
+            type="String" />
+
+        <variable
+            name="downloadPath"
+            type="String" />
+
+
+        <variable
+            name="taskSizeInfo"
+            type="String" />
+    </data>
+
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:gravity="center"
+        >
+
+        <RelativeLayout
+            android:layout_width="750dp"
+            android:layout_height="wrap_content"
+            android:background="@drawable/station_dialog_background"
+            android:paddingHorizontal="45dp"
+            android:paddingTop="30dp"
+            android:paddingBottom="45dp">
+
+            <TextView
+                android:id="@+id/titleView"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="15dp"
+                android:text="@{taskName}"
+                android:textFontWeight="500"
+                android:textSize="24sp" />
+
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/taskFileList"
+                android:layout_width="match_parent"
+                android:layout_height="263dp"
+                android:layout_below="@id/titleView"
+                android:background="@drawable/file_list_bg"
+                android:orientation="vertical"
+                app:layoutManager="LinearLayoutManager" />
+
+
+            <LinearLayout
+                android:id="@+id/filterSets"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_below="@id/taskFileList"
+                android:layout_marginTop="15dp"
+                android:theme="@style/AppTheme.CheckBox">
+
+                <CheckBox
+                    android:id="@+id/allCBox"
+                    style="@style/VideoTypeCheckBoxStyle"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/filter_all" />
+
+                <CheckBox
+                    android:id="@+id/videoCBox"
+                    style="@style/VideoTypeCheckBoxStyle"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="22dp"
+                    android:text="@string/filter_video" />
+
+                <CheckBox
+                    android:id="@+id/audioCBox"
+                    style="@style/VideoTypeCheckBoxStyle"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="22dp"
+                    android:text="@string/filter_audio" />
+
+                <CheckBox
+                    android:id="@+id/pictureCBox"
+                    style="@style/VideoTypeCheckBoxStyle"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="22dp"
+                    android:text="@string/filter_image" />
+
+                <CheckBox
+                    android:id="@+id/otherCBox"
+                    style="@style/VideoTypeCheckBoxStyle"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="22dp"
+                    android:text="@string/filter_other" />
+            </LinearLayout>
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_below="@id/taskFileList"
+                android:layout_alignParentEnd="true"
+                android:layout_marginTop="15dp"
+                android:layout_toEndOf="@id/filterSets"
+                android:gravity="end|center_vertical"
+                android:text="@{taskSizeInfo}"
+                android:textFontWeight="300"
+                android:textSize="@dimen/t4" />
+
+            <Spinner
+                android:id="@+id/engineSpinner"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_below="@id/filterSets"
+                android:layout_marginTop="23dp"
+                android:backgroundTint="@color/app_theme_common_button_background_tint" />
+
+
+            <RelativeLayout
+                android:id="@+id/downloadPathGroup"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_below="@id/engineSpinner"
+                android:layout_alignBottom="@id/filePickerBtn"
+                android:layout_alignParentStart="true"
+                android:layout_marginTop="23dp"
+                android:layout_toStartOf="@id/filePickerBtn"
+                android:background="@drawable/download_path_textview_bg">
+
+                <TextView
+                    android:id="@+id/downloadPathView"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_alignParentStart="true"
+                    android:layout_centerVertical="true"
+                    android:layout_marginVertical="5dp"
+                    android:layout_toStartOf="@id/downloadSpaceView"
+                    android:autoSizeMaxTextSize="23sp"
+                    android:autoSizeMinTextSize="16sp"
+                    android:autoSizeTextType="uniform"
+                    android:gravity="center"
+                    android:maxLines="3"
+                    android:paddingHorizontal="15dp"
+                    android:text="@{downloadPath}"
+                    android:textFontWeight="300" />
+
+                <TextView
+                    android:id="@+id/downloadSpaceView"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_alignParentEnd="true"
+                    android:layout_centerVertical="true"
+                    android:paddingHorizontal="15dp"
+                    android:textColor="#CCCCCC"
+                    android:textSize="16sp" />
+
+            </RelativeLayout>
+
+            <ImageButton
+                android:id="@+id/filePickerBtn"
+                android:layout_width="87dp"
+                android:layout_height="57dp"
+                android:layout_below="@id/engineSpinner"
+                android:layout_alignParentEnd="true"
+                android:layout_marginLeft="23dp"
+                android:layout_marginTop="23dp"
+                android:backgroundTint="@color/app_theme_common_button_background_tint"
+                android:src="@drawable/ic_open_folder"
+                android:tint="#FFFFFF"
+                app:tint="@android:color/white"
+                tools:ignore="UseAppTint" />
+
+
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_below="@id/filePickerBtn"
+                android:layout_centerHorizontal="true"
+                android:layout_marginTop="30dp">
+
+                <Button
+                    android:id="@+id/downloadBtn"
+                    android:layout_width="300dp"
+                    android:layout_height="wrap_content"
+                    android:text="@string/single_download_btn" />
+
+            </LinearLayout>
+        </RelativeLayout>
+    </RelativeLayout>
+</layout>
