@@ -34,7 +34,6 @@ import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flow
@@ -123,44 +122,82 @@ class MainViewModel @Inject constructor(
         viewModelScope.launch {
             startTaskFlow.collect { action ->
                 logger("startTaskFlow collect")
-                if (_newTaskState.value !is NewTaskState.PreparingData)
-                    return@collect
-                val preparingData = _newTaskState.value as NewTaskState.PreparingData
 
-                val saveTaskResult =
-                    taskRepo.validateAndPersistTask(
-                        preparingData.singleNewTaskConfig.update(
-                            downloadEngine = action.engine
-                        )
-                    )
-                if (saveTaskResult is IResult.Error) {
-                    when (saveTaskResult.code) {
-                        TaskExecuteError.REPEATING_TASK_NOTHING_CHANGED.ordinal -> {
-                            _toastState.update {
-                                ToastState.Show(application.getString(R.string.repeating_task_nothing_changed))
-                            }
-                        }
-
-                        else -> _toastState.update {
-                            Logger.e(saveTaskResult.exception.message.toString())
-                            ToastState.Show(saveTaskResult.exception.message.toString())
-                        }
-                    }
-                    return@collect
-                }
-
-                saveTaskResult as IResult.Success
-
-                TaskService.startTask(application, saveTaskResult.data.url)
-
-                _toastState.update {
-                    ToastState.Show(application.getString(R.string.start_to_download))
-                }
-                _newTaskState.update {
-                    NewTaskState.Success
+                when (_newTaskState.value) {
+                    is NewTaskState.PreparingData -> startSingleDownloadTask(action)
+                    is NewTaskState.PreparingMultiData -> startMultiDownloadTask(action)
+                    else -> return@collect
                 }
             }
         }
+
+
+
+    private suspend fun startSingleDownloadTask(action: UiAction.StartDownloadTask) {
+        val preparingData = _newTaskState.value as NewTaskState.PreparingData
+
+        val saveTaskResult =
+            taskRepo.validateAndPersistTask(
+                preparingData.singleNewTaskConfig.update(
+                    downloadEngine = action.engine
+                )
+            )
+        if (saveTaskResult is IResult.Error) {
+            when (saveTaskResult.code) {
+                TaskExecuteError.REPEATING_TASK_NOTHING_CHANGED.ordinal -> {
+                    _toastState.update {
+                        ToastState.Show(application.getString(R.string.repeating_task_nothing_changed))
+                    }
+                }
+
+                else -> _toastState.update {
+                    Logger.e(saveTaskResult.exception.message.toString())
+                    ToastState.Show(saveTaskResult.exception.message.toString())
+                }
+            }
+            return
+        }
+
+        saveTaskResult as IResult.Success
+
+        TaskService.startTask(application, saveTaskResult.data.url)
+
+        _toastState.update {
+            ToastState.Show(application.getString(R.string.start_to_download))
+        }
+        _newTaskState.update {
+            NewTaskState.Success
+        }
+    }
+
+
+    private suspend fun startMultiDownloadTask(action: UiAction.StartDownloadTask) {
+        val preparingMultiData = _newTaskState.value as NewTaskState.PreparingMultiData
+
+        val failedTaskConfigs:MutableList<Pair<String,IResult.Error>> = mutableListOf()
+        preparingMultiData.multiNewTaskConfig.taskConfigs.forEach {
+            val saveTaskResult =
+                taskRepo.validateAndPersistTask(
+                    it.update(
+                        downloadEngine = action.engine
+                    )
+                )
+            if (saveTaskResult is IResult.Error) {
+                        failedTaskConfigs.add(Pair(it._name,saveTaskResult))
+            }else{
+                saveTaskResult as IResult.Success
+                TaskService.startTask(application, saveTaskResult.data.url)
+            }
+        }
+
+        _toastState.update {
+            ToastState.Show(application.getString(R.string.start_to_download))
+        }
+        _newTaskState.update {
+            NewTaskState.Success
+        }
+    }
+
 
     private fun handleInitSingleTaskAction(initTaskFlow: Flow<UiAction.InitSingleTask>) =
         viewModelScope.launch {

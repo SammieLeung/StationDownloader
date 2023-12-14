@@ -166,11 +166,13 @@ class DefaultEngineRepository(
                             TaskExecuteError.TASK_NUMBER_REACHED_LIMIT.ordinal
                         )
                     }
+                    maxThreadCount.incrementAndGet()
                     val taskIdResult = xlEngine.startTask(
                         realUrl, downloadPath, name, urlType, fileCount, selectIndexes
                     )
 
                     if (taskIdResult is IResult.Error) {
+                        maxThreadCount.decrementAndGet()
                         return@withContext taskIdResult
                     }
                     taskIdResult as IResult.Success
@@ -181,7 +183,6 @@ class DefaultEngineRepository(
                     taskRepo.updateTask(
                         stationDownloadTask.copy(status = downloadStatus).asXLDownloadTaskEntity()
                     )
-                    maxThreadCount.incrementAndGet()
                     IResult.Success(
                         TaskId(DownloadEngine.XL, taskId)
                     )
@@ -219,12 +220,12 @@ class DefaultEngineRepository(
 //                            TaskExecuteError.TASK_NUMBER_REACHED_LIMIT.ordinal
 //                        )
                     }
-
+                    maxThreadCount.incrementAndGet()
                     val startTaskResult = aria2Engine.startTask(
                         realUrl, downloadPath, name, urlType, fileCount, selectIndexes
                     )
                     if (startTaskResult is IResult.Error) {
-//                        maxThreadCount.decrementAndGet()
+                        maxThreadCount.decrementAndGet()
                         Logger.e("${startTaskResult.exception}")
                         return@withContext startTaskResult
                     }
@@ -233,7 +234,7 @@ class DefaultEngineRepository(
                     taskRepo.updateTask(
                         stationDownloadTask.copy(status = downloadStatus).asXLDownloadTaskEntity()
                     )
-                    maxThreadCount.incrementAndGet()
+
                     IResult.Success(
                         TaskId(DownloadEngine.ARIA2, taskId)
                     )

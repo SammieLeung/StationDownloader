@@ -10,6 +10,7 @@ import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import com.orhanobut.logger.Logger
 import com.station.stationdownloader.TaskId.Companion.INVALID_ID
 import com.station.stationdownloader.TaskId.Companion.INVALID_TASK_ID
+import com.station.stationdownloader.contants.DEFAULT_MAX_CONCURRENT_DOWNLOADS_COUNT
 import com.station.stationdownloader.contants.TaskExecuteError
 import com.station.stationdownloader.data.IResult
 import com.station.stationdownloader.data.result
@@ -218,11 +219,19 @@ class TaskService : Service(), DLogger, WebSocketClient.OnNotify {
                         putExtra("result", false)
                         putExtra("reason", taskIdResult.exception.message.toString())
                     })
-                    updateTaskStatusNow(
-                        url,
-                        TaskId(downloadTask.engine, INVALID_ID),
-                        ITaskState.ERROR.code
-                    )
+                    if (taskIdResult.code == TaskExecuteError.TASK_NUMBER_REACHED_LIMIT.ordinal) {
+                        updateTaskStatusNow(
+                            url,
+                            TaskId(downloadTask.engine, INVALID_ID),
+                            ITaskState.STOP.code
+                        )
+                    } else {
+                        updateTaskStatusNow(
+                            url,
+                            TaskId(downloadTask.engine, INVALID_ID),
+                            ITaskState.ERROR.code
+                        )
+                    }
                     callback?.onFailed(
                         /* reason = */ taskIdResult.exception.message.toString(),
                         /* code = */ TaskExecuteError.START_TASK_FAILED.ordinal
@@ -243,6 +252,7 @@ class TaskService : Service(), DLogger, WebSocketClient.OnNotify {
 //                    status = ITaskState.UNKNOWN.code
 //                )
 //                downloadingTaskStatusData[url] = status//FIXME 为什么要先添加到map中，再更新状态？
+                logLine("startTask $url...")
                 updateTaskStatusNow(url, taskId, ITaskState.RUNNING.code)
                 val remoteStartTask = RemoteStartTask.Create(xlEntity, taskId.id, torrentRepo)
                 callback?.onResult(MoshiHelper.toJson(remoteStartTask))
