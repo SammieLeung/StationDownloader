@@ -82,7 +82,6 @@ class XLEngine internal constructor(
 
     suspend fun initUrl(originUrl: String): IResult<NewTaskConfigModel> =
         withContext(defaultDispatcher) {
-            logger("initUrl=$originUrl")
             var decodeUrl = TaskTools.getUrlDecodeUrl(originUrl)
 
             val isMagnetHash = TaskTools.isMagnetHash(decodeUrl)
@@ -263,7 +262,6 @@ class XLEngine internal constructor(
 
             Logger.w("开始下载种子【$magnetUrl】任务id:$taskId")
 
-            logger("downloadPath=$downloadPath torrentFileName=$torrentFileName")
 
             return withTimeout(TORRENT_DOWNLOAD_TASK_TIMEOUT) {
                 while (XLTaskHelper.instance()//FIXME ITaskState是通用任务状态，不应该和XL下载的任务状态混用
@@ -322,7 +320,6 @@ class XLEngine internal constructor(
         var taskName = XLTaskHelper.instance().getFileName(realUrl)
         val downloadPath =
             File(configRepo.getValue(CommonOptions.DownloadPath)).path
-        logLine("initNormalUrl:realUrl=$realUrl originUrl=$originUrl")
         val normalTask = NewTaskConfigModel.NormalTask(
             originUrl = originUrl,
             url = realUrl,

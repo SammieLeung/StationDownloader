@@ -341,7 +341,6 @@ class DownloadingTaskViewModel @Inject constructor(
                     it.url == url
                 } ?: return@collect
                 val index = downloadingTaskItemList.indexOf(taskItem)
-                logger("collectTaskStatus $url ${index}")
                 if (taskStatus.status == ITaskState.RUNNING.code) {
                     downloadingTaskItemList[index] = taskItem.copy(
                         taskId = taskStatus.taskId,

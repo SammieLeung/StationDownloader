@@ -61,7 +61,9 @@ open class WebSocketClient private constructor(
 
             val response = InternalResponse()
             requests[id] = response
-            logger("sendRequestSync:\n  $request")
+            if(DEBUG) {
+                logger("sendRequestSync:\n  $request")
+            }
 
             webSocket.get()?.send(request.toString())
                 ?: throw IllegalStateException("WebSocket is closed")
@@ -247,7 +249,9 @@ open class WebSocketClient private constructor(
                 }
 
             val method: String = response.optString("method", "")
-            Logger.d("onMessage:\n  $text")
+            if(DEBUG) {
+                Logger.d("onMessage:\n  $text")
+            }
             if (method.isNotEmpty() && method.startsWith("aria2.on")) {
                 scope.launch {
                     val gid = response.getJSONArray("params").getJSONObject(0).getString("gid")
@@ -414,7 +418,7 @@ open class WebSocketClient private constructor(
     }
 
     companion object {
-
+        const val DEBUG=true
         @JvmStatic
         @Throws(InitializationException::class)
         fun instantiate(profile: UserProfile): WebSocketClient {

@@ -279,38 +279,12 @@ class MainViewModel @Inject constructor(
                     }
 
                     is MultiTaskResult.InitializingTask -> {
-                        logLine("InitializingTask ${multiTaskResult.url}")
                         _newTaskState.update {
                             if (it is NewTaskState.PreparingMultiData) {
                                 it.copy(initializingUrl = multiTaskResult.url)
                             } else it
                         }
                     }
-
-                    is MultiTaskResult.Failed -> {
-                        logLine("Failed ${multiTaskResult.url}")
-//                        _newTaskState.update {
-//                            if (it is NewTaskState.PreparingMultiData) {
-//                                it.copy(
-//                                    multiNewTaskConfig = it.multiNewTaskConfig.addFailedLink(
-//                                        multiTaskResult.url,
-//                                    )
-//                                )
-//                            } else it
-//                        }
-                    }
-
-                    is MultiTaskResult.Success -> {
-                        logLine("Success ${multiTaskResult.taskConfigModel}")
-//                        _newTaskState.update {
-//                            if (it is NewTaskState.PreparingMultiData) {
-//                                it.copy(
-//                                    multiNewTaskConfig = it.multiNewTaskConfig
-//                                )
-//                            } else it
-//                        }
-                    }
-
                     MultiTaskResult.Finish -> {
                         logLine("Finish")
 
@@ -324,6 +298,8 @@ class MainViewModel @Inject constructor(
                         dialogAccept(DialogAction.CalculateSizeInfo)
                         this.cancel()
                     }
+
+                    else -> {}
                 }
             }
     }

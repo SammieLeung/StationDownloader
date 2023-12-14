@@ -5,6 +5,7 @@ import android.content.Context
 import android.content.Intent
 import android.os.Handler
 import android.os.IBinder
+import android.util.Log
 import android.widget.Toast
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import com.orhanobut.logger.Logger
@@ -252,7 +253,6 @@ class TaskService : Service(), DLogger, WebSocketClient.OnNotify {
 //                    status = ITaskState.UNKNOWN.code
 //                )
 //                downloadingTaskStatusData[url] = status//FIXME 为什么要先添加到map中，再更新状态？
-                logLine("startTask $url...")
                 updateTaskStatusNow(url, taskId, ITaskState.RUNNING.code)
                 val remoteStartTask = RemoteStartTask.Create(xlEntity, taskId.id, torrentRepo)
                 callback?.onResult(MoshiHelper.toJson(remoteStartTask))
@@ -539,7 +539,7 @@ class TaskService : Service(), DLogger, WebSocketClient.OnNotify {
         while (true) {
             val taskStatusResult = engineRepo.getAria2TaskStatus(taskId.id, url)
             if (taskStatusResult is IResult.Error) {
-                logError(taskStatusResult.exception)
+                Logger.d(taskStatusResult.exception)
                 updateTaskStatus(
                     url,
                     TaskStatus(
@@ -566,7 +566,7 @@ class TaskService : Service(), DLogger, WebSocketClient.OnNotify {
                     else -> DownloadTaskStatus.FAILED
                 }
             )
-            logger("updateTaskStatus ${taskStatus.status}")
+
             if (taskStatus.status == ITaskState.STOP.code) {
                 downloadingTaskStatusData.remove(url)
                 watchTaskJobMap.remove(url)?.cancel()
@@ -585,7 +585,6 @@ class TaskService : Service(), DLogger, WebSocketClient.OnNotify {
                     logger("$taskId isInvaild")
 
                     val status = TaskStatus(taskId = taskId, status = status, url = url)
-                    logger("updateTaskStatusNow $status")
 
                     updateTaskStatus(url, status)
                     return

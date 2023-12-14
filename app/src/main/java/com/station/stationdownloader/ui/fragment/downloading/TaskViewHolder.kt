@@ -19,9 +19,13 @@ class TaskViewHolder(val binding: TaskItemBinding, val accept: (UiAction) -> Uni
                     accept(UiAction.StopTask(taskItem.url))
                 }
 
+                ITaskState.STOP.code -> {
+                    accept(UiAction.StartTask(taskItem.url))
+                }
+
                 ITaskState.LOADING.code -> {}
                 else -> {
-                    accept(UiAction.StartTask(taskItem.url))
+                    accept(UiAction.StopTask(taskItem.url))
                 }
             }
 

@@ -96,11 +96,11 @@ class DefaultEngineRepository(
         return xlEngine.initUrl(url)
     }
 
-    suspend fun initMultiUrl(urlList:List<String>):IResult<MultiNewTaskConfigModel>{
+    suspend fun initMultiUrl(urlList: List<String>): IResult<MultiNewTaskConfigModel> {
         return xlEngine.initMultiUrl(urlList)
     }
 
-    suspend fun initMultiUrlFlow(urlList:List<String>):Flow<MultiTaskResult>{
+    suspend fun initMultiUrlFlow(urlList: List<String>): Flow<MultiTaskResult> {
         return xlEngine.initMultiUrlFlow(urlList)
     }
 
@@ -305,9 +305,7 @@ class DefaultEngineRepository(
                         aria2Engine.removeDownloadResult(taskId.id)
                     } else {
                         val stopResponse = aria2Engine.stopTask(taskId.id)
-                        if (stopResponse.succeeded) {
-                            if (maxThreadCount.get() > 0) maxThreadCount.decrementAndGet()
-                        }
+                        if (maxThreadCount.get() > 0) maxThreadCount.decrementAndGet()
                     }
                 }
             }
@@ -352,7 +350,7 @@ class DefaultEngineRepository(
                 Exception(TaskExecuteError.TASK_NOT_FOUND.name),
                 TaskExecuteError.TASK_NOT_FOUND.ordinal
             )
-        return aria2Engine.tellStatusByUrl(url,entity.realUrl )
+        return aria2Engine.tellStatusByUrl(url, entity.realUrl)
     }
 
     suspend fun getAria2TaskStatus(gid: String, url: String): IResult<TaskStatus> {
