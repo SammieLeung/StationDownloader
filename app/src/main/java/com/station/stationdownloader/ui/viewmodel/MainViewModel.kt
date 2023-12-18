@@ -350,7 +350,7 @@ class MainViewModel @Inject constructor(
             actionStateFlow.filterIsInstance<DialogAction.CalculateSizeInfo>()
         val openMultiTaskDetailFlow =
             actionStateFlow.filterIsInstance<DialogAction.ShowMultiTaskDetail>()
-        val addMultiTaskDialog=actionStateFlow.filterIsInstance<DialogAction.BackToAddMultiTask>()
+        val addMultiTaskDialog = actionStateFlow.filterIsInstance<DialogAction.BackToAddMultiTask>()
 
         handleInitAddUriState(initAddUriState)
         handleReinitializeAllDialog(hideAllDialogFlow)
@@ -370,7 +370,7 @@ class MainViewModel @Inject constructor(
 
     private fun handleAddMultiTaskDialogFlow(addMultiTaskDialog: Flow<DialogAction.BackToAddMultiTask>) =
         viewModelScope.launch {
-            addMultiTaskDialog.collect{
+            addMultiTaskDialog.collect {
                 _mainUiState.update {
                     it.showAddMultiTask()
                 }
@@ -433,12 +433,13 @@ class MainViewModel @Inject constructor(
                 checkState.isSelect
             )
             val filterGroup = when (checkState.fileType) {
-                FileType.VIDEO -> it.fileFilterGroup.copy(selectVideo = checkState.isSelect)
-                FileType.AUDIO -> it.fileFilterGroup.copy(selectAudio = checkState.isSelect)
-                FileType.IMG -> it.fileFilterGroup.copy(selectImage = checkState.isSelect)
-                FileType.OTHER -> it.fileFilterGroup.copy(selectOther = checkState.isSelect)
-                FileType.ALL -> it.fileFilterGroup.copy(selectAll = checkState.isSelect)
+                FileType.ALL -> it.fileFilterGroup.selectAll(checkState.isSelect)
+                FileType.VIDEO -> it.fileFilterGroup.selectVideo(checkState.isSelect)
+                FileType.AUDIO -> it.fileFilterGroup.selectAudio(checkState.isSelect)
+                FileType.IMG ->it.fileFilterGroup.selectImage(checkState.isSelect)
+                FileType.OTHER -> it.fileFilterGroup.selectOther(checkState.isSelect)
             }
+
             dialogAccept(DialogAction.CalculateSizeInfo)
             it.copy(
                 fileFilterGroup = filterGroup
@@ -446,16 +447,17 @@ class MainViewModel @Inject constructor(
         }
     }
 
+
     private fun updateMultiFileTreeAndFileGroup(checkState: DialogAction.FilterGroupState) {
         _newTaskState.update {
             it as NewTaskState.PreparingMultiData
             it.multiNewTaskConfig.filterFile(checkState.fileType, checkState.isSelect)
             val filterGroup = when (checkState.fileType) {
-                FileType.VIDEO -> it.fileFilterGroup.copy(selectVideo = checkState.isSelect)
-                FileType.AUDIO -> it.fileFilterGroup.copy(selectAudio = checkState.isSelect)
-                FileType.IMG -> it.fileFilterGroup.copy(selectImage = checkState.isSelect)
-                FileType.OTHER -> it.fileFilterGroup.copy(selectOther = checkState.isSelect)
-                FileType.ALL -> it.fileFilterGroup.copy(selectAll = checkState.isSelect)
+                FileType.ALL -> it.fileFilterGroup.selectAll(checkState.isSelect)
+                FileType.VIDEO -> it.fileFilterGroup.selectVideo(checkState.isSelect)
+                FileType.AUDIO -> it.fileFilterGroup.selectAudio(checkState.isSelect)
+                FileType.IMG ->it.fileFilterGroup.selectImage(checkState.isSelect)
+                FileType.OTHER -> it.fileFilterGroup.selectOther(checkState.isSelect)
             }
             dialogAccept(DialogAction.CalculateSizeInfo)
             it.copy(
@@ -470,7 +472,10 @@ class MainViewModel @Inject constructor(
             setDownloadPathFlow.collect { changeDownloadPath ->
                 when (_newTaskState.value) {
                     is NewTaskState.PreparingData -> changeSingleDownloadPath(changeDownloadPath)
-                    is NewTaskState.PreparingMultiData -> changeMultiDownloadPath(changeDownloadPath)
+                    is NewTaskState.PreparingMultiData -> changeMultiDownloadPath(
+                        changeDownloadPath
+                    )
+
                     else -> return@collect
                 }
             }
@@ -609,7 +614,10 @@ class MainViewModel @Inject constructor(
         viewModelScope.launch {
             changeDownloadEngineFlow.collect { changeDownloadEngine ->
                 when (_newTaskState.value) {
-                    is NewTaskState.PreparingData -> changeSingleDownloadEngine(changeDownloadEngine)
+                    is NewTaskState.PreparingData -> changeSingleDownloadEngine(
+                        changeDownloadEngine
+                    )
+
                     is NewTaskState.PreparingMultiData -> changeMultiDownloadEngine(
                         changeDownloadEngine
                     )
@@ -703,7 +711,7 @@ sealed class DialogAction {
     data class ChangeDownloadPath(val downloadPath: String) : DialogAction()
     data class ChangeDownloadEngine(val engine: DownloadEngine) : DialogAction()
     object ShowMultiTaskDetail : DialogAction()
-    object BackToAddMultiTask:DialogAction()
+    object BackToAddMultiTask : DialogAction()
     object CalculateSizeInfo : DialogAction()
 }
 
@@ -735,7 +743,11 @@ data class MainUiState(
         copy(isShowAddNewTask = false, isShowAddMultiTask = false, isShowMultiTaskDetail = true)
 
     fun reinitializeAllDialog(): MainUiState =
-        copy(isShowAddNewTask = false, isShowAddMultiTask = false, isShowMultiTaskDetail = false)
+        copy(
+            isShowAddNewTask = false,
+            isShowAddMultiTask = false,
+            isShowMultiTaskDetail = false
+        )
 
 }
 
@@ -776,7 +788,46 @@ data class fileFilterGroup(
     val selectAudio: Boolean = false,
     val selectImage: Boolean = false,
     val selectOther: Boolean = false,
-)
+) {
+    fun selectAll(isSelect: Boolean): fileFilterGroup {
+        return copy(
+            selectAll = isSelect,
+            selectVideo = isSelect,
+            selectAudio = isSelect,
+            selectImage = isSelect,
+            selectOther = isSelect,
+        )
+    }
+
+    fun selectVideo(isSelect: Boolean): fileFilterGroup {
+        return copy(
+            selectVideo = isSelect,
+            selectAll = isSelect && selectAudio && selectImage && selectOther
+        )
+    }
+
+    fun selectAudio(isSelect: Boolean): fileFilterGroup {
+        return copy(
+            selectAudio = isSelect,
+            selectAll = isSelect && selectVideo && selectImage && selectOther
+        )
+    }
+
+    fun selectImage(isSelect: Boolean): fileFilterGroup {
+        return copy(
+            selectImage = isSelect,
+            selectAll = isSelect && selectVideo && selectAudio && selectOther
+        )
+    }
+
+    fun selectOther(isSelect: Boolean): fileFilterGroup {
+        return copy(
+            selectOther = isSelect,
+            selectAll = isSelect && selectVideo && selectAudio && selectImage
+        )
+    }
+
+}
 
 
 sealed class AddUriUiState<out T> {
