@@ -355,7 +355,7 @@ class DownloadingTaskViewModel @Inject constructor(
                         ),
                         status = taskStatus.status
                     )
-                } else if (taskStatus.status == ITaskState.ERROR.code) {
+                } else if (taskStatus.status == ITaskState.ERROR.code||taskStatus.status == ITaskState.FAILED.code){
                     downloadingTaskItemList[index] = taskItem.copy(
                         taskId = taskStatus.taskId,
                         speed = taskStatus.errorCode.toErrorMessage(application),
@@ -374,6 +374,7 @@ class DownloadingTaskViewModel @Inject constructor(
                 }
 
                 if (taskStatus.status == ITaskState.DONE.code) {
+                    logLine("taskStatus done")
                     accept(UiAction.GetTaskList)
                     LocalBroadcastManager.getInstance(application).sendBroadcast(
                         Intent(ACTION_NOTIFY_ADD_DONE_TASK).apply {

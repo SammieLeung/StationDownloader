@@ -475,7 +475,7 @@ class TaskService : Service(), DLogger, WebSocketClient.OnNotify {
                 noSpeedCount = 0
             }
 
-            if (status == ITaskState.DONE.code || status == ITaskState.STOP.code) {
+            if (status == ITaskState.DONE.code || status == ITaskState.STOP.code||status==ITaskState.FAILED.code) {
                 if (status == ITaskState.DONE.code) {
                     Logger.w("下载完成 [${taskId}]")
                     engineRepo.stopTask(taskId, task.asStationDownloadTask())
@@ -495,10 +495,29 @@ class TaskService : Service(), DLogger, WebSocketClient.OnNotify {
                         null
                     )
                 }
+                if(status==ITaskState.FAILED.code){
+                    engineRepo.stopTask(taskId, task.asStationDownloadTask())
+                    sendToClient(
+                        "download_status",
+                        MoshiHelper.toJson(
+                            RemoteTaskStatus(
+                                download_size = taskInfo.mDownloadSize,
+                                speed = speed,
+                                status = ITaskState.FAILED.ordinal,
+                                url = url,
+                                is_done = true,
+                                total_size = taskInfo.mFileSize,
+                                task_id = taskId.id
+                            )
+                        ),
+                        null
+                    )
+                }
                 downloadingTaskStatusData.remove(url)
                 watchTaskJobMap.remove(url)?.cancel()
                 return
             }
+
 
             if (status == ITaskState.FAILED.code) {
                 isRestart = true

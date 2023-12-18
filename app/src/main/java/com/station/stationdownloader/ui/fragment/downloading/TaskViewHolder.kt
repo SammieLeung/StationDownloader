@@ -5,6 +5,7 @@ import android.view.ViewGroup
 import androidx.core.view.updateLayoutParams
 import androidx.recyclerview.widget.RecyclerView
 import com.station.stationdownloader.ITaskState
+import com.station.stationdownloader.R
 import com.station.stationdownloader.databinding.TaskItemBinding
 import com.station.stationkitkt.dp
 
@@ -13,6 +14,20 @@ class TaskViewHolder(val binding: TaskItemBinding, val accept: (UiAction) -> Uni
 
     fun bind(taskItem: TaskItem) {
         binding.taskItem = taskItem
+        when (taskItem.status) {
+            ITaskState.RUNNING.code -> {
+                binding.startTaskBtn.setImageDrawable(binding.root.context.getDrawable(R.drawable.ic_stop))
+            }
+
+            ITaskState.ERROR.code,ITaskState.FAILED.code->
+            {
+                binding.startTaskBtn.setImageDrawable(binding.root.context.getDrawable(R.drawable.ic_error))
+            }
+
+            else -> {
+                binding.startTaskBtn.setImageDrawable(binding.root.context.getDrawable(R.drawable.ic_start))
+            }
+        }
         binding.root.setOnClickListener {
             when (taskItem.status) {
                 ITaskState.RUNNING.code -> {
@@ -31,7 +46,7 @@ class TaskViewHolder(val binding: TaskItemBinding, val accept: (UiAction) -> Uni
 
         }
         binding.root.setOnLongClickListener {
-            accept(UiAction.ShowTaskMenu(taskItem.url,true))
+            accept(UiAction.ShowTaskMenu(taskItem.url, true))
             true
         }
         if (this.absoluteAdapterPosition == 0) {
