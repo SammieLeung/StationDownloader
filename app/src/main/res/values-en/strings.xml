@@ -1,17 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Downloader</string>
-    <string name="menu_title">Downloader</string>
+    <string name="app_name">Station Downloader</string>
+    <string name="menu_title">Station Downloader</string>
     <string name="add_uri">Add</string>
-    <string name="add_torrent">Torrent File</string>
-    <string name="add_uri_hint">Tips: Supports Thunder, HTTP, Magnet, and Torrent downloads</string>
+    <string name="add_torrent">Select Torrent</string>
+    <string name="add_uri_hint">Add link hint: Supports Thunder, HTTP, magnet and torrent download</string>
     <string name="uri_is_empty">Link cannot be empty!</string>
 
     <string name="welcome_message">Initializing...</string>
-    <string name="welcome_enter_message">Entering the app...</string>
+    <string name="welcome_enter_message">Entering the application...</string>
 
     <string name="menu_downloading">Downloading</string>
-    <string name="menu_downloaded">Downloaded</string>
+    <string name="menu_downloaded">Download Complete</string>
     <string name="menu_setting">Settings</string>
 
     <string name="filter_all">All</string>
@@ -44,10 +44,10 @@
     <string name="aria2_setting">Aria2 Download Settings</string>
     <string name="aria2_setting_status">Aria2 Status</string>
 
-    <string name="common_setting_download_path">Default Download Path for Added Tasks</string>
-    <string name="common_setting_max_thread">Maximum Simultaneous Download Tasks</string>
+    <string name="common_setting_download_path">Default download path when adding download task</string>
+    <string name="common_setting_max_thread">Maximum number of simultaneous download tasks</string>
     <string name="common_setting_download_speed_limit">Download Speed Limit</string>
-    <string name="common_setting_default_download_engine">Default Download Method for Added Tasks</string>
+    <string name="common_setting_default_download_engine">Default download method when adding download task</string>
 
     <string name="xl_engine">Default Download</string>
     <string name="aria2_engine">Aria2 Download</string>
@@ -59,28 +59,31 @@
 
     <string name="speed_no_limit">No Limit</string>
 
-    <string name="new_task_size_info">%1$d files selected. Total size: %2$s</string>
+    <string name="new_task_size_info">Selected %1$d files, total %2$s</string>
     <string name="download_size_info">Remaining: %1$s</string>
 
-    <string name="confirm_delete_task">Confirm deletion of the task?</string>
-    <string name="delete_file_at_same_time">Delete Files Simultaneously</string>
+    <string name="confirm_delete_task">Confirm delete task?</string>
+    <string name="delete_file_at_same_time">Delete file at the same time</string>
 
-    <string name="defalut_engine_initailize_error">Default Downloader >> Failed to load!</string>
-    <string name="defalut_engine_initailize_succeed">Default Downloader >> Loaded successfully!</string>
+    <string name="defalut_engine_initailize_error">Default Downloader>> Load Failed!</string>
+    <string name="defalut_engine_initailize_succeed">Default Downloader>> Load Successful!</string>
 
-    <string name="aria2_engine_initailize_error">Aria2 Downloader >> Failed to load!</string>
-    <string name="aria2_engine_initailize_succeed">Aria2 Downloader >> Loaded successfully!</string>
+    <string name="aria2_engine_initailize_error">Aria2 Downloader>> Load Failed!</string>
+    <string name="aria2_engine_initailize_succeed">Aria2 Downloader>> Load Successful!</string>
     <string name="aria2_setting_status_obtaining">Obtaining service status...</string>
-    <string name="aria2_setting_status_on">Aria2 service is active</string>
-    <string name="aria2_setting_status_off">Aria2 service is inactive</string>
+    <string name="aria2_setting_status_on">Aria2 Service is On</string>
+    <string name="aria2_setting_status_off">Aria2 Service is Off</string>
 
     <string name="subscribe_start_notify">Device received a subscription request!</string>
-    <string name="subscribe_finish_notify">Subscription successful! Movie is currently downloading</string>
+    <string name="subscribe_finish_notify">Subscription successful! The movie is downloading</string>
 
     <string name="add_multi_tasks_title">Add Multiple Tasks</string>
-    <string name="initailizing_url">Parsing: %1$s</string>
-    <string name="initailizing_result">Parsed: %1$s/%2$s</string>
-    <string name="initailized_success">Successful: %1$s</string>
+    <string name="initailizing_url">Initializing: %1$s</string>
+    <string name="initailizing_result">Initialized: %1$s/%2$s</string>
+    <string name="initailized_success">Success: %1$s</string>
     <string name="initailized_failed">Failed: %1$s</string>
-    <string name="show_initialization_detail">Details</string>
+    <string name="show_initialization_detail">View Details</string>
+
+    <string name="multi_task_detail_title">Multi-task Details</string>
+    <string name="multi_task_detail_failed_links">Failed Links</string>
 </resources>

@@ -8,6 +8,7 @@ import android.view.View
 import android.widget.CheckBox
 import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.lifecycleScope
+import com.orhanobut.logger.Logger
 import com.station.stationdownloader.DownloadEngine
 import com.station.stationdownloader.FileType
 import com.station.stationdownloader.R
@@ -23,6 +24,7 @@ import com.station.stationdownloader.ui.viewmodel.UiAction
 import com.station.stationdownloader.utils.DLogger
 import com.station.stationtheme.spinner.StationSpinnerAdapter
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.map
@@ -34,6 +36,7 @@ class AddMultiTaskDialogFragment : BaseDialogFragment<DialogFragmentAddMultiTask
         requireActivity().application as StationDownloaderApp
     }
     private val vm: MainViewModel by activityViewModels()
+    private var isShowDetail: Boolean = false
 
     private val openFolderV1 = registerForActivityResult(OpenFileManagerV1Contract()) {
         if (it != null) {
@@ -56,14 +59,14 @@ class AddMultiTaskDialogFragment : BaseDialogFragment<DialogFragmentAddMultiTask
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         if (savedInstanceState == null) {
-            mBinding.initSpinner()
+            mBinding.initSpinner(vm.newTaskState, vm.dialogAccept)
             mBinding.bindState(
                 vm.newTaskState, vm.accept, vm.dialogAccept
             )
         }
     }
 
-    private fun DialogFragmentAddMultiTaskBinding.initSpinner() {
+    private fun DialogFragmentAddMultiTaskBinding.initSpinner(newTaskState: StateFlow<NewTaskState>, dialogAccept: (DialogAction) -> Unit) {
         val adapter: StationSpinnerAdapter<CharSequence?> =
             StationSpinnerAdapter<CharSequence?>(
                 requireContext(),
@@ -74,6 +77,25 @@ class AddMultiTaskDialogFragment : BaseDialogFragment<DialogFragmentAddMultiTask
             ) // 设置下拉菜单的样式
         // 将适配器绑定到spinner上
         engineSpinner.adapter = adapter
+        engineSpinner.onItemSelectedListener =
+            object : android.widget.AdapterView.OnItemSelectedListener {
+                override fun onNothingSelected(parent: android.widget.AdapterView<*>?) {
+                }
+
+                override fun onItemSelected(
+                    parent: android.widget.AdapterView<*>?,
+                    view: View?,
+                    position: Int,
+                    id: Long
+                ) {
+                    when (position) {
+                        0 -> dialogAccept(DialogAction.ChangeDownloadEngine(DownloadEngine.XL))
+                        1 -> dialogAccept(DialogAction.ChangeDownloadEngine(DownloadEngine.ARIA2))
+                    }
+                }
+
+            }
+        collectDownloadEngine(newTaskState)
     }
 
     private fun DialogFragmentAddMultiTaskBinding.bindState(
@@ -84,33 +106,25 @@ class AddMultiTaskDialogFragment : BaseDialogFragment<DialogFragmentAddMultiTask
         downloadPathView.isSelected = true
 
         downloadBtn.setOnClickListener {
-            accept(
-                UiAction.StartDownloadTask(
-                    when (engineSpinner.selectedItemPosition) {
-                        0 -> DownloadEngine.XL
-                        1 -> DownloadEngine.ARIA2
-                        else -> {
-                            DownloadEngine.XL
-                        }
-                    }
-                )
-            )
+            accept(UiAction.StartDownloadTask)
         }
 
         filePickerBtn.setOnClickListener {
             openFilePicker()
         }
 
-        collectInitializationProgress(newTaskState)
+        collectInitializationProgress(newTaskState, dialogAccept)
         collectFileFilterGroup(newTaskState, dialogAccept)
         collectTaskSizeInfo(newTaskState)
         collectSuccess(newTaskState)
         collectDownloadPath(newTaskState)
-        collectDownloadEngine(newTaskState)
     }
 
 
-    private fun DialogFragmentAddMultiTaskBinding.collectInitializationProgress(newTaskState: Flow<NewTaskState>) {
+    private fun DialogFragmentAddMultiTaskBinding.collectInitializationProgress(
+        newTaskState: Flow<NewTaskState>,
+        dialogAccept: (DialogAction) -> Unit
+    ) {
         lifecycleScope.launch {
             newTaskState.filter { it is NewTaskState.PreparingMultiData }.map {
                 (it as NewTaskState.PreparingMultiData)
@@ -118,10 +132,13 @@ class AddMultiTaskDialogFragment : BaseDialogFragment<DialogFragmentAddMultiTask
                 downloadBtn.isEnabled = it.isPrepared
                 statusTextView.visibility = if (it.isPrepared) View.GONE else View.VISIBLE
                 showFailedDetailView.visibility = if (it.isPrepared) View.VISIBLE else View.GONE
-                if(it.isPrepared){
-                    initializeResultView.setOnClickListener {  }
-                }else{
-                    initializeResultView.isClickable=false
+                if (it.isPrepared) {
+                    initializeResultView.setOnClickListener {
+                        isShowDetail = true
+                        dialogAccept(DialogAction.ShowMultiTaskDetail)
+                    }
+                } else {
+                    initializeResultView.isClickable = false
                 }
                 initializingUrl = getString(R.string.initailizing_url, it.initializingUrl)
                 initializeResult = getString(
@@ -262,7 +279,8 @@ class AddMultiTaskDialogFragment : BaseDialogFragment<DialogFragmentAddMultiTask
 
     override fun onDismiss(dialog: DialogInterface) {
         super.onDismiss(dialog)
-        vm.dialogAccept(DialogAction.ResetTaskSettingDialogState)
+        if (!isShowDetail)
+            vm.dialogAccept(DialogAction.ReinitializeAllDialogAction)
     }
 
     override fun DLogger.tag(): String {

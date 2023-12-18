@@ -26,6 +26,7 @@ import com.station.stationdownloader.ui.base.BaseActivity
 import com.station.stationdownloader.ui.fragment.AddUriDialogFragment
 import com.station.stationdownloader.ui.fragment.newtask.AddMultiTaskDialogFragment
 import com.station.stationdownloader.ui.fragment.newtask.AddSingleTaskDialogFragment
+import com.station.stationdownloader.ui.fragment.newtask.MultiTaskDetailDialogFragment
 import com.station.stationdownloader.ui.viewmodel.MainViewModel
 import com.station.stationdownloader.ui.viewmodel.ToastAction
 import com.station.stationdownloader.ui.viewmodel.ToastState
@@ -82,7 +83,7 @@ class MainActivity : BaseActivity<ActivityMainBinding>(), DLogger {
                                 supportFragmentManager,
                                 AddSingleTaskDialogFragment::class.java.simpleName
                             )
-                        }else if (it.isShowAddMultiTask){
+                        } else if (it.isShowAddMultiTask) {
                             if (supportFragmentManager.findFragmentByTag(
                                     AddMultiTaskDialogFragment::class.java.simpleName
                                 )?.isVisible == true
@@ -94,6 +95,23 @@ class MainActivity : BaseActivity<ActivityMainBinding>(), DLogger {
                             dialog.show(
                                 supportFragmentManager,
                                 AddMultiTaskDialogFragment::class.java.simpleName
+                            )
+                        } else if (it.isShowMultiTaskDetail) {
+                            if (supportFragmentManager.findFragmentByTag(
+                                    MultiTaskDetailDialogFragment::class.java.simpleName
+                                )?.isVisible == true) {
+                                return@collect
+                            }
+                            val multiTaskDialog = supportFragmentManager.findFragmentByTag(
+                                AddMultiTaskDialogFragment::class.java.simpleName
+                            )
+                            if (multiTaskDialog?.isVisible == true) {
+                                (multiTaskDialog as AddMultiTaskDialogFragment).dismiss()
+                            }
+                            val dialog=MultiTaskDetailDialogFragment()
+                            dialog.show(
+                                supportFragmentManager,
+                                MultiTaskDetailDialogFragment::class.java.simpleName
                             )
                         }
                     }
@@ -124,7 +142,7 @@ class MainActivity : BaseActivity<ActivityMainBinding>(), DLogger {
 
     override fun onNewIntent(intent: Intent?) {
         super.onNewIntent(intent)
-        handleAddUriIntent(intent,vm.accept,vm.emitToast)
+        handleAddUriIntent(intent, vm.accept, vm.emitToast)
     }
 
 
@@ -141,6 +159,7 @@ class MainActivity : BaseActivity<ActivityMainBinding>(), DLogger {
 
     override fun onPause() {
         super.onPause()
+        Logger.d("onPause")
         vm.accept(UiAction.SaveSession)
         unbindService(serviceConnection)
     }
@@ -192,15 +211,16 @@ class MainActivity : BaseActivity<ActivityMainBinding>(), DLogger {
         accept: (UiAction) -> Unit,
         emitToast: (ToastAction) -> Unit
     ) {
-        if(intent == null) return
-        when(intent.action){
-            ACTION_ADD_URI->{
+        if (intent == null) return
+        when (intent.action) {
+            ACTION_ADD_URI -> {
                 val uri = intent.getStringExtra(Intent.EXTRA_TEXT)
                 uri?.let {
                     accept(UiAction.InitSingleTask(uri))
                 } ?: emitToast(ToastAction.ShowToast(getString(R.string.uri_is_empty)))
             }
-            else->{}
+
+            else -> {}
         }
     }
 

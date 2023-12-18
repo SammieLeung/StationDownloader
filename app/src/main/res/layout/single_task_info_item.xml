@@ -14,6 +14,7 @@
     </data>
 
     <RelativeLayout
+        android:paddingHorizontal="20dp"
         android:id="@+id/itemView"
         android:layout_width="match_parent"
         android:layout_height="56dp">
@@ -26,28 +27,28 @@
             android:src="@mipmap/ic_folder" />
 
         <TextView
-            android:id="@+id/taskName"
+            android:id="@+id/taskNameView"
             style="@style/FileItem"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_centerVertical="true"
             android:layout_toEndOf="@id/icon"
-            android:layout_toStartOf="@id/selectedFileCount"
+            android:layout_toStartOf="@id/selectedFileCountView"
             android:duplicateParentState="true"
             android:text="@{taskName}" />
 
         <TextView
-            android:id="@+id/selectedFileCount"
+            android:id="@+id/selectedFileCountView"
             style="@style/FileItem"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_toStartOf="@id/selectedFileSize"
+          android:layout_toStartOf="@id/selectedFileSizeView"
             android:layout_centerVertical="true"
             android:duplicateParentState="true"
             android:text="@{selectedFileCount}" />
 
         <TextView
-            android:id="@+id/selectedFileSize"
+            android:id="@+id/selectedFileSizeView"
             style="@style/FileItem"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"

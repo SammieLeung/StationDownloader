@@ -132,15 +132,12 @@ class MainViewModel @Inject constructor(
         }
 
 
-
     private suspend fun startSingleDownloadTask(action: UiAction.StartDownloadTask) {
         val preparingData = _newTaskState.value as NewTaskState.PreparingData
 
         val saveTaskResult =
             taskRepo.validateAndPersistTask(
-                preparingData.singleNewTaskConfig.update(
-                    downloadEngine = action.engine
-                )
+                preparingData.singleNewTaskConfig
             )
         if (saveTaskResult is IResult.Error) {
             when (saveTaskResult.code) {
@@ -174,17 +171,13 @@ class MainViewModel @Inject constructor(
     private suspend fun startMultiDownloadTask(action: UiAction.StartDownloadTask) {
         val preparingMultiData = _newTaskState.value as NewTaskState.PreparingMultiData
 
-        val failedTaskConfigs:MutableList<Pair<String,IResult.Error>> = mutableListOf()
+        val failedTaskConfigs: MutableList<Pair<String, IResult.Error>> = mutableListOf()
         preparingMultiData.multiNewTaskConfig.taskConfigs.forEach {
             val saveTaskResult =
-                taskRepo.validateAndPersistTask(
-                    it.update(
-                        downloadEngine = action.engine
-                    )
-                )
+                taskRepo.validateAndPersistTask(it)
             if (saveTaskResult is IResult.Error) {
-                        failedTaskConfigs.add(Pair(it._name,saveTaskResult))
-            }else{
+                failedTaskConfigs.add(Pair(it._name, saveTaskResult))
+            } else {
                 saveTaskResult as IResult.Success
                 TaskService.startTask(application, saveTaskResult.data.url)
             }
@@ -285,6 +278,7 @@ class MainViewModel @Inject constructor(
                             } else it
                         }
                     }
+
                     MultiTaskResult.Finish -> {
                         logLine("Finish")
 
@@ -344,8 +338,8 @@ class MainViewModel @Inject constructor(
         val actionStateFlow: MutableSharedFlow<DialogAction> = MutableSharedFlow()
         val initAddUriState =
             actionStateFlow.filterIsInstance<DialogAction.ResetAddUriDialogState>()
-        val initTaskSettingState =
-            actionStateFlow.filterIsInstance<DialogAction.ResetTaskSettingDialogState>()
+        val hideAllDialogFlow =
+            actionStateFlow.filterIsInstance<DialogAction.ReinitializeAllDialogAction>()
         val filterStateFlow = actionStateFlow.filterIsInstance<DialogAction.FilterGroupState>()
 
         val changeDownloadPathFlow =
@@ -354,14 +348,18 @@ class MainViewModel @Inject constructor(
             actionStateFlow.filterIsInstance<DialogAction.ChangeDownloadEngine>()
         val calculateSizeInfoFlow =
             actionStateFlow.filterIsInstance<DialogAction.CalculateSizeInfo>()
-
+        val openMultiTaskDetailFlow =
+            actionStateFlow.filterIsInstance<DialogAction.ShowMultiTaskDetail>()
+        val addMultiTaskDialog=actionStateFlow.filterIsInstance<DialogAction.BackToAddMultiTask>()
 
         handleInitAddUriState(initAddUriState)
-        handleInitTaskSettingState(initTaskSettingState)
+        handleReinitializeAllDialog(hideAllDialogFlow)
+        handleOpenMultiTaskDetail(openMultiTaskDetailFlow)
         handleFilterState(filterStateFlow)
         handleChangeDownloadPathFlow(changeDownloadPathFlow)
         handleCalculateSizeInfo(calculateSizeInfoFlow)
         handleDownloadEngineFlow(changeDownloadEngineFlow)
+        handleAddMultiTaskDialogFlow(addMultiTaskDialog)
 
         return { dialogAction ->
             viewModelScope.launch {
@@ -370,6 +368,16 @@ class MainViewModel @Inject constructor(
         }
     }
 
+    private fun handleAddMultiTaskDialogFlow(addMultiTaskDialog: Flow<DialogAction.BackToAddMultiTask>) =
+        viewModelScope.launch {
+            addMultiTaskDialog.collect{
+                _mainUiState.update {
+                    it.showAddMultiTask()
+                }
+            }
+        }
+
+
     private fun handleInitAddUriState(initAddUriStateFlow: Flow<DialogAction.ResetAddUriDialogState>) =
         viewModelScope.launch {
             initAddUriStateFlow.collect {
@@ -377,15 +385,25 @@ class MainViewModel @Inject constructor(
             }
         }
 
-    private fun handleInitTaskSettingState(initTaskSettingStateFlow: Flow<DialogAction.ResetTaskSettingDialogState>) =
+    private fun handleReinitializeAllDialog(initTaskSettingStateFlow: Flow<DialogAction.ReinitializeAllDialogAction>) =
         viewModelScope.launch {
             initTaskSettingStateFlow.collect {
                 _newTaskState.value = NewTaskState.INIT
                 _mainUiState.update {
-                    it.hideDialog()
+                    it.reinitializeAllDialog()
                 }
             }
         }
+
+    private fun handleOpenMultiTaskDetail(openMultiTaskDetailFlow: Flow<DialogAction.ShowMultiTaskDetail>) =
+        viewModelScope.launch {
+            openMultiTaskDetailFlow.collect {
+                _mainUiState.update {
+                    it.showMultiTaskDetail()
+                }
+            }
+        }
+
 
     private fun handleFilterState(filterStateFlow: Flow<DialogAction.FilterGroupState>) =
         viewModelScope.launch {
@@ -673,17 +691,19 @@ class MainViewModel @Inject constructor(
 sealed class UiAction {
     data class InitSingleTask(val url: String) : UiAction()
     data class InitMultiTask(val urlList: List<String>) : UiAction()
-    data class StartDownloadTask(val engine: DownloadEngine) : UiAction()
+    object StartDownloadTask : UiAction()
     object SaveSession : UiAction()
 }
 
 sealed class DialogAction {
     object ResetAddUriDialogState : DialogAction()
-    object ResetTaskSettingDialogState : DialogAction()
+    object ReinitializeAllDialogAction : DialogAction()
 
     data class FilterGroupState(val fileType: FileType, val isSelect: Boolean) : DialogAction()
     data class ChangeDownloadPath(val downloadPath: String) : DialogAction()
     data class ChangeDownloadEngine(val engine: DownloadEngine) : DialogAction()
+    object ShowMultiTaskDetail : DialogAction()
+    object BackToAddMultiTask:DialogAction()
     object CalculateSizeInfo : DialogAction()
 }
 
@@ -696,6 +716,7 @@ data class MainUiState(
     val isLoading: Boolean = false,
     val isShowAddNewTask: Boolean = false,
     val isShowAddMultiTask: Boolean = false,
+    val isShowMultiTaskDetail: Boolean = false,
 ) {
     fun isLoading(): MainUiState =
         copy(isLoading = true)
@@ -704,14 +725,17 @@ data class MainUiState(
         copy(isLoading = false)
 
     fun showAddNewTask(): MainUiState =
-        copy(isShowAddNewTask = true, isShowAddMultiTask = false)
+        copy(isShowAddNewTask = true, isShowAddMultiTask = false, isShowMultiTaskDetail = false)
 
 
     fun showAddMultiTask(): MainUiState =
-        copy(isShowAddNewTask = false, isShowAddMultiTask = true)
+        copy(isShowAddNewTask = false, isShowAddMultiTask = true, isShowMultiTaskDetail = false)
 
-    fun hideDialog(): MainUiState =
-        copy(isShowAddNewTask = false, isShowAddMultiTask = false)
+    fun showMultiTaskDetail(): MainUiState =
+        copy(isShowAddNewTask = false, isShowAddMultiTask = false, isShowMultiTaskDetail = true)
+
+    fun reinitializeAllDialog(): MainUiState =
+        copy(isShowAddNewTask = false, isShowAddMultiTask = false, isShowMultiTaskDetail = false)
 
 }
 

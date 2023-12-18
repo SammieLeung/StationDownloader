@@ -6,9 +6,11 @@ import android.text.Html
 import android.text.Html.FROM_HTML_OPTION_USE_CSS_COLORS
 import android.util.Base64
 import android.view.View
+import android.widget.AdapterView
 import android.widget.CheckBox
 import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.lifecycleScope
+import com.orhanobut.logger.Logger
 import com.station.stationdownloader.DownloadEngine
 import com.station.stationdownloader.FileType
 import com.station.stationdownloader.R
@@ -25,13 +27,15 @@ import com.station.stationdownloader.ui.viewmodel.UiAction
 import com.station.stationdownloader.utils.DLogger
 import com.station.stationtheme.spinner.StationSpinnerAdapter
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 
 
-class AddSingleTaskDialogFragment : BaseDialogFragment<DialogFragmentAddSingleTaskBinding>(), DLogger {
+class AddSingleTaskDialogFragment : BaseDialogFragment<DialogFragmentAddSingleTaskBinding>(),
+    DLogger {
     private val app by lazy {
         requireActivity().application as StationDownloaderApp
     }
@@ -55,7 +59,6 @@ class AddSingleTaskDialogFragment : BaseDialogFragment<DialogFragmentAddSingleTa
         }
     }
 
-
     private val taskFileListAdapter: TreeNodeAdapter by lazy {
         TreeNodeAdapter { vm.dialogAccept(DialogAction.CalculateSizeInfo) }
     }
@@ -64,7 +67,7 @@ class AddSingleTaskDialogFragment : BaseDialogFragment<DialogFragmentAddSingleTa
         super.onViewCreated(view, savedInstanceState)
         if (savedInstanceState == null) {
             mBinding.initRecyclerView()
-            mBinding.initSpinner(vm.dialogAccept)
+            mBinding.initSpinner(vm.newTaskState, vm.dialogAccept)
             mBinding.bindState(
                 vm.newTaskState, vm.accept, vm.dialogAccept
             )
@@ -77,13 +80,43 @@ class AddSingleTaskDialogFragment : BaseDialogFragment<DialogFragmentAddSingleTa
         taskFileList.itemAnimator?.changeDuration = 0
     }
 
-    private fun DialogFragmentAddSingleTaskBinding.initSpinner(dialogAccept: (DialogAction) -> Unit) {
+    private fun DialogFragmentAddSingleTaskBinding.initSpinner(
+        newTaskState: StateFlow<NewTaskState>,
+        dialogAccept: (DialogAction) -> Unit
+    ) {
         val adapter: StationSpinnerAdapter<CharSequence?> =
             StationSpinnerAdapter<CharSequence?>(
-                requireContext(), arrayOf<String?>(getString(R.string.download_with_xl), getString(R.string.download_with_aria2))
+                requireContext(),
+                arrayOf<String?>(
+                    getString(R.string.download_with_xl),
+                    getString(R.string.download_with_aria2)
+                )
             ) // 设置下拉菜单的样式
         // 将适配器绑定到spinner上
         engineSpinner.adapter = adapter
+        engineSpinner.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
+            override fun onItemSelected(
+                parent: AdapterView<*>?,
+                view: View?,
+                position: Int,
+                id: Long
+            ) {
+                Logger.d("onItemSelected $position")
+                when (position) {
+                    0 -> dialogAccept(DialogAction.ChangeDownloadEngine(DownloadEngine.XL))
+                    1 -> dialogAccept(DialogAction.ChangeDownloadEngine(DownloadEngine.ARIA2))
+                }
+            }
+
+            override fun onNothingSelected(parent: AdapterView<*>?) {
+
+            }
+
+        }
+
+        collectDownloadEngine(newTaskState)
+
+
     }
 
     private fun DialogFragmentAddSingleTaskBinding.bindState(
@@ -94,17 +127,7 @@ class AddSingleTaskDialogFragment : BaseDialogFragment<DialogFragmentAddSingleTa
         downloadPathView.isSelected = true
 
         downloadBtn.setOnClickListener {
-            accept(
-                UiAction.StartDownloadTask(
-                    when (engineSpinner.selectedItemPosition) {
-                        0 -> DownloadEngine.XL
-                        1 -> DownloadEngine.ARIA2
-                        else -> {
-                            DownloadEngine.XL
-                        }
-                    }
-                )
-            )
+            accept(UiAction.StartDownloadTask)
         }
 
         filePickerBtn.setOnClickListener {
@@ -117,7 +140,6 @@ class AddSingleTaskDialogFragment : BaseDialogFragment<DialogFragmentAddSingleTa
         collectSuccess(newTaskState)
         collectDownloadPath(newTaskState)
         collectTaskName(newTaskState)
-        collectDownloadEngine(newTaskState)
     }
 
 
@@ -222,7 +244,7 @@ class AddSingleTaskDialogFragment : BaseDialogFragment<DialogFragmentAddSingleTa
         if (app.useV2FileManager) {
             openFileManagerV2()
         } else {
-            openFileManagerV2()
+            openFileManagerV1()
         }
     }
 
@@ -264,7 +286,7 @@ class AddSingleTaskDialogFragment : BaseDialogFragment<DialogFragmentAddSingleTa
 
     override fun onDismiss(dialog: DialogInterface) {
         super.onDismiss(dialog)
-        vm.dialogAccept(DialogAction.ResetTaskSettingDialogState)
+        vm.dialogAccept(DialogAction.ReinitializeAllDialogAction)
     }
 
     override fun DLogger.tag(): String {

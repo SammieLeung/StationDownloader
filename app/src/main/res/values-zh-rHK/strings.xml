@@ -83,4 +83,7 @@
     <string name="initailized_success">成功：%1$s</string>
     <string name="initailized_failed">失敗：%1$s</string>
     <string name="show_initialization_detail">查看詳情</string>
+
+    <string name="multi_task_detail_title">多任務詳情</string>
+    <string name="multi_task_detail_failed_links">失敗鏈接</string>
 </resources>
