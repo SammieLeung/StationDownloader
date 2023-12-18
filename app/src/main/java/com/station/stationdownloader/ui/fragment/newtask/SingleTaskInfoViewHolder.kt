@@ -20,6 +20,7 @@ class SingleTaskInfoViewHolder(
 
         binding.selectedFileSize = newTaskConfigModel._fileTree
             .totalCheckedFileSize.toHumanReading()
+        binding.root.isClickable=true
     }
 
     override fun DLogger.tag(): String {

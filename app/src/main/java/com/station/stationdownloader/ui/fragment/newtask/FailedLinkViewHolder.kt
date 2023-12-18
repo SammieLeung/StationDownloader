@@ -11,6 +11,7 @@ class FailedLinkViewHolder(val binding: FailedLinkItemBinding,
 
     fun bind(failedLink: Pair<String, IResult.Error>) {
         binding.failedLink=failedLink.first
+        binding.root.isClickable=true
     }
 
 

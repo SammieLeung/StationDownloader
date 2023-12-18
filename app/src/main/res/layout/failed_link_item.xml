@@ -8,13 +8,15 @@
     </data>
 
     <TextView
+        android:background="@drawable/file_item_bg"
         android:maxLines="1"
+        android:gravity="center_vertical"
         android:ellipsize="end"
         android:id="@+id/failedLinkView"
         android:text="@{failedLink}"
         android:paddingHorizontal="20dp"
         android:textSize="18sp"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content">
+        android:layout_height="48dp">
     </TextView>
 </layout>
