@@ -31,43 +31,43 @@ class WelcomeActivity : PermissionActivity<ActivityWelcomeBinding>(
         lifecycleScope.launch {
             withContext(Dispatchers.Default) {
                 val app = application as StationDownloaderApp
-                val messageList= mutableListOf<String>()
+                val messageList = mutableListOf<String>()
                 if (!app.isInitialized()) {
                     app.initialize()
                 }
 
-                if(!engineRepoUseCase.isEnginesInitialized()){
+                if (!engineRepoUseCase.isEnginesInitialized()) {
                     engineRepoUseCase.initEngines { engine, result ->
                         when (engine) {
                             DownloadEngine.XL -> {
-                                if(result is IResult.Success) {
+                                if (result is IResult.Success) {
                                     messageList.add(getString(R.string.defalut_engine_initailize_succeed))
                                 } else if (result is IResult.Error) {
                                     messageList.add(getString(R.string.defalut_engine_initailize_error))
                                     Logger.e("[XL] init error: ${result.exception}")
                                 }
-                                mBinding.process= messageList.joinToString("\n")
+                                mBinding.process = messageList.joinToString("\n")
                             }
+
                             DownloadEngine.ARIA2 -> {
-                                if(result is IResult.Success) {
+                                if (result is IResult.Success) {
                                     messageList.add(getString(R.string.aria2_engine_initailize_succeed))
                                 } else if (result is IResult.Error) {
                                     messageList.add(getString(R.string.aria2_engine_initailize_error))
                                     Logger.e("[Aria2] init error: ${result.exception}")
                                 }
                                 messageList.add(getString(R.string.welcome_enter_message))
-                                mBinding.process= messageList.joinToString("\n")
+                                mBinding.process = messageList.joinToString("\n")
                                 delay(1000)
-                                startActivity(MainActivity.newIntent(this@WelcomeActivity,intent))
+                                startActivity(MainActivity.newIntent(this@WelcomeActivity, intent))
                                 finish()
                             }
 
                             DownloadEngine.INVALID_ENGINE -> {}
                         }
                     }
-                }
-                else{
-                    startActivity(MainActivity.newIntent(this@WelcomeActivity,intent))
+                } else {
+                    startActivity(MainActivity.newIntent(this@WelcomeActivity, intent))
                     finish()
                 }
 

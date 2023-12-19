@@ -216,8 +216,21 @@ class MainActivity : BaseActivity<ActivityMainBinding>(), DLogger {
             ACTION_ADD_URI -> {
                 val uri = intent.getStringExtra(Intent.EXTRA_TEXT)
                 uri?.let {
-                    accept(UiAction.InitSingleTask(uri))
+                    if (it.isMultiUri()) {
+                        val uriList = it.split("\n").filter { it.isNotEmpty() }
+                        if (uriList.isEmpty()) {
+                            emitToast(ToastAction.ShowToast(getString(R.string.uri_is_empty)))
+                        } else if (uriList.size == 1) {
+                            accept(UiAction.InitSingleTask(uriList[0]))
+                        } else {
+                            accept(UiAction.InitMultiTask(uriList))
+                        }
+                    } else {
+                        accept(UiAction.InitSingleTask(uri))
+                    }
                 } ?: emitToast(ToastAction.ShowToast(getString(R.string.uri_is_empty)))
+
+
             }
 
             else -> {}
@@ -265,4 +278,8 @@ class MainActivity : BaseActivity<ActivityMainBinding>(), DLogger {
             }
         }
     }
+}
+
+private fun String.isMultiUri(): Boolean {
+    return this.contains("\n")
 }
